@@ -1,0 +1,1360 @@
+{% extends "base.html" %}
+{% load ui_i18n %}
+
+{% block title %}{% ui 'exercise' %} {{ ep.orden }} — {{ practica.titulo_localizado }} — {{ config_sitio.nombre_sitio }}{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="breadcrumb">
+    <a href="{% url 'ejercicios:home' %}">{% ui 'home' %}</a>
+    &rsaquo; <a href="{% url 'ejercicios:practica' pc.id %}">{{ practica.titulo_localizado }}</a>
+    &rsaquo; {% ui 'exercise' %} {{ ep.orden }}
+  </div>
+
+  <!-- Enunciado ─────────────────────────────────────────────────── -->
+  <div class="card">
+    <div style="display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 0.75rem;">
+      <h2 style="margin: 0;">{% ui 'exercise' %} {{ ep.orden }}</h2>
+      <span class="badge badge-tipo">{{ ejercicio.tipo_localizado }}</span>
+    </div>
+    <div style="font-size: 1.05rem;">{{ ejercicio.enunciado_localizado|safe }}</div>
+  </div>
+
+  <!-- Zona de respuesta ─────────────────────────────────────────── -->
+  {% if puede_enviar %}
+
+  <!-- Aviso si el docente rechazó la entrega anterior -->
+  {% if ultimo_intento and ultimo_intento.aprobado_docente == False %}
+  <div class="alert alert-warning" style="margin-bottom: 1rem;">
+    <strong>Tu docente rechazó tu última entrega.</strong>
+    {% if ultimo_intento.comentario_docente %}
+      <p style="margin: 0.3rem 0 0;">{{ ultimo_intento.comentario_docente|linebreaksbr }}</p>
+    {% endif %}
+    <p style="margin: 0.3rem 0 0; font-size: 0.9rem;">Corregí tu respuesta y volvé a enviar.</p>
+  </div>
+  {% endif %}
+
+  <div class="card"
+       x-data="ejercicioApp(
+         {{ ep.id }},
+         {{ pc.id }},
+         '{% url 'ejercicios:practica' pc.id %}',
+         {{ initial_formula_json }},
+         {{ initial_diccionario_json }},
+         '{{ ejercicio.tipo }}',
+         {{ initial_enunciados_json }},
+         {{ initial_juicio_json }},
+         {{ initial_valores_verdad_json }},
+         {{ initial_valor_verdad_json }}
+       )"
+       x-cloak>
+
+    {% csrf_token %}
+
+    <!-- ── Paso 1: Diccionario de proposiciones ───────────────── -->
+    <h3 style="margin-top: 0;">Paso 1: Construí tu diccionario</h3>
+    <p style="font-size: 0.9rem; color: #555; margin-top: 0;">
+      Asigná una letra mayúscula a cada proposición simple del enunciado.
+      Esas letras aparecerán en el teclado para que construyas la fórmula{% if ejercicio.tipo == 'tabla_verdad' %} de cada enunciado{% endif %}.
+    </p>
+
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 0.75rem;">
+      <thead>
+        <tr>
+          <th style="text-align: left; padding: 0.3rem 0.5rem; width: 5rem;">Letra</th>
+          <th style="text-align: left; padding: 0.3rem 0.5rem;">Proposición</th>
+          <!-- Columna de valor de verdad: solo para determinacion_verdad -->
+          <th x-show="esTipo === 'determinacion_verdad'"
+              style="text-align: center; padding: 0.3rem 0.5rem; width: 7rem;">Valor de verdad</th>
+          <th style="width: 3rem;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <template x-for="(entrada, i) in entradas" :key="i">
+          <tr>
+            <td style="padding: 0.25rem 0.5rem;">
+              <input
+                type="text"
+                x-model="entrada.letra"
+                @input="entrada.letra = entrada.letra.toUpperCase().replace(/[^A-Z]/g, '').replace('V','').slice(0,1)"
+                maxlength="1"
+                title="V está reservada para la disyunción"
+                style="width: 3rem; text-align: center; font-weight: bold; font-size: 1.1rem;"
+              >
+            </td>
+            <td style="padding: 0.25rem 0.5rem;">
+              <input
+                type="text"
+                x-model="entrada.frase"
+                placeholder="ej: Llueve"
+                style="width: 100%;"
+              >
+            </td>
+            <!-- Selector V/F por variable: solo para determinacion_verdad -->
+            <td x-show="esTipo === 'determinacion_verdad'"
+                style="padding: 0.25rem 0.5rem; text-align: center;">
+              <label style="display:inline-flex; align-items:center; gap:0.25rem; cursor:pointer; margin-right:0.4rem;">
+                <input type="radio" :name="'vv_est_' + i" :value="true" x-model="entrada.valor">
+                <span style="font-weight:bold; color:#1a7a1a;">V</span>
+              </label>
+              <label style="display:inline-flex; align-items:center; gap:0.25rem; cursor:pointer;">
+                <input type="radio" :name="'vv_est_' + i" :value="false" x-model="entrada.valor">
+                <span style="font-weight:bold; color:#c00;">F</span>
+              </label>
+            </td>
+            <td style="padding: 0.25rem 0.5rem; text-align: center;">
+              <button type="button" @click="quitarEntrada(i)"
+                      style="background: none; border: none; cursor: pointer; color: #c00; font-size: 1.1rem;"
+                      title="Quitar">✕</button>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+
+    <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap;">
+      <button type="button" class="btn btn-secondary" @click="agregarEntrada()">
+        + Agregar variable
+      </button>
+      <span x-show="errorDiccionario" class="alert alert-error"
+            style="display: inline-block; padding: 0.3rem 0.6rem; margin: 0;"
+            x-text="errorDiccionario"></span>
+    </div>
+
+    <hr style="margin: 1.25rem 0;">
+
+    <!-- ══════════════════════════════════════════════════════════
+         DETERMINACIÓN DE VERDAD: Paso 2 — Fórmula + Paso 3 — Valor de verdad
+         ══════════════════════════════════════════════════════════ -->
+    <div x-show="esTipo === 'determinacion_verdad'">
+      <h3 style="margin-top: 0;">Paso 2: Escribí la fórmula</h3>
+      <p style="font-size: 0.9rem; color: #555; margin-top: 0;">
+        Formalizá el enunciado usando las letras de tu diccionario y las conectivas del teclado.
+      </p>
+
+      <div class="keyboard" style="margin-top: 0.5rem; flex-wrap: wrap; display: flex; gap: 0.3rem;">
+        <button class="key" type="button" @click="insertar('~')" title="Negación (~)">~</button>
+        <button class="key" type="button" @click="insertar('\u00b7')" title="Conjunción (·)">·</button>
+        <button class="key" type="button" @click="insertar('\u2228')" title="Disyunción (∨)">∨</button>
+        <button class="key" type="button" @click="insertar('\u2283')" title="Condicional (⊃)">⊃</button>
+        <button class="key" type="button" @click="insertar('\u2261')" title="Bicondicional (≡)">≡</button>
+        <button class="key key-paren" type="button" @click="insertar('(')">(</button>
+        <button class="key key-paren" type="button" @click="insertar(')')">)</button>
+        <span style="width: 0.5rem;"></span>
+        <template x-for="letra in letrasValidas" :key="letra">
+          <button class="key" type="button"
+                  @click="insertar(letra)"
+                  style="font-weight: bold;"
+                  :title="'Variable ' + letra + ': ' + diccionario[letra]"
+                  x-text="letra">
+          </button>
+        </template>
+        <span x-show="letrasValidas.length === 0"
+              style="font-size: 0.85rem; color: #888; align-self: center; font-style: italic;">
+          (las letras del diccionario aparecen acá)
+        </span>
+      </div>
+
+      <input
+        type="text"
+        x-ref="formulaInput"
+        x-model="formula"
+        placeholder="A ⊃ B"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        @keydown.enter.prevent=""
+        style="font-size: 1.1rem; margin-top: 0.5rem;"
+      >
+      <p style="font-size: 0.8rem; color: #888; margin-top: 0.3rem; margin-bottom: 1rem;">
+        El teclado inserta en la posición del cursor. También podés escribir <code>.</code> o <code>&amp;</code> para conjunción, <code>-&gt;</code> para condicional.
+      </p>
+
+      <hr style="margin: 1rem 0;">
+
+      <h3 style="margin-top: 0;">Paso 3: Determiná el valor de verdad de tu fórmula</h3>
+      <p style="font-size: 0.9rem; color: #555; margin-top: 0;">
+        Usando los valores de verdad que asignaste a cada variable en el Paso 1,
+        calculá el valor de verdad de tu fórmula completa y marcá el resultado.
+      </p>
+      <div style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
+        <label style="display:inline-flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:1.1rem;">
+          <input type="radio" name="valor_verdad_est" :value="true" x-model="valorVerdadEstudiante">
+          <span style="font-weight:bold; color:#1a7a1a;">V — Verdadero</span>
+        </label>
+        <label style="display:inline-flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:1.1rem;">
+          <input type="radio" name="valor_verdad_est" :value="false" x-model="valorVerdadEstudiante">
+          <span style="font-weight:bold; color:#c00;">F — Falso</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         FORMALIZACIÓN: Paso 2 — Fórmula única
+         ══════════════════════════════════════════════════════════ -->
+    <div x-show="esTipo !== 'tabla_verdad' && esTipo !== 'determinacion_verdad'">
+      <h3 style="margin-top: 0;">Paso 2: Escribí la fórmula</h3>
+      <p style="font-size: 0.9rem; color: #555; margin-top: 0;">
+        Usá las letras del diccionario y las conectivas del teclado.
+        Para la conjunción también podés escribir <code>.</code> o <code>&amp;</code>, y para el condicional <code>-&gt;</code>.
+      </p>
+
+      <div class="keyboard" style="margin-top: 0.5rem; flex-wrap: wrap; display: flex; gap: 0.3rem;">
+        <button class="key" type="button" @click="insertar('~')" title="Negación (~)">~</button>
+        <button class="key" type="button" @click="insertar('\u00b7')" title="Conjunción (·)">·</button>
+        <button class="key" type="button" @click="insertar('\u2228')" title="Disyunción (∨)">∨</button>
+        <button class="key" type="button" @click="insertar('\u2283')" title="Condicional (⊃)">⊃</button>
+        <button class="key" type="button" @click="insertar('\u2261')" title="Bicondicional (≡)">≡</button>
+        <button class="key key-paren" type="button" @click="insertar('(')">(</button>
+        <button class="key key-paren" type="button" @click="insertar(')')">)</button>
+        <span style="width: 0.5rem;"></span>
+        <template x-for="letra in letrasValidas" :key="letra">
+          <button class="key" type="button"
+                  @click="insertar(letra)"
+                  style="font-weight: bold;"
+                  :title="'Variable ' + letra + ': ' + diccionario[letra]"
+                  x-text="letra">
+          </button>
+        </template>
+        <span x-show="letrasValidas.length === 0"
+              style="font-size: 0.85rem; color: #888; align-self: center; font-style: italic;">
+          (las letras del diccionario aparecen acá)
+        </span>
+      </div>
+
+      <input
+        type="text"
+        id="formula-input"
+        x-ref="formulaInput"
+        x-model="formula"
+        placeholder="A ⊃ B"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        @keydown.enter.prevent="enviar()"
+        style="font-size: 1.1rem; margin-top: 0.5rem;"
+      >
+      <p style="font-size: 0.8rem; color: #888; margin-top: 0.3rem; margin-bottom: 1rem;">
+        Enter para enviar. El teclado inserta en la posición del cursor.
+      </p>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         TABLA DE VERDAD: Paso 2 — Argumento, Paso 3 — Tabla interactiva,
+                          Paso 4 — Validez
+         ══════════════════════════════════════════════════════════ -->
+    <div x-show="esTipo === 'tabla_verdad'">
+      <h3 style="margin-top: 0;">Paso 2: Construí el argumento</h3>
+      <p style="font-size: 0.9rem; color: #555; margin-top: 0;">
+        Ingresá cada enunciado del argumento (premisas y conclusión).
+        Usá las letras del diccionario y las conectivas del teclado on-screen. También podés escribir <code>.</code> como conjunción.
+      </p>
+
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 0.75rem;">
+        <thead>
+          <tr>
+            <th style="text-align: left; padding: 0.3rem 0.5rem;">Fórmula</th>
+            <th style="text-align: left; padding: 0.3rem 0.5rem; width: min(16rem, 40%);">Tipo</th>
+            <th style="width: 3rem;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="(fila, i) in filasArgumento" :key="i">
+            <tr>
+              <td style="padding: 0.25rem 0.5rem;">
+                <!-- Mini-teclado por fila -->
+                <div style="display: flex; flex-wrap: wrap; gap: 0.2rem; margin-bottom: 0.25rem;">
+                  <button class="key" type="button" style="font-size:0.8rem; padding:0.15rem 0.4rem;" @click="insertarEnFila(i, '~')">~</button>
+                  <button class="key" type="button" style="font-size:0.8rem; padding:0.15rem 0.4rem;" @click="insertarEnFila(i, '\u00b7')">·</button>
+                  <button class="key" type="button" style="font-size:0.8rem; padding:0.15rem 0.4rem;" @click="insertarEnFila(i, '\u2228')">∨</button>
+                  <button class="key" type="button" style="font-size:0.8rem; padding:0.15rem 0.4rem;" @click="insertarEnFila(i, '\u2283')">⊃</button>
+                  <button class="key" type="button" style="font-size:0.8rem; padding:0.15rem 0.4rem;" @click="insertarEnFila(i, '\u2261')">≡</button>
+                  <button class="key key-paren" type="button" style="font-size:0.8rem; padding:0.15rem 0.4rem;" @click="insertarEnFila(i, '(')">(</button>
+                  <button class="key key-paren" type="button" style="font-size:0.8rem; padding:0.15rem 0.4rem;" @click="insertarEnFila(i, ')')">)</button>
+                  <template x-for="letra in letrasValidas" :key="letra">
+                    <button class="key" type="button"
+                            style="font-size:0.8rem; padding:0.15rem 0.4rem; font-weight:bold;"
+                            @click="insertarEnFila(i, letra)"
+                            x-text="letra">
+                    </button>
+                  </template>
+                </div>
+                <input
+                  type="text"
+                  x-model="fila.formula"
+                  placeholder="ej: A ⊃ B"
+                  autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                  style="width: 100%; font-size: 1rem;"
+                  :id="'fila_arg_' + i"
+                >
+              </td>
+              <td style="padding: 0.25rem 0.5rem;">
+                <label style="display:inline-flex; align-items:center; gap:0.3rem; margin-right:0.75rem; cursor:pointer;">
+                  <input type="radio" :name="'tipo_arg_' + i" value="premisa" x-model="fila.tipo"> Premisa
+                </label>
+                <label style="display:inline-flex; align-items:center; gap:0.3rem; cursor:pointer;"
+                       :style="hayConclusion && fila.tipo !== 'conclusion' ? 'opacity:0.4;' : ''">
+                  <input type="radio" :name="'tipo_arg_' + i" value="conclusion" x-model="fila.tipo"
+                         :disabled="hayConclusion && fila.tipo !== 'conclusion'"> Conclusión
+                </label>
+              </td>
+              <td style="padding: 0.25rem 0.5rem; text-align: center;">
+                <button type="button" @click="quitarFila(i)"
+                        style="background:none; border:none; cursor:pointer; color:#c00; font-size:1.1rem;"
+                        title="Quitar">✕</button>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <button type="button" class="btn btn-secondary" @click="agregarFila()" style="margin-bottom:1rem;">
+        + Agregar proposición
+      </button>
+
+      <hr style="margin: 1rem 0;">
+
+      <!-- Paso 3: Tabla de verdad interactiva -->
+      <h3 style="margin-top: 0;">Paso 3: Completá la tabla de verdad</h3>
+      <p style="font-size: 0.9rem; color: #555; margin-top: 0;">
+        Generá la tabla y completá cada celda haciendo click para alternar
+        <strong>V</strong> / <strong>F</strong>.
+        Las columnas de variables se generan automáticamente; las de fórmulas las completás vos.
+      </p>
+
+      <!-- Botón generar tabla (visible mientras no se generó) -->
+      <div x-show="!tablaObtenida" style="margin-bottom: 1rem;">
+        <button type="button" class="btn btn-secondary"
+                @click="generarTabla()"
+                :disabled="generandoTabla || !hayConclusion || filasArgumento.length === 0">
+          <span x-text="generandoTabla ? 'Generando…' : 'Generar tabla'">Generar tabla</span>
+        </button>
+        <span x-show="!hayConclusion || filasArgumento.length === 0"
+              style="font-size:0.85rem; color:#888; margin-left:0.5rem; font-style:italic;">
+          (completá el argumento en el Paso 2 primero)
+        </span>
+      </div>
+
+      <!-- Tabla interactiva (visible cuando ya se generó) -->
+      <div x-show="tablaObtenida" style="margin-bottom: 1rem; overflow-x: auto;">
+
+        <table class="truth-table" style="min-width: max-content;">
+          <thead>
+            <tr>
+              <!-- Todas las columnas son editables: variables + subcolumnas + enunciados -->
+              <template x-for="col in columnasTabla" :key="'hc-' + col">
+                <th x-text="col"
+                    :style="variablesTabla.includes(col)
+                            ? 'background:#f0f4ff;'
+                            : columnasEnunciados.includes(col)
+                              ? 'background:#fff8e0; font-weight:700;'
+                              : 'background:#fafafa;'">
+                </th>
+              </template>
+              <!-- Separador visual antes de la columna de acciones -->
+              <th style="background: #fafafa; border: none;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="(fila, i) in tablaFilas" :key="i">
+              <tr>
+                <!-- Todas las celdas son clickeables -->
+                <template x-for="col in columnasTabla" :key="'c-' + col">
+                  <td style="padding: 0.15rem; text-align: center;">
+                    <button type="button"
+                            @click="toggleCelda(i, col)"
+                            :style="fila[col] === null
+                                    ? 'color:#bbb; font-weight:normal; min-width:2rem;'
+                                    : 'font-weight:bold; min-width:2rem; ' +
+                                      (fila[col] ? 'color:#1a7a1a;' : 'color:#c00;')"
+                            style="background:none; border:1px solid #ccc; border-radius:3px;
+                                   cursor:pointer; padding:0.2rem 0.4rem; font-size:0.95rem;"
+                            x-text="fila[col] === null ? '?' : vof(fila[col])">
+                    </button>
+                  </td>
+                </template>
+                <!-- Botón quitar fila -->
+                <td style="text-align: center; padding: 0.15rem;">
+                  <button type="button" @click="quitarFilaTabla(i)"
+                          style="background:none; border:none; cursor:pointer; color:#c00; font-size:1rem;"
+                          title="Quitar fila">✕</button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+
+        <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center;">
+          <button type="button" class="btn btn-secondary" style="font-size:0.9rem; padding:0.3rem 0.6rem;"
+                  @click="agregarFilaTabla()">+ Agregar fila</button>
+          <button type="button" class="btn btn-secondary" style="font-size:0.9rem; padding:0.3rem 0.6rem;"
+                  @click="generarTabla()">↺ Regenerar</button>
+        </div>
+      </div>
+
+      <hr style="margin: 1rem 0;">
+
+      <!-- Paso 4: Validez -->
+      <h3 style="margin-top: 0;">Paso 4: ¿El argumento es válido?</h3>
+      <p style="font-size: 0.9rem; color: #555; margin-top: 0;">
+        Un argumento es válido si no existe ninguna interpretación donde todas las premisas son verdaderas y la conclusión es falsa.
+      </p>
+      <div style="display: flex; gap: 1.5rem; align-items: center; margin-bottom: 1rem;">
+        <label style="display:inline-flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:1rem;">
+          <input type="radio" name="juicio_valido_est" value="true" x-model="juicioValido"> Sí, es válido
+        </label>
+        <label style="display:inline-flex; align-items:center; gap:0.4rem; cursor:pointer; font-size:1rem;">
+          <input type="radio" name="juicio_valido_est" value="false" x-model="juicioValido"> No, no es válido
+        </label>
+      </div>
+    </div>
+
+    <!-- ── Botón Enviar ───────────────────────────────────────── -->
+    <button
+      class="btn btn-primary"
+      type="button"
+      @click="enviar()"
+      :disabled="enviando || !puedeEnviar"
+    >
+      <span x-text="enviando ? 'Verificando…' : 'Enviar'">Enviar</span>
+    </button>
+
+    <!-- ══════════════════════════════════════════════════════════
+         FEEDBACK — Determinación de verdad
+         ══════════════════════════════════════════════════════════ -->
+    <div x-show="esTipo === 'determinacion_verdad' && resultado !== null" style="margin-top: 1.5rem;">
+
+      <div style="margin-bottom: 0.5rem;">
+        <strong>Verificación:</strong>
+        <span x-show="resultado?.correcto"
+              class="badge badge-ok" style="margin-left: 0.4rem;">Correcto</span>
+        <span x-show="resultado && !resultado?.correcto"
+              class="badge badge-bloqueado" style="margin-left: 0.4rem;">Incorrecto</span>
+      </div>
+
+      <div x-show="resultado?.correcto && !resultado?.practica_completa"
+           class="alert alert-ok">
+        ✓ <strong>¡Correcto!</strong>
+        {% if desbloqueo_secuencial %}
+          Avanzás al siguiente ejercicio.
+        {% else %}
+          <span x-show="resultado?.ejercicios_pendientes === 1">Te queda 1 ejercicio por resolver.</span>
+          <span x-show="resultado?.ejercicios_pendientes > 1"
+                x-text="'Te quedan ' + resultado.ejercicios_pendientes + ' ejercicios por resolver.'"></span>
+        {% endif %}
+        <a :href="practicaUrl" style="margin-left: 0.5rem; color: inherit; font-weight: 600;">
+          Volver a la práctica →
+        </a>
+      </div>
+
+      <div x-show="resultado?.correcto && resultado?.practica_completa"
+           class="alert alert-ok">
+        🎉 <strong>¡Práctica completa!</strong>
+        Redirigiendo en un momento…
+      </div>
+
+      <!-- Error de parseo -->
+      <div x-show="resultado?.error_parse"
+           class="alert alert-error">
+        <strong>Error de sintaxis:</strong>
+        <span x-text="resultado?.error_parse"></span>
+      </div>
+
+      <!-- Error de diccionario -->
+      <div x-show="resultado?.error_diccionario"
+           class="alert alert-error">
+        <strong>Diccionario incompleto:</strong>
+        <span x-text="resultado?.error_diccionario"></span>
+      </div>
+
+      <!-- Error de consistencia interna: el valor asignado no coincide con el calculado -->
+      <div x-show="!resultado?.correcto && !resultado?.error_parse && !resultado?.error_diccionario
+                   && resultado?.consistente === false"
+           class="alert alert-warning">
+        ✗ <strong>El valor de verdad que asignaste a tu fórmula no coincide con el que resulta de
+        aplicar tu propio diccionario.</strong>
+        <br>
+        <span style="font-size:0.9rem;">
+          Tu fórmula, evaluada con los valores de verdad que asignaste en tu diccionario,
+          da <strong x-text="resultado?.valor_calculado_estudiante ? 'V (Verdadero)' : 'F (Falso)'"></strong>,
+          pero vos marcaste
+          <strong x-text="resultado?.valor_calculado_estudiante === false ? 'V (Verdadero)' : 'F (Falso)'"></strong>.
+          Revisá tu cálculo paso a paso.
+        </span>
+      </div>
+
+      <!-- Error de coincidencia con la solución del docente -->
+      <div x-show="!resultado?.correcto && !resultado?.error_parse && !resultado?.error_diccionario
+                   && resultado?.consistente === true && resultado?.coincide_solucion === false"
+           class="alert alert-warning">
+        ✗ <strong>Tu resultado no coincide con la solución de lx docente.</strong>
+        <br>
+        <span style="font-size:0.9rem;">
+          Tu fórmula es internamente consistente (el valor que calculaste es correcto
+          para tu propio diccionario), pero el valor de verdad obtenido difiere
+          del que determina la solución propuesta por lx docente.
+          Revisá si tu diccionario y tu fórmula capturan correctamente el sentido
+          del enunciado.
+        </span>
+      </div>
+
+
+      <div style="margin-top: 1rem; padding: 0.75rem; background: #f5f5f5; border-radius: 4px; font-size: 0.9rem; color: #555;">
+        <strong>Revisión docente:</strong>
+        Tu docente puede revisar tu respuesta y dejar un comentario.
+        Podés verlo en <a href="{% url 'ejercicios:mi_historial' %}">tu historial</a>.
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         FEEDBACK — Formalización
+         ══════════════════════════════════════════════════════════ -->
+    <div x-show="esTipo !== 'tabla_verdad' && esTipo !== 'determinacion_verdad' && resultado !== null" style="margin-top: 1.5rem;">
+
+      <div style="margin-bottom: 0.5rem;">
+        <strong>Verificación formal:</strong>
+        <span x-show="resultado?.correcto"
+              class="badge badge-ok" style="margin-left: 0.4rem;">Formalmente válido</span>
+        <span x-show="resultado && !resultado?.correcto"
+              class="badge badge-bloqueado" style="margin-left: 0.4rem;">No verificado</span>
+      </div>
+
+      <div x-show="resultado?.correcto && !resultado?.practica_completa"
+           class="alert alert-ok">
+        ✓ <strong>¡Correcto!</strong>
+        {% if desbloqueo_secuencial %}
+          Avanzás al siguiente ejercicio.
+        {% else %}
+          <span x-show="resultado?.ejercicios_pendientes === 1">Te queda 1 ejercicio por resolver.</span>
+          <span x-show="resultado?.ejercicios_pendientes > 1"
+                x-text="'Te quedan ' + resultado.ejercicios_pendientes + ' ejercicios por resolver.'"></span>
+        {% endif %}
+        <a :href="practicaUrl" style="margin-left: 0.5rem; color: inherit; font-weight: 600;">
+          Volver a la práctica →
+        </a>
+      </div>
+
+      <div x-show="resultado?.correcto && resultado?.practica_completa"
+           class="alert alert-ok">
+        🎉 <strong>¡Práctica completa!</strong>
+        Redirigiendo en un momento…
+      </div>
+
+      <div x-show="resultado?.error_parse"
+           class="alert alert-error">
+        <strong>Error de sintaxis:</strong>
+        <span x-text="resultado?.error_parse"></span>
+      </div>
+
+      <div x-show="resultado?.error_diccionario"
+           class="alert alert-error">
+        <strong>Diccionario incompleto:</strong>
+        <span x-text="resultado?.error_diccionario"></span>
+      </div>
+
+      <div x-show="!resultado?.correcto && !resultado?.error_parse && !resultado?.error_diccionario"
+           class="alert alert-warning">
+        ✗ <strong>No es equivalente a la solución.</strong>
+        Revisá la tabla de abajo y ajustá tu fórmula.
+      </div>
+
+      <!-- Tablas de verdad lado a lado -->
+      <p x-show="!resultado?.correcto && !resultado?.error_parse && resultado?.tabla_estudiante"
+         style="margin: 0 0 0.75rem; font-size: 0.88rem; color: #555; font-style: italic;">
+        Encontrá la fila donde tu tabla difiere de la esperada.
+        Esa diferencia indica exactamente en qué situación tu fórmula falla.
+      </p>
+      <div x-show="!resultado?.error_parse && resultado?.tabla_estudiante"
+           class="tables-grid">
+
+        <div>
+          <h4 style="margin-bottom: 0.5rem;">Tu tabla</h4>
+          <table class="truth-table">
+            <thead>
+              <tr>
+                <template x-for="col in columnas(resultado?.tabla_estudiante)" :key="col">
+                  <th x-text="col === 'resultado' ? 'Resultado' : col"></th>
+                </template>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(fila, i) in resultado?.tabla_estudiante" :key="i">
+                <tr>
+                  <template x-for="col in columnas(resultado?.tabla_estudiante)" :key="col">
+                    <td :class="col === 'resultado' ? 'result-col' : ''"
+                        x-text="vof(fila[col])"></td>
+                  </template>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <h4 style="margin-bottom: 0.5rem;">Tabla esperada</h4>
+          <table class="truth-table">
+            <thead>
+              <tr>
+                <template x-for="col in columnas(resultado?.tabla_solucion)" :key="col">
+                  <th x-text="col === 'resultado' ? 'Resultado' : col"></th>
+                </template>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(fila, i) in resultado?.tabla_solucion" :key="i">
+                <tr>
+                  <template x-for="col in columnas(resultado?.tabla_solucion)" :key="col">
+                    <td :class="col === 'resultado' ? 'result-col' : ''"
+                        x-text="vof(fila[col])"></td>
+                  </template>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+      </div><!-- /tables-grid -->
+
+
+      <div x-show="!resultado?.error_parse"
+           style="margin-top: 1rem; padding: 0.75rem; background: #f5f5f5; border-radius: 4px; font-size: 0.9rem; color: #555;">
+        <strong>Revisión docente:</strong>
+        Tu docente puede revisar tu respuesta y dejar un comentario.
+        Podés verlo en <a href="{% url 'ejercicios:mi_historial' %}">tu historial</a>.
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════
+         FEEDBACK — Tabla de verdad (argumento)
+         ══════════════════════════════════════════════════════════ -->
+    <div x-show="esTipo === 'tabla_verdad' && resultado !== null" style="margin-top: 1.5rem;">
+
+      <div style="margin-bottom: 0.5rem;">
+        <strong>Verificación formal:</strong>
+        <span x-show="resultado?.correcto"
+              class="badge badge-ok" style="margin-left: 0.4rem;">Formalmente válido</span>
+        <span x-show="resultado && !resultado?.correcto"
+              class="badge badge-bloqueado" style="margin-left: 0.4rem;">No verificado</span>
+      </div>
+
+      <div x-show="resultado?.correcto && !resultado?.practica_completa"
+           class="alert alert-ok">
+        ✓ <strong>¡Correcto!</strong>
+        {% if desbloqueo_secuencial %}
+          Avanzás al siguiente ejercicio.
+        {% else %}
+          <span x-show="resultado?.ejercicios_pendientes === 1">Te queda 1 ejercicio por resolver.</span>
+          <span x-show="resultado?.ejercicios_pendientes > 1"
+                x-text="'Te quedan ' + resultado.ejercicios_pendientes + ' ejercicios por resolver.'"></span>
+        {% endif %}
+        <a :href="practicaUrl" style="margin-left: 0.5rem; color: inherit; font-weight: 600;">
+          Volver a la práctica →
+        </a>
+      </div>
+
+      <div x-show="resultado?.correcto && resultado?.practica_completa"
+           class="alert alert-ok">
+        🎉 <strong>¡Práctica completa!</strong>
+        Redirigiendo en un momento…
+      </div>
+
+      <!-- Errores de parse por fórmula -->
+      <template x-for="(err, i) in (resultado?.errores_parse || [])" :key="i">
+        <div x-show="err" class="alert alert-error">
+          Enunciado <span x-text="i + 1"></span>: <span x-text="err"></span>
+        </div>
+      </template>
+
+      <!-- Feedback cuando no hay errores de parse -->
+      <div x-show="!resultado?.errores_parse?.some(e => e)">
+
+        <div x-show="!resultado?.formulas_ok" class="alert alert-warning">
+          ✗ <strong>Las fórmulas no coinciden con la solución.</strong>
+          Revisá que los enunciados y sus tipos (premisa/conclusión) sean correctos.
+        </div>
+
+        <!-- Error A: alguna celda de la tabla es incorrecta -->
+        <div x-show="resultado?.formulas_ok && resultado?.tabla_ok === false" class="alert alert-warning">
+          ✗ <strong>La tabla tiene errores.</strong>
+          Alguna celda no coincide con la evaluación correcta de las fórmulas.
+        </div>
+
+        <!-- Error B: columnas de premisas/conclusión no coinciden con la solución -->
+        <div x-show="resultado?.formulas_ok && resultado?.enunciados_ok === false" class="alert alert-warning">
+          ✗ <strong>Las columnas de los enunciados no coinciden con la solución.</strong>
+          Las fórmulas que formalizaste llevan a valores distintos a los esperados para las premisas o la conclusión.
+        </div>
+
+        <div x-show="resultado?.formulas_ok && resultado?.tabla_ok && resultado?.enunciados_ok
+                     && resultado?.juicio_estudiante_valido !== resultado?.es_valido"
+             class="alert alert-warning">
+          ✗ <strong>Las fórmulas y la tabla son correctas, pero el juicio de validez es incorrecto.</strong>
+        </div>
+
+        <!-- Tabla correcta con subcolumnas (mostrar cuando hay errores de tabla) -->
+        <div x-show="resultado?.formulas_ok && (resultado?.tabla_ok === false || resultado?.enunciados_ok === false)"
+             style="margin-top: 1rem; overflow-x: auto;">
+          <h4 style="margin-bottom: 0.5rem;">Tabla correcta (referencia)</h4>
+          <table class="truth-table" style="min-width: max-content;">
+            <thead>
+              <tr>
+                <template x-for="col in columnas(resultado?.tabla_con_subcolumnas)" :key="'ref-h-' + col">
+                  <th x-text="col"
+                      :style="(resultado?.columnas_enunciados || []).includes(col)
+                              ? 'background:#fff8e0; font-weight:700;'
+                              : ''"></th>
+                </template>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(fila, i) in resultado?.tabla_con_subcolumnas" :key="i">
+                <tr>
+                  <template x-for="col in columnas(resultado?.tabla_con_subcolumnas)" :key="'ref-' + col">
+                    <td x-text="vof(fila[col])"></td>
+                  </template>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Tabla del argumento (columnas básicas, para referencia de validez) -->
+        <div x-show="resultado?.tabla_argumento?.length" style="margin-top: 1rem;">
+          <h4 style="margin-bottom: 0.5rem;">Tabla de validez del argumento</h4>
+          <table class="truth-table">
+            <thead>
+              <tr>
+                <template x-for="col in columnasArgumento(resultado?.tabla_argumento)" :key="col">
+                  <th x-text="col === 'valido_fila' ? 'Válido' : col"></th>
+                </template>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(fila, i) in resultado?.tabla_argumento" :key="i">
+                <tr :style="!fila.valido_fila ? 'background:#fff5f5;' : ''">
+                  <template x-for="col in columnasArgumento(resultado?.tabla_argumento)" :key="col">
+                    <td x-text="vof(fila[col])"></td>
+                  </template>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+          <p style="margin-top: 0.5rem; font-weight: 600;"
+             :style="resultado?.es_valido ? 'color:#28a745;' : 'color:#dc3545;'"
+             x-text="resultado?.es_valido ? 'El argumento ES válido.' : 'El argumento NO ES válido.'">
+          </p>
+        </div>
+      </div>
+
+
+      <div style="margin-top: 1rem; padding: 0.75rem; background: #f5f5f5; border-radius: 4px; font-size: 0.9rem; color: #555;">
+        <strong>Revisión docente:</strong>
+        Tu docente puede revisar tu respuesta y dejar un comentario.
+        Podés verlo en <a href="{% url 'ejercicios:mi_historial' %}">tu historial</a>.
+      </div>
+    </div>
+
+    <!-- Modal de pista pedagógica -->
+    <div x-show="mostrarPista"
+         x-transition:enter="transition ease-out duration-150"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-100"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         style="position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000;"
+         @click.self="mostrarPista = false"
+         @keydown.escape.window="mostrarPista = false">
+      <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
+        <div style="background: #fff; border-radius: 8px; padding: 1.75rem; max-width: 460px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+          <div style="display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 1.25rem;">
+            <span style="font-size: 1.4rem; line-height: 1;">💡</span>
+            <div>
+              <h3 style="margin: 0 0 0.6rem; font-size: 1rem; color: #333;">Pista</h3>
+              <p style="margin: 0; font-size: 0.95rem; line-height: 1.6; color: #444;" x-text="resultado?.pista"></p>
+            </div>
+          </div>
+          <div style="text-align: right;">
+            <button class="btn btn-primary" type="button" @click="mostrarPista = false">Entendido</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /x-data card -->
+
+  <!-- Historial de entregas anteriores -->
+  {% if intentos %}
+  <div class="card">
+    <h3 style="margin-top:0;">Tus entregas anteriores</h3>
+    {% for intento in intentos %}
+    <div style="margin-bottom:1rem; padding:0.75rem; border-radius:4px; border:1px solid #e0e0e0;
+      {% if intento.aprobado_docente == True %}background:#f0fff4;
+      {% elif intento.aprobado_docente == False %}background:#fff5f5;
+      {% else %}background:#fafafa;{% endif %}">
+      <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-bottom:0.4rem;">
+        {% if ejercicio.tipo == 'tabla_verdad' and intento.enunciados_parsed %}
+          <span style="font-size:0.9rem;">
+            {% for e in intento.enunciados_parsed %}
+              <span class="badge" style="background:#e8e8e8; color:#333; font-weight:normal; margin-right:0.25rem;">{{ e.tipo }}</span>
+              <code style="font-size:0.9rem;">{{ e.formula }}</code>{% if not forloop.last %} &nbsp;·&nbsp; {% endif %}
+            {% endfor %}
+          </span>
+        {% elif ejercicio.tipo == 'determinacion_verdad' %}
+          <code style="font-size:1rem;">{{ intento.respuesta_raw }}</code>
+          {% if intento.valor_verdad_estudiante is not None %}
+            <span class="badge" style="background:{% if intento.valor_verdad_estudiante %}#d4edda; color:#155724;{% else %}#f8d7da; color:#721c24;{% endif %}; font-weight:bold;">
+              {% if intento.valor_verdad_estudiante %}V{% else %}F{% endif %}
+            </span>
+          {% endif %}
+        {% else %}
+          <code style="font-size:1rem;">{{ intento.respuesta_raw }}</code>
+        {% endif %}
+        {% if intento.es_correcto %}
+          <span class="badge badge-ok">Formalmente válido</span>
+        {% else %}
+          <span class="badge badge-bloqueado">No verificado</span>
+        {% endif %}
+        <span style="font-size:0.85rem; color:#888;">{{ intento.timestamp|date:'d/m/Y H:i' }}</span>
+      </div>
+      {% if intento.diccionario %}
+        <div style="font-size:0.85rem; color:#555; margin-bottom:0.4rem;">
+          <strong>Diccionario:</strong>
+          {% for letra, frase in intento.diccionario.items %}
+            <code>{{ letra }}</code>: {{ frase }}{% if not forloop.last %}, {% endif %}
+          {% endfor %}
+          {% if ejercicio.tipo == 'determinacion_verdad' and intento.valores_verdad %}
+            —
+            <strong>Valores de verdad:</strong>
+            {% for letra, valor in intento.valores_verdad.items %}
+              <code>{{ letra }}</code>=<span style="font-weight:bold; {% if valor %}color:#1a7a1a;{% else %}color:#c00;{% endif %}">{% if valor %}V{% else %}F{% endif %}</span>{% if not forloop.last %}, {% endif %}
+            {% endfor %}
+          {% endif %}
+        </div>
+      {% endif %}
+      {% if intento.tabla_json %}
+        <div style="margin-bottom:0.4rem; overflow-x:auto;">
+          <strong style="font-size:0.85rem; color:#555;">Tabla:</strong>
+          <table class="truth-table" style="min-width:max-content; font-size:0.85rem; margin-top:0.3rem;">
+            <thead>
+              <tr>
+                {% for col in intento.tabla_json.0.keys %}
+                  <th>{{ col }}</th>
+                {% endfor %}
+              </tr>
+            </thead>
+            <tbody>
+              {% for fila in intento.tabla_json %}
+                <tr>
+                  {% for col, val in fila.items %}
+                    <td style="text-align:center;">{% if val %}V{% else %}F{% endif %}</td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+      <div style="font-size:0.9rem;">
+        <strong>Revisión docente:</strong>
+        {% if intento.aprobado_docente == True %}
+          <span class="badge badge-ok" style="margin-left:0.3rem;">Aprobado</span>
+        {% elif intento.aprobado_docente == False %}
+          <span class="badge badge-bloqueado" style="margin-left:0.3rem;">Rechazado</span>
+        {% else %}
+          <span style="color:#888; font-style:italic; margin-left:0.3rem;">Pendiente de revisión</span>
+        {% endif %}
+        {% if intento.comentario_docente %}
+          <p style="margin:0.3rem 0 0; color:#333;">{{ intento.comentario_docente|linebreaksbr }}</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <!-- Modo lectura ────────────────────────────────────────────── -->
+  {% if user.is_staff or user.es_docente %}
+  <div class="card">
+    <div class="alert alert-info" style="margin-bottom:0.75rem;">
+      Vista de previsualización. Los estudiantes ven este ejercicio cuando lo tienen desbloqueado.
+    </div>
+    <a href="{% url 'docentes:ejercicio_edit' ejercicio.id %}" class="btn btn-primary">
+      Editar ejercicio
+    </a>
+  </div>
+  {% elif ultimo_intento %}
+  <div class="card">
+    <h3 style="margin-top:0;">Tu última entrega</h3>
+    <ul style="margin-top:0.4rem;">
+      <li>
+        <strong>Respuesta enviada:</strong>
+        {% if ejercicio.tipo == 'tabla_verdad' and ultimo_intento.enunciados_parsed %}
+          <ul style="margin-top:0.2rem;">
+            {% for e in ultimo_intento.enunciados_parsed %}
+              <li><span class="badge" style="background:#e8e8e8; color:#333; font-weight:normal;">{{ e.tipo }}</span> <code>{{ e.formula }}</code></li>
+            {% endfor %}
+          </ul>
+        {% elif ejercicio.tipo == 'determinacion_verdad' %}
+          <code>{{ ultimo_intento.respuesta_raw }}</code>
+          {% if ultimo_intento.valor_verdad_estudiante is not None %}
+            — Valor de verdad:
+            <span style="font-weight:bold; {% if ultimo_intento.valor_verdad_estudiante %}color:#1a7a1a;{% else %}color:#c00;{% endif %}">
+              {% if ultimo_intento.valor_verdad_estudiante %}V (Verdadero){% else %}F (Falso){% endif %}
+            </span>
+          {% endif %}
+        {% else %}
+          <code>{{ ultimo_intento.respuesta_raw }}</code>
+        {% endif %}
+      </li>
+      <li>
+        <strong>Verificación formal:</strong>
+        {% if ultimo_intento.es_correcto %}
+          <span class="badge badge-ok">Formalmente válido</span>
+        {% else %}
+          <span class="badge badge-bloqueado">No verificado</span>
+        {% endif %}
+      </li>
+      <li><strong>Fecha:</strong> {{ ultimo_intento.timestamp|date:'d/m/Y H:i' }}</li>
+      {% if ultimo_intento.diccionario %}
+        <li>
+          <strong>Diccionario de variables:</strong>
+          <ul style="margin-top:0.2rem;">
+            {% for letra, frase in ultimo_intento.diccionario.items %}
+              <li><code>{{ letra }}</code>: {{ frase }}</li>
+            {% endfor %}
+          </ul>
+        </li>
+      {% endif %}
+    </ul>
+
+    <div style="margin-top:0.75rem; padding:0.6rem 0.75rem; border-radius:4px;
+      {% if ultimo_intento.aprobado_docente == True %}background:#d4edda; border-left:4px solid #28a745;
+      {% elif ultimo_intento.aprobado_docente == False %}background:#f8d7da; border-left:4px solid #dc3545;
+      {% else %}background:#f5f5f5; border-left:4px solid #aaa;{% endif %}">
+      <strong>Revisión docente:</strong>
+      {% if ultimo_intento.aprobado_docente == True %}
+        <span class="badge badge-ok" style="margin-left:0.4rem;">Aprobado</span>
+      {% elif ultimo_intento.aprobado_docente == False %}
+        <span class="badge badge-bloqueado" style="margin-left:0.4rem;">Rechazado</span>
+      {% else %}
+        <span style="color:#888; font-style:italic; margin-left:0.4rem;">Pendiente de revisión.</span>
+      {% endif %}
+      {% if ultimo_intento.comentario_docente %}
+        <p style="margin:0.4rem 0 0; color:#333;">{{ ultimo_intento.comentario_docente|linebreaksbr }}</p>
+      {% endif %}
+    </div>
+
+    <p style="margin-top:0.75rem; margin-bottom:0; font-size:0.9rem; color:#555;">
+      Podés ver todo tu historial en <a href="{% url 'ejercicios:mi_historial' %}">Mi historial</a>.
+    </p>
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="alert alert-info" style="margin-bottom: 0;">
+      Este ejercicio ya fue resuelto o la práctica está completa.
+      <a href="{% url 'ejercicios:practica' pc.id %}">Volver a la práctica</a>
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <p style="text-align: right; margin-top: 0.5rem;">
+    <a href="{% url 'ejercicios:practica' pc.id %}" class="btn btn-secondary">
+      ← Volver a la práctica
+    </a>
+  </p>
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+/**
+ * Componente Alpine.js para la resolución de ejercicios de lógica (notación Copi).
+ *
+ * Soporta dos tipos de ejercicio:
+ *  - 'formalizacion': el estudiante escribe una fórmula única (flujo original).
+ *  - 'tabla_verdad': el estudiante ingresa un argumento completo (premisas +
+ *    conclusión) y marca si el argumento es válido.
+ *
+ * En ambos casos, Paso 1 es el diccionario de proposiciones simples, cuyas
+ * letras aparecen en el teclado on-screen.
+ */
+document.addEventListener('alpine:init', () => {
+  Alpine.data('ejercicioApp', (epId, pcId, practicaUrl, initialFormula, initialDiccionario, tipo, initialEnunciados, initialJuicio, initialValoresVerdad, initialValorVerdad) => {
+
+    // Para determinacion_verdad, las entradas del diccionario incluyen también el valor de verdad
+    const vvInicial = initialValoresVerdad || {};
+    const initialEntradas = Object.entries(initialDiccionario || {}).map(([letra, frase]) => ({
+      letra,
+      frase,
+      valor: Object.prototype.hasOwnProperty.call(vvInicial, letra) ? vvInicial[letra] : null,
+    }));
+
+    return {
+
+    // ── Paso 1: diccionario ────────────────────────────────────────
+    entradas: initialEntradas.length > 0 ? initialEntradas : [],
+    errorDiccionario: '',
+
+    // ── Tipo de ejercicio ──────────────────────────────────────────
+    esTipo: tipo,
+
+    // ── Paso 2 (formalización): fórmula única ─────────────────────
+    formula: initialFormula || '',
+
+    // ── Paso 2 (determinación de verdad): fórmula + valor ─────────
+    valorVerdadEstudiante: (initialValorVerdad !== null && initialValorVerdad !== undefined)
+                           ? initialValorVerdad
+                           : null,
+
+    // ── Paso 2 (tabla de verdad): argumento ───────────────────────
+    filasArgumento: Array.isArray(initialEnunciados) ? initialEnunciados.map(e => ({
+      formula: e.formula || '',
+      tipo: e.tipo || 'premisa',
+    })) : [],
+    juicioValido: initialJuicio !== null && initialJuicio !== undefined ? String(initialJuicio) : null,
+
+    // ── Paso 3 (tabla de verdad): tabla interactiva ───────────────
+    // columnasTabla: TODAS las columnas que el estudiante debe completar:
+    //   variables (A, B, ...) + subcolumnas intermedias + fórmulas principales
+    columnasTabla: [],
+    // columnasEnunciados: labels de las columnas principales (fórmula de cada enunciado) — para destacado amarillo
+    columnasEnunciados: [],
+    // variablesTabla: solo los nombres de variables (subconjunto de columnasTabla, para estilo)
+    variablesTabla: [],
+    // tablaCanonica: la tabla correcta completa — usada solo para corrección en el backend
+    tablaCanonica: [],
+    // tablaFilas: filas ingresadas por el estudiante; cada celda empieza en null (?)
+    tablaFilas: [],
+    tablaObtenida: false,  // true cuando ya se obtuvieron las columnas del backend
+    generandoTabla: false, // true mientras espera respuesta del backend
+
+    // ── Estado general ─────────────────────────────────────────────
+    enviando: false,
+    resultado: null,
+    mostrarPista: false,
+    practicaUrl: practicaUrl,
+
+    get letrasValidas() {
+      const RESERVADAS = new Set(['V']);
+      const vistas = new Set();
+      return this.entradas
+        .filter(e => e.letra && e.frase.trim())
+        .filter(e => !RESERVADAS.has(e.letra))
+        .filter(e => {
+          if (vistas.has(e.letra)) return false;
+          vistas.add(e.letra);
+          return true;
+        })
+        .map(e => e.letra);
+    },
+
+    get diccionario() {
+      const result = {};
+      for (const letra of this.letrasValidas) {
+        const entrada = this.entradas.find(e => e.letra === letra);
+        if (entrada) result[letra] = entrada.frase.trim();
+      }
+      return result;
+    },
+
+    get valoresVerdad() {
+      // Solo para determinacion_verdad: {letra: bool}
+      const RESERVADAS = new Set(['V']);
+      const result = {};
+      for (const e of this.entradas) {
+        if (e.letra && e.frase.trim() && !RESERVADAS.has(e.letra) && e.valor !== null && e.valor !== undefined) {
+          result[e.letra] = e.valor;
+        }
+      }
+      return result;
+    },
+
+    get hayConclusion() {
+      return this.filasArgumento.some(f => f.tipo === 'conclusion');
+    },
+
+    get puedeEnviar() {
+      if (this.esTipo === 'tabla_verdad') {
+        if (!this.filasArgumento.length || !this.hayConclusion || this.juicioValido === null) return false;
+        // La tabla debe estar generada y todas las celdas completadas (no null)
+        if (!this.tablaObtenida) return false;
+        if (this.tablaFilas.length === 0) return false;
+        for (const fila of this.tablaFilas) {
+          for (const col of this.columnasTabla) {
+            if (fila[col] === null || fila[col] === undefined) return false;
+          }
+        }
+        return true;
+      }
+      if (this.esTipo === 'determinacion_verdad') {
+        // Necesita fórmula, al menos una variable con valor de verdad, y valor asignado a la fórmula
+        if (!this.formula.trim()) return false;
+        if (this.valorVerdadEstudiante === null || this.valorVerdadEstudiante === undefined) return false;
+        // Todas las entradas del diccionario deben tener valor de verdad
+        const entradasValidas = this.entradas.filter(e => e.letra && e.frase.trim());
+        if (entradasValidas.length === 0) return false;
+        if (entradasValidas.some(e => e.valor === null || e.valor === undefined)) return false;
+        return true;
+      }
+      return this.formula.trim().length > 0;
+    },
+
+    agregarEntrada() {
+      this.entradas.push({ letra: '', frase: '', valor: null });
+    },
+
+    quitarEntrada(i) {
+      this.entradas.splice(i, 1);
+    },
+
+    agregarFila() {
+      this.filasArgumento.push({ formula: '', tipo: 'premisa' });
+    },
+
+    quitarFila(i) {
+      this.filasArgumento.splice(i, 1);
+    },
+
+    normalizar(s) {
+      return s
+        .replace(/\u00ac/g, '~')
+        .replace(/\u2227/g, '\u00b7')
+        .replace(/\u2192|\u21d2|=>/g, '\u2283')
+        .replace(/\u2194|\u21d4/g, '\u2261')
+        .replace(/(?<![A-Za-z0-9_])v(?![A-Za-z0-9_])/g, '\u2228')
+        .replace(/(?<=[A-Za-z0-9_)\]])v(?=[A-Za-z0-9_(~\[])/g, '\u2228');
+    },
+
+    insertar(sim) {
+      const input = this.$refs.formulaInput;
+      const start = input.selectionStart ?? this.formula.length;
+      const end   = input.selectionEnd   ?? this.formula.length;
+      this.formula = this.formula.slice(0, start) + sim + this.formula.slice(end);
+      this.$nextTick(() => {
+        input.setSelectionRange(start + sim.length, start + sim.length);
+        input.focus();
+      });
+    },
+
+    insertarEnFila(i, sim) {
+      const input = document.getElementById('fila_arg_' + i);
+      if (!input) return;
+      const start = input.selectionStart ?? this.filasArgumento[i].formula.length;
+      const end   = input.selectionEnd   ?? this.filasArgumento[i].formula.length;
+      this.filasArgumento[i].formula =
+        this.filasArgumento[i].formula.slice(0, start) + sim + this.filasArgumento[i].formula.slice(end);
+      this.$nextTick(() => {
+        input.setSelectionRange(start + sim.length, start + sim.length);
+        input.focus();
+      });
+    },
+
+    async generarTabla() {
+      if (this.generandoTabla) return;
+      this.generandoTabla = true;
+      this.tablaObtenida = false;
+
+      const enunciados = this.filasArgumento.map(f => ({
+        formula: this.normalizar(f.formula.trim()),
+        tipo: f.tipo,
+      }));
+
+      try {
+        const resp = await fetch('/api/preview-argumento/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': this.getCookie('csrftoken'),
+          },
+          body: JSON.stringify({ enunciados_prueba: enunciados }),
+        });
+
+        if (!resp.ok) {
+          alert('No se pudo generar la tabla. Revisá que todas las fórmulas sean correctas.');
+          return;
+        }
+
+        const data = await resp.json();
+        this.columnasTabla = data.columnas_tabla || [];
+        this.columnasEnunciados = data.columnas_enunciados || [];
+        this.variablesTabla = data.variables_tabla || [];
+        this.tablaCanonica = data.tabla_canonica || [];
+
+        // El estudiante empieza con 0 filas y agrega las que considere necesarias.
+        // Al regenerar también se resetean (las columnas pueden haber cambiado).
+        this.tablaFilas = [];
+        this.tablaObtenida = true;
+      } catch (e) {
+        alert('Error de conexión al generar la tabla.');
+      } finally {
+        this.generandoTabla = false;
+      }
+    },
+
+    toggleCelda(i, col) {
+      const val = this.tablaFilas[i][col];
+      if (val === null || val === undefined) {
+        this.tablaFilas[i][col] = true;
+      } else if (val === true) {
+        this.tablaFilas[i][col] = false;
+      } else {
+        this.tablaFilas[i][col] = null;
+      }
+    },
+
+    agregarFilaTabla() {
+      const fila = {};
+      for (const col of this.columnasTabla) fila[col] = null;
+      this.tablaFilas.push(fila);
+    },
+
+    quitarFilaTabla(i) {
+      this.tablaFilas.splice(i, 1);
+    },
+
+    getCookie(name) {
+      for (const part of document.cookie.split(';')) {
+        const [k, v] = part.trim().split('=');
+        if (k === name) return decodeURIComponent(v ?? '');
+      }
+      return '';
+    },
+
+    columnas(tabla) {
+      if (!tabla || tabla.length === 0) return [];
+      return Object.keys(tabla[0]);
+    },
+
+    columnasArgumento(tabla) {
+      if (!tabla || tabla.length === 0) return [];
+      return Object.keys(tabla[0]);
+    },
+
+    vof(val) {
+      return val ? 'V' : 'F';
+    },
+
+    async enviar() {
+      if (this.enviando || !this.puedeEnviar) return;
+
+      // Validar letras duplicadas en el diccionario
+      const letras = this.entradas.map(e => e.letra).filter(Boolean);
+      const duplicadas = letras.filter((l, i) => letras.indexOf(l) !== i);
+      if (duplicadas.length > 0) {
+        this.errorDiccionario = `Letras duplicadas: ${[...new Set(duplicadas)].join(', ')}`;
+        return;
+      }
+
+      // Para formalización y determinación de verdad, el diccionario es obligatorio.
+      if (this.esTipo !== 'tabla_verdad' && this.letrasValidas.length === 0) {
+        this.errorDiccionario = 'Completá el diccionario de enunciados simples (Paso 1) antes de enviar la fórmula.';
+        return;
+      }
+
+      // Para determinación de verdad, todas las variables del diccionario deben tener valor de verdad
+      if (this.esTipo === 'determinacion_verdad') {
+        const sinValor = this.entradas.filter(e => e.letra && e.frase.trim() && (e.valor === null || e.valor === undefined));
+        if (sinValor.length > 0) {
+          this.errorDiccionario = `Asigná un valor de verdad (V o F) a todas las variables del diccionario: ${sinValor.map(e=>e.letra).join(', ')}.`;
+          return;
+        }
+      }
+
+      this.errorDiccionario = '';
+
+      this.enviando = true;
+      this.resultado = null;
+
+      let body;
+      if (this.esTipo === 'tabla_verdad') {
+        const enunciados = this.filasArgumento.map(f => ({
+          formula: this.normalizar(f.formula.trim()),
+          tipo: f.tipo,
+        }));
+        body = JSON.stringify({
+          ejercicio_practica_id: epId,
+          practica_comision_id: pcId,
+          enunciados: enunciados,
+          juicio_valido: this.juicioValido === 'true',
+          diccionario: this.diccionario,
+          tabla_estudiante: this.tablaFilas,
+        });
+      } else if (this.esTipo === 'determinacion_verdad') {
+        const respuestaNorm = this.normalizar(this.formula.trim());
+        body = JSON.stringify({
+          ejercicio_practica_id: epId,
+          practica_comision_id: pcId,
+          respuesta_raw: respuestaNorm,
+          diccionario: this.diccionario,
+          valores_verdad: this.valoresVerdad,
+          valor_verdad_estudiante: this.valorVerdadEstudiante,
+        });
+      } else {
+        const respuestaNorm = this.normalizar(this.formula.trim());
+        body = JSON.stringify({
+          ejercicio_practica_id: epId,
+          practica_comision_id: pcId,
+          respuesta_raw: respuestaNorm,
+          diccionario: this.diccionario,
+        });
+      }
+
+      try {
+        const resp = await fetch('/api/intentos/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': this.getCookie('csrftoken'),
+          },
+          body,
+        });
+
+        if (!resp.ok && resp.status !== 400) {
+          this.resultado = {
+            correcto: false,
+            error_parse: `Error del servidor (${resp.status}). Avisá a tu docente.`,
+            tabla_estudiante: null,
+            tabla_solucion: null,
+          };
+          return;
+        }
+
+        const data = await resp.json();
+        this.resultado = data;
+        if (data.pista) this.mostrarPista = true;
+
+        if (data.practica_completa) {
+          setTimeout(() => { window.location.href = this.practicaUrl; }, 2500);
+        }
+
+      } catch (e) {
+        this.resultado = {
+          correcto: false,
+          error_parse: 'Error de conexión. Verificá tu red e intentá de nuevo.',
+          tabla_estudiante: null,
+          tabla_solucion: null,
+        };
+      } finally {
+        this.enviando = false;
+      }
+    },
+
+    }; // fin return
+  }); // fin Alpine.data
+});
+</script>
+
+<style>
+  [x-cloak] { display: none !important; }
+  @media (max-width: 640px) {
+    /* Paso 4 radios: apilar verticalmente */
+    div[style*="display: flex; gap: 1.5rem"] { flex-direction: column; gap: 0.5rem !important; }
+  }
+</style>
+{% endblock %}

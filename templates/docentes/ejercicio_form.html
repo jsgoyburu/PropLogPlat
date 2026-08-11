@@ -1,0 +1,805 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container" x-data="ejercicioFormApp()" x-cloak>
+  <div class="card">
+    <h1>{% if modo == 'crear' %}Nuevo ejercicio{% else %}Editar ejercicio{% endif %}</h1>
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-error">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <form method="post" id="ejercicio-form">
+      {% csrf_token %}
+      {% if next %}
+      <input type="hidden" name="next" value="{{ next }}">
+      {% endif %}
+
+      <p>
+        <label for="{{ form.enunciado.id_for_label }}">{{ form.enunciado.label }}</label>
+        {{ form.enunciado }}
+        {% if form.enunciado.errors %}<span class="alert alert-error" style="display:block;">{{ form.enunciado.errors|striptags }}</span>{% endif %}
+      </p>
+
+      <p>
+        <label for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+        {{ form.tipo }}
+        {% if form.tipo.errors %}<span class="alert alert-error" style="display:block;">{{ form.tipo.errors|striptags }}</span>{% endif %}
+      </p>
+
+      <p>
+        <label for="{{ form.es_publico.id_for_label }}">{{ form.es_publico.label }}</label>
+        {{ form.es_publico }}
+        {% if form.es_publico.errors %}<span class="alert alert-error" style="display:block;">{{ form.es_publico.errors|striptags }}</span>{% endif %}
+      </p>
+
+      <!-- Campos ocultos sincronizados con Alpine -->
+      {{ form.formula_solucion.as_hidden }}
+      {% if form.formula_solucion.errors %}
+        <div class="alert alert-error">{{ form.formula_solucion.errors|striptags }}</div>
+      {% endif %}
+      <input type="hidden" name="diccionario_solucion" id="id_diccionario_solucion"
+             {% if diccionario_solucion_json %}data-initial="{{ diccionario_solucion_json }}"{% endif %}>
+      <input type="hidden" name="valores_verdad_solucion" id="id_valores_verdad_solucion"
+             {% if valores_verdad_solucion_json %}data-initial="{{ valores_verdad_solucion_json }}"{% endif %}>
+
+      <!-- ── Diccionario de variables (compartido para ambos tipos) ──── -->
+      <hr style="margin:1.25rem 0;">
+      <h3 style="margin-top:0;">Paso 1: Diccionario de variables</h3>
+      <p style="font-size:0.9rem; color:#555; margin-top:0;">
+        Definí las variables (letras) que vas a usar.
+        La <code>v</code> minúscula se acepta como disyunción; por eso <strong>V</strong> no está disponible como variable.
+      </p>
+
+      <table style="width:100%; border-collapse:collapse; margin:0.5rem 0 0.75rem;">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding:0.3rem 0.5rem; width:5rem;">Letra</th>
+            <th style="text-align:left; padding:0.3rem 0.5rem;">Proposición</th>
+            <!-- Columna de valor de verdad: solo visible para determinacion_verdad -->
+            <th x-show="tipoActual === 'determinacion_verdad'"
+                style="text-align:center; padding:0.3rem 0.5rem; width:7rem;">Valor de verdad</th>
+            <th style="width:3rem;"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="(entrada, i) in entradas" :key="i">
+            <tr>
+              <td style="padding:0.25rem 0.5rem;">
+                <input
+                  type="text"
+                  x-model="entrada.letra"
+                  @input="entrada.letra = entrada.letra.toUpperCase().replace(/[^A-Z]/g,'').replace('V','').slice(0,1)"
+                  maxlength="1"
+                  title="V está reservada para la disyunción"
+                  style="width:3rem; text-align:center; font-weight:bold; font-size:1.1rem;"
+                >
+              </td>
+              <td style="padding:0.25rem 0.5rem;">
+                <input
+                  type="text"
+                  x-model="entrada.frase"
+                  placeholder="ej: Llueve"
+                  style="width:100%;"
+                >
+              </td>
+              <!-- Selector V/F: solo para determinacion_verdad -->
+              <td x-show="tipoActual === 'determinacion_verdad'"
+                  style="padding:0.25rem 0.5rem; text-align:center;">
+                <label style="display:inline-flex; align-items:center; gap:0.25rem; cursor:pointer; margin-right:0.5rem;">
+                  <input type="radio" :name="'vv_' + i" :value="true" x-model="entrada.valor"
+                         @change="syncValoresVerdad()">
+                  <span style="font-weight:bold; color:#1a7a1a;">V</span>
+                </label>
+                <label style="display:inline-flex; align-items:center; gap:0.25rem; cursor:pointer;">
+                  <input type="radio" :name="'vv_' + i" :value="false" x-model="entrada.valor"
+                         @change="syncValoresVerdad()">
+                  <span style="font-weight:bold; color:#c00;">F</span>
+                </label>
+              </td>
+              <td style="padding:0.25rem 0.5rem; text-align:center;">
+                <button type="button" @click="quitarEntrada(i)"
+                        style="background:none; border:none; cursor:pointer; color:#c00; font-size:1.1rem;"
+                        title="Quitar">✕</button>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+      <button type="button" class="btn btn-secondary" @click="agregarEntrada()" style="margin-bottom:1rem;">
+        + Agregar variable
+      </button>
+
+      <!-- ── Sección para FORMALIZACIÓN y DETERMINACIÓN DE VERDAD (fórmula única) ── -->
+      <div x-show="tipoActual !== 'tabla_verdad'">
+        <label style="font-weight:600;">Paso 2: Fórmula solución</label>
+        <p x-show="tipoActual === 'determinacion_verdad'"
+           style="font-size:0.9rem; color:#555; margin-top:0.25rem;">
+          Escribí la fórmula que formaliza el enunciado. El sistema calculará dinámicamente su valor de verdad según los valores del diccionario.
+        </p>
+        <div class="keyboard" style="margin-top:0.5rem; flex-wrap:wrap; display:flex; gap:0.3rem;">
+          <button class="key" type="button" @click="insertar('~')" title="Negación (~)">~</button>
+          <button class="key" type="button" @click="insertar('\u00b7')" title="Conjunción (·)">·</button>
+          <button class="key" type="button" @click="insertar('\u2228')" title="Disyunción (∨)">∨</button>
+          <button class="key" type="button" @click="insertar('\u2283')" title="Condicional (⊃)">⊃</button>
+          <button class="key" type="button" @click="insertar('\u2261')" title="Bicondicional (≡)">≡</button>
+          <button class="key key-paren" type="button" @click="insertar('(')">(</button>
+          <button class="key key-paren" type="button" @click="insertar(')')">)</button>
+          <span style="width:0.5rem;"></span>
+          <template x-for="letra in letrasValidas" :key="letra">
+            <button class="key" type="button"
+                    @click="insertar(letra)"
+                    style="font-weight:bold;"
+                    :title="'Variable ' + letra + ': ' + diccionario[letra]"
+                    x-text="letra">
+            </button>
+          </template>
+          <span x-show="letrasValidas.length === 0"
+                style="font-size:0.85rem; color:#888; align-self:center; font-style:italic;">
+            (las letras del diccionario aparecen acá)
+          </span>
+        </div>
+
+        <input
+          type="text"
+          x-ref="formulaInput"
+          x-model="formulaDisplay"
+          @input="syncFormula(); evaluarDeterminacion()"
+          @keydown.enter.prevent=""
+          placeholder="A ⊃ B"
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          style="font-size:1.1rem; margin-top:0.5rem;"
+        >
+        <p style="font-size:0.8rem; color:#888; margin-top:0.3rem;">
+          También podés escribir directamente: <code>~</code> negación, <code>.</code>, <code>&amp;</code> o <code>·</code> conjunción,
+          <code>v</code> o <code>|</code> disyunción, <code>-&gt;</code> condicional, <code>&lt;-&gt;</code> bicondicional.
+        </p>
+
+        <!-- Resultado dinámico del valor de verdad: solo para determinacion_verdad -->
+        <div x-show="tipoActual === 'determinacion_verdad'"
+             style="margin-top:0.75rem; padding:0.6rem 0.9rem; border-radius:4px; display:flex; align-items:center; gap:0.6rem;"
+             :style="valorDeterminacion === true ? 'background:#d4edda; border-left:4px solid #28a745;'
+                   : valorDeterminacion === false ? 'background:#f8d7da; border-left:4px solid #dc3545;'
+                   : 'background:#f5f5f5; border-left:4px solid #ccc;'">
+          <strong style="font-size:0.9rem;">Valor de verdad de la fórmula solución:</strong>
+          <span x-show="valorDeterminacion === true"
+                style="font-size:1.2rem; font-weight:bold; color:#1a7a1a;">V (Verdadero)</span>
+          <span x-show="valorDeterminacion === false"
+                style="font-size:1.2rem; font-weight:bold; color:#c00;">F (Falso)</span>
+          <span x-show="valorDeterminacion === null"
+                style="font-size:0.9rem; color:#888; font-style:italic;"
+                x-text="errorDeterminacion || '(ingresá la fórmula y completá el diccionario con valores V/F)'">
+          </span>
+        </div>
+      </div>
+
+      <!-- ── Sección para TABLA DE VERDAD (argumento) ────────────────── -->
+      <div x-show="tipoActual === 'tabla_verdad'">
+        <h3 style="margin-top:0;">Paso 2: Construí el argumento</h3>
+        <p style="font-size:0.9rem; color:#555; margin-top:0;">
+          Agregá las premisas y la conclusión del argumento. Usá las letras del diccionario y las conectivas del teclado. También se acepta <code>.</code> como conjunción.
+        </p>
+
+        <div x-show="errorArgumento" class="alert alert-error" style="margin-bottom:0.75rem;" x-text="errorArgumento"></div>
+
+        <table style="width:100%; border-collapse:collapse; margin-bottom:0.75rem;">
+          <thead>
+            <tr>
+              <th style="text-align:left; padding:0.3rem 0.5rem;">Fórmula</th>
+              <th style="text-align:left; padding:0.3rem 0.5rem; width:16rem;">Tipo</th>
+              <th style="width:3rem;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="(fila, i) in filasArgumento" :key="i">
+              <tr>
+                <td style="padding:0.25rem 0.5rem;">
+                  <!-- Mini-teclado por fila -->
+                  <div style="display:flex; flex-wrap:wrap; gap:0.2rem; margin-bottom:0.25rem;">
+                    <button class="key" type="button" style="font-size:0.8rem; padding:0.15rem 0.4rem;" @click="insertarEnFila(i, '~')">~</button>
+                    <button class="key" type="button" style="font-size:0.8rem; padding:0.15rem 0.4rem;" @click="insertarEnFila(i, '\u00b7')">·</button>
+                    <button class="key" type="button" style="font-size:0.8rem; padding:0.15rem 0.4rem;" @click="insertarEnFila(i, '\u2228')">∨</button>
+                    <button class="key" type="button" style="font-size:0.8rem; padding:0.15rem 0.4rem;" @click="insertarEnFila(i, '\u2283')">⊃</button>
+                    <button class="key" type="button" style="font-size:0.8rem; padding:0.15rem 0.4rem;" @click="insertarEnFila(i, '\u2261')">≡</button>
+                    <button class="key key-paren" type="button" style="font-size:0.8rem; padding:0.15rem 0.4rem;" @click="insertarEnFila(i, '(')">(</button>
+                    <button class="key key-paren" type="button" style="font-size:0.8rem; padding:0.15rem 0.4rem;" @click="insertarEnFila(i, ')')">)</button>
+                    <template x-for="letra in letrasValidas" :key="letra">
+                      <button class="key" type="button"
+                              style="font-size:0.8rem; padding:0.15rem 0.4rem; font-weight:bold;"
+                              @click="insertarEnFila(i, letra)"
+                              x-text="letra">
+                      </button>
+                    </template>
+                  </div>
+                  <input
+                    type="text"
+                    :x-ref="'formulaFila_' + i"
+                    x-model="fila.formula"
+                    placeholder="ej: A ⊃ B"
+                    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                    style="width:100%; font-size:1rem;"
+                    :id="'fila_formula_' + i"
+                  >
+                </td>
+                <td style="padding:0.25rem 0.5rem;">
+                  <label style="display:inline-flex; align-items:center; gap:0.3rem; margin-right:0.75rem; cursor:pointer;">
+                    <input type="radio" :name="'tipo_arg_' + i" value="premisa" x-model="fila.tipo"> Premisa
+                  </label>
+                  <label style="display:inline-flex; align-items:center; gap:0.3rem; cursor:pointer;"
+                         :style="hayConclusion && fila.tipo !== 'conclusion' ? 'opacity:0.4;' : ''">
+                    <input type="radio" :name="'tipo_arg_' + i" value="conclusion" x-model="fila.tipo"
+                           :disabled="hayConclusion && fila.tipo !== 'conclusion'"
+                           @change="validarConclusion()"> Conclusión
+                  </label>
+                </td>
+                <td style="padding:0.25rem 0.5rem; text-align:center;">
+                  <button type="button" @click="quitarFila(i)"
+                          style="background:none; border:none; cursor:pointer; color:#c00; font-size:1.1rem;"
+                          title="Quitar">✕</button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+        <button type="button" class="btn btn-secondary" @click="agregarFila()" style="margin-bottom:1rem;">
+          + Agregar proposición
+        </button>
+      </div>
+
+      <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap; margin-top:1rem;">
+        <button class="btn btn-primary" type="submit">Guardar</button>
+        <a class="btn btn-secondary" href="{% if next %}{{ next }}{% else %}{% url 'docentes:comisiones_list' %}{% endif %}">Volver</a>
+      </div>
+
+      {% if practicas_disponibles %}
+      <hr style="margin:1.5rem 0;">
+      <h3 style="margin-top:0;">Asignar a práctica (opcional)</h3>
+      {% if asignaciones %}
+        <p><strong>Asignaciones actuales:</strong></p>
+        <ul>
+          {% for ep in asignaciones %}
+            <li>
+              <a href="{% url 'docentes:practica_detail' ep.practica.id %}">{{ ep.practica.titulo }}</a>
+              — orden {{ ep.orden }}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      <p>Seleccioná una práctica y un orden para agregar este ejercicio:</p>
+      <p>
+        <label for="ep_practica">Práctica</label>
+        <select id="ep_practica" name="ep_practica">
+          <option value="">— ninguna —</option>
+          {% for practica in practicas_disponibles %}
+            <option value="{{ practica.id }}"
+              {% if practica_preseleccionada and practica.id == practica_preseleccionada.id %}selected{% endif %}>
+              {{ practica.titulo }}
+            </option>
+          {% endfor %}
+        </select>
+      </p>
+      <p>
+        <label for="ep_orden">Orden en la práctica</label>
+        <input type="number" id="ep_orden" name="ep_orden" min="1"
+          {% if orden_siguiente %}value="{{ orden_siguiente }}"{% else %}placeholder="ej: 1"{% endif %}>
+      </p>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Vista previa del enunciado -->
+  <div class="card" style="margin-top:1rem;">
+    <h2 style="margin-top:0;">Vista previa del enunciado</h2>
+    <p><strong>Tipo:</strong> <span x-text="tipoLabel"></span></p>
+    <div style="font-size:1.05rem;" x-html="enunciadoPreview"></div>
+  </div>
+
+  <!-- Sandbox de corrección -->
+  <div class="card" style="margin-top:1rem;">
+    <h2 style="margin-top:0;">Sandbox: probar una respuesta</h2>
+
+    <!-- Sandbox para FORMALIZACIÓN -->
+    <div x-show="tipoActual !== 'tabla_verdad'">
+      <p style="font-size:0.9rem; color:#555; margin-top:0;">
+        Probá si una respuesta es equivalente a tu fórmula solución antes de guardar.
+      </p>
+
+      <div class="keyboard" style="flex-wrap:wrap; display:flex; gap:0.3rem; margin-bottom:0.5rem;">
+        <button class="key" type="button" @click="insertarSandbox('~')">~</button>
+        <button class="key" type="button" @click="insertarSandbox('\u00b7')">·</button>
+        <button class="key" type="button" @click="insertarSandbox('\u2228')">∨</button>
+        <button class="key" type="button" @click="insertarSandbox('\u2283')">⊃</button>
+        <button class="key" type="button" @click="insertarSandbox('\u2261')">≡</button>
+        <button class="key key-paren" type="button" @click="insertarSandbox('(')">(</button>
+        <button class="key key-paren" type="button" @click="insertarSandbox(')')">)</button>
+        <span style="width:0.5rem;"></span>
+        <template x-for="letra in letrasValidas" :key="letra">
+          <button class="key" type="button"
+                  @click="insertarSandbox(letra)"
+                  style="font-weight:bold;"
+                  x-text="letra">
+          </button>
+        </template>
+      </div>
+
+      <input type="text" x-ref="respuestaInput" x-model="respuestaPrueba"
+             placeholder="Respuesta de prueba"
+             @keydown.enter.prevent="probar()"
+             style="margin-bottom:0.5rem;">
+      <button class="btn btn-primary" type="button" @click="probar()"
+              :disabled="enviando || !respuestaPrueba.trim() || !formulaDisplay.trim()">
+        <span x-text="enviando ? 'Probando…' : 'Probar corrección'"></span>
+      </button>
+
+      <div x-show="resultado && tipoActual !== 'tabla_verdad'" style="margin-top:1rem;">
+        <div x-show="resultado?.correcto" class="alert alert-ok">✓ Respuesta equivalente.</div>
+        <div x-show="resultado && !resultado?.correcto && !resultado?.error_parse" class="alert alert-warning">✗ No equivalente.</div>
+        <div x-show="resultado?.error_parse" class="alert alert-error"><strong>Error de sintaxis:</strong> <span x-text="resultado?.error_parse"></span></div>
+        <div x-show="errorFormulaSolucion" class="alert alert-error" x-text="errorFormulaSolucion"></div>
+
+        <div x-show="resultado && !resultado?.error_parse && resultado?.tabla_estudiante" class="tables-grid">
+          <div>
+            <h4>Respuesta de prueba</h4>
+            <table class="truth-table">
+              <thead><tr><template x-for="col in columnas(resultado?.tabla_estudiante)" :key="col"><th x-text="col"></th></template></tr></thead>
+              <tbody><template x-for="(fila, i) in resultado?.tabla_estudiante" :key="i"><tr><template x-for="col in columnas(resultado?.tabla_estudiante)" :key="col"><td x-text="vof(fila[col])"></td></template></tr></template></tbody>
+            </table>
+          </div>
+          <div>
+            <h4>Fórmula solución</h4>
+            <table class="truth-table">
+              <thead><tr><template x-for="col in columnas(resultado?.tabla_solucion)" :key="col"><th x-text="col"></th></template></tr></thead>
+              <tbody><template x-for="(fila, i) in resultado?.tabla_solucion" :key="i"><tr><template x-for="col in columnas(resultado?.tabla_solucion)" :key="col"><td x-text="vof(fila[col])"></td></template></tr></template></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sandbox para DETERMINACIÓN DE VERDAD -->
+    <div x-show="tipoActual === 'determinacion_verdad'">
+      <p style="font-size:0.9rem; color:#555; margin-top:0;">
+        El valor de verdad de la fórmula solución se actualiza automáticamente arriba
+        a medida que completás la fórmula y el diccionario.
+        Guardá el ejercicio para que los estudiantes puedan acceder a él.
+      </p>
+      <div x-show="valorDeterminacion !== null"
+           style="margin-top:0.5rem; padding:0.5rem 0.75rem; border-radius:4px;"
+           :style="valorDeterminacion ? 'background:#d4edda; color:#155724;' : 'background:#f8d7da; color:#721c24;'">
+        <strong>Valor de verdad de la fórmula solución:</strong>
+        <span style="font-size:1.1rem; font-weight:bold;" x-text="valorDeterminacion ? ' V (Verdadero)' : ' F (Falso)'"></span>
+      </div>
+    </div>
+
+    <!-- Sandbox para TABLA DE VERDAD (argumento) -->
+    <div x-show="tipoActual === 'tabla_verdad'">
+      <p style="font-size:0.9rem; color:#555; margin-top:0;">
+        Probá tu argumento para ver la tabla de verdad y si es válido.
+      </p>
+      <button class="btn btn-primary" type="button" @click="probarArgumento()"
+              :disabled="enviando || filasArgumento.length === 0">
+        <span x-text="enviando ? 'Calculando…' : 'Ver tabla del argumento'"></span>
+      </button>
+
+      <div x-show="errorFormulaSolucion" class="alert alert-error" style="margin-top:0.75rem;" x-text="errorFormulaSolucion"></div>
+
+      <div x-show="resultado && tipoActual === 'tabla_verdad'" style="margin-top:1rem;">
+        <template x-for="(err, i) in (resultado?.errores_parse || [])" :key="i">
+          <div x-show="err" class="alert alert-error">
+            Fórmula <span x-text="i+1"></span>: <span x-text="err"></span>
+          </div>
+        </template>
+
+        <div x-show="resultado?.tabla_argumento?.length">
+          <table class="truth-table">
+            <thead>
+              <tr>
+                <template x-for="col in columnasArgumento(resultado?.tabla_argumento)" :key="col">
+                  <th x-text="col === 'valido_fila' ? 'Válido' : col"></th>
+                </template>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(fila, i) in resultado?.tabla_argumento" :key="i">
+                <tr :style="!fila.valido_fila ? 'background:#fff5f5;' : ''">
+                  <template x-for="col in columnasArgumento(resultado?.tabla_argumento)" :key="col">
+                    <td x-text="vof(fila[col])"></td>
+                  </template>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+          <p style="margin-top:0.5rem; font-weight:600;"
+             :style="resultado?.es_valido ? 'color:#28a745;' : 'color:#dc3545;'"
+             x-text="resultado?.es_valido ? 'El argumento ES válido.' : 'El argumento NO ES válido.'">
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('alpine:init', () => {
+  Alpine.data('ejercicioFormApp', () => ({
+
+    // Diccionario
+    entradas: [],
+
+    // Fórmula solución (para formalización y determinación de verdad)
+    formulaDisplay: '',   // lo que muestra el input
+    formulaNorm: '',      // versión normalizada que va al campo oculto
+
+    // Determinación de verdad
+    valorDeterminacion: null,  // true/false/null — resultado calculado por API
+    errorDeterminacion: '',
+    evaluandoDeterminacion: false,
+    _evalTimeout: null,
+
+    // Argumento (para tabla de verdad)
+    filasArgumento: [],   // [{formula: '', tipo: 'premisa'}, ...]
+    errorArgumento: '',
+
+    // Sandbox
+    respuestaPrueba: '',
+    resultado: null,
+    errorFormulaSolucion: '',
+    enviando: false,
+
+    // Vista previa enunciado
+    enunciadoPreview: '',
+    tipoLabel: '-',
+    tipoActual: '',
+
+    // ── Letras reservadas (alias de conectivos) ────────────────────
+    RESERVADAS: new Set(['V']),
+
+    get letrasValidas() {
+      const vistas = new Set();
+      return this.entradas
+        .filter(e => e.letra && e.frase.trim())
+        .filter(e => !this.RESERVADAS.has(e.letra))
+        .filter(e => {
+          if (vistas.has(e.letra)) return false;
+          vistas.add(e.letra);
+          return true;
+        })
+        .map(e => e.letra);
+    },
+
+    get diccionario() {
+      const result = {};
+      for (const letra of this.letrasValidas) {
+        const entrada = this.entradas.find(e => e.letra === letra);
+        if (entrada) result[letra] = entrada.frase.trim();
+      }
+      return result;
+    },
+
+    get valoresVerdad() {
+      // Solo para determinacion_verdad: {letra: bool}
+      const result = {};
+      for (const e of this.entradas) {
+        if (e.letra && e.frase.trim() && !this.RESERVADAS.has(e.letra) && e.valor !== undefined && e.valor !== null) {
+          result[e.letra] = e.valor;
+        }
+      }
+      return result;
+    },
+
+    get hayConclusion() {
+      return this.filasArgumento.some(f => f.tipo === 'conclusion');
+    },
+
+    agregarEntrada() { this.entradas.push({ letra: '', frase: '', valor: null }); },
+    quitarEntrada(i) { this.entradas.splice(i, 1); this.evaluarDeterminacion(); },
+
+    agregarFila() {
+      this.filasArgumento.push({ formula: '', tipo: 'premisa' });
+    },
+    quitarFila(i) {
+      this.filasArgumento.splice(i, 1);
+      this.validarConclusion();
+    },
+
+    validarConclusion() {
+      const conclusiones = this.filasArgumento.filter(f => f.tipo === 'conclusion');
+      if (conclusiones.length > 1) {
+        this.errorArgumento = 'Solo puede haber una conclusión.';
+      } else {
+        this.errorArgumento = '';
+      }
+    },
+
+    normalizar(s) {
+      return s
+        .replace(/\u00ac/g, '~')
+        .replace(/\u2227/g, '\u00b7')
+        .replace(/\u2192|\u21d2|=>/g, '\u2283')
+        .replace(/\u2194|\u21d4/g, '\u2261')
+        .replace(/(?<![A-Za-z0-9_])v(?![A-Za-z0-9_])/g, '\u2228')
+        .replace(/(?<=[A-Za-z0-9_)\]])v(?=[A-Za-z0-9_(~\[])/g, '\u2228');
+    },
+
+    /** Sincroniza el input visible con el campo oculto del form Django (formalización y determinación). */
+    syncFormula() {
+      this.formulaNorm = this.normalizar(this.formulaDisplay.trim());
+      const hidden = document.getElementById('id_formula_solucion');
+      if (hidden) hidden.value = this.formulaNorm;
+    },
+
+    /** Sincroniza valores de verdad al campo oculto y re-evalúa la fórmula. */
+    syncValoresVerdad() {
+      const hidden = document.getElementById('id_valores_verdad_solucion');
+      if (hidden) hidden.value = JSON.stringify(this.valoresVerdad);
+      this.evaluarDeterminacion();
+    },
+
+    /** Llama al API para obtener el valor de verdad de la fórmula solución (con debounce). */
+    evaluarDeterminacion() {
+      if (this.tipoActual !== 'determinacion_verdad') return;
+      clearTimeout(this._evalTimeout);
+      this._evalTimeout = setTimeout(async () => {
+        const formula = this.normalizar(this.formulaDisplay.trim());
+        const valores = this.valoresVerdad;
+        if (!formula || Object.keys(valores).length === 0) {
+          this.valorDeterminacion = null;
+          this.errorDeterminacion = '';
+          return;
+        }
+        try {
+          const resp = await fetch('/api/preview-determinacion/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCookie('csrftoken') },
+            body: JSON.stringify({ formula, valores_verdad: valores }),
+          });
+          const data = await resp.json();
+          if (data.error_parse) {
+            this.valorDeterminacion = null;
+            this.errorDeterminacion = data.error_parse;
+          } else {
+            this.valorDeterminacion = data.valor;
+            this.errorDeterminacion = '';
+          }
+        } catch (_) {
+          this.valorDeterminacion = null;
+          this.errorDeterminacion = 'Error de conexión al evaluar.';
+        }
+      }, 400);
+    },
+
+    /** Serializa el argumento como JSON al campo oculto (tabla de verdad). */
+    syncArgumento() {
+      const normalized = this.filasArgumento.map(f => ({
+        formula: this.normalizar(f.formula.trim()),
+        tipo: f.tipo,
+      }));
+      const hidden = document.getElementById('id_formula_solucion');
+      if (hidden) hidden.value = JSON.stringify(normalized);
+    },
+
+    insertar(sim) {
+      const input = this.$refs.formulaInput;
+      const start = input.selectionStart ?? this.formulaDisplay.length;
+      const end   = input.selectionEnd   ?? this.formulaDisplay.length;
+      this.formulaDisplay = this.formulaDisplay.slice(0, start) + sim + this.formulaDisplay.slice(end);
+      this.syncFormula();
+      this.evaluarDeterminacion();
+      this.$nextTick(() => {
+        input.setSelectionRange(start + sim.length, start + sim.length);
+        input.focus();
+      });
+    },
+
+    insertarEnFila(i, sim) {
+      const input = document.getElementById('fila_formula_' + i);
+      if (!input) return;
+      const start = input.selectionStart ?? this.filasArgumento[i].formula.length;
+      const end   = input.selectionEnd   ?? this.filasArgumento[i].formula.length;
+      this.filasArgumento[i].formula =
+        this.filasArgumento[i].formula.slice(0, start) + sim + this.filasArgumento[i].formula.slice(end);
+      this.$nextTick(() => {
+        input.setSelectionRange(start + sim.length, start + sim.length);
+        input.focus();
+      });
+    },
+
+    insertarSandbox(sim) {
+      const input = this.$refs.respuestaInput;
+      const start = input.selectionStart ?? this.respuestaPrueba.length;
+      const end   = input.selectionEnd   ?? this.respuestaPrueba.length;
+      this.respuestaPrueba = this.respuestaPrueba.slice(0, start) + sim + this.respuestaPrueba.slice(end);
+      this.$nextTick(() => {
+        input.setSelectionRange(start + sim.length, start + sim.length);
+        input.focus();
+      });
+    },
+
+    getCookie(name) {
+      for (const part of document.cookie.split(';')) {
+        const [k, v] = part.trim().split('=');
+        if (k === name) return decodeURIComponent(v ?? '');
+      }
+      return '';
+    },
+
+    columnas(tabla) {
+      if (!tabla || !tabla.length) return [];
+      return Object.keys(tabla[0]);
+    },
+
+    columnasArgumento(tabla) {
+      if (!tabla || !tabla.length) return [];
+      return Object.keys(tabla[0]);
+    },
+
+    vof(v) { return v ? 'V' : 'F'; },
+
+    /** Serializa entradas del diccionario al campo oculto. */
+    syncDiccionario() {
+      const dic = {};
+      const vv = {};
+      for (const e of this.entradas) {
+        if (e.letra && e.frase.trim() && !this.RESERVADAS.has(e.letra)) {
+          dic[e.letra] = e.frase.trim();
+          if (e.valor !== undefined && e.valor !== null) vv[e.letra] = e.valor;
+        }
+      }
+      const hidden = document.getElementById('id_diccionario_solucion');
+      if (hidden) hidden.value = JSON.stringify(dic);
+      const hiddenVV = document.getElementById('id_valores_verdad_solucion');
+      if (hiddenVV) hiddenVV.value = JSON.stringify(vv);
+    },
+
+    init() {
+      const enunciadoEl   = document.getElementById('id_enunciado');
+      const formulaEl     = document.getElementById('id_formula_solucion');
+      const tipoEl        = document.getElementById('id_tipo');
+      const diccionarioEl = document.getElementById('id_diccionario_solucion');
+
+      this.enunciadoPreview = enunciadoEl?.value || '';
+      this.tipoActual = tipoEl?.value || '';
+      this.tipoLabel = tipoEl?.options[tipoEl.selectedIndex]?.text || '-';
+
+      // Precargar diccionario de variables al editar
+      const diccionarioRaw = diccionarioEl?.dataset?.initial || '';
+      const vvRaw = document.getElementById('id_valores_verdad_solucion')?.dataset?.initial || '';
+      let vvInicial = {};
+      try { vvInicial = JSON.parse(vvRaw); } catch (_) {}
+      if (diccionarioRaw) {
+        try {
+          const dic = JSON.parse(diccionarioRaw);
+          this.entradas = Object.entries(dic).map(([letra, frase]) => ({
+            letra,
+            frase,
+            valor: Object.prototype.hasOwnProperty.call(vvInicial, letra) ? vvInicial[letra] : null,
+          }));
+        } catch (_) {}
+      }
+
+      // Detectar el tipo y precargar datos al editar
+      if (this.tipoActual === 'tabla_verdad') {
+        // Intentar parsear el JSON existente como argumento
+        const valorActual = formulaEl?.value || '';
+        if (valorActual) {
+          try {
+            const parsed = JSON.parse(valorActual);
+            if (Array.isArray(parsed)) {
+              this.filasArgumento = parsed.map(e => ({
+                formula: e.formula || '',
+                tipo: e.tipo || 'premisa',
+              }));
+            }
+          } catch (_) {}
+        }
+      } else {
+        // Precargar fórmula existente al editar (formalización)
+        if (formulaEl?.value) {
+          this.formulaDisplay = formulaEl.value;
+          this.formulaNorm    = formulaEl.value;
+        }
+      }
+
+      enunciadoEl?.addEventListener('input', e => { this.enunciadoPreview = e.target.value; });
+      tipoEl?.addEventListener('change', e => {
+        this.tipoActual = e.target.value;
+        this.tipoLabel = e.target.options[e.target.selectedIndex]?.text || '-';
+        this.resultado = null;
+        this.errorFormulaSolucion = '';
+        this.valorDeterminacion = null;
+        this.errorDeterminacion = '';
+        if (this.tipoActual === 'determinacion_verdad') this.evaluarDeterminacion();
+      });
+
+      // Sincronizar campos ocultos antes de que el form se envíe
+      document.getElementById('ejercicio-form')?.addEventListener('submit', () => {
+        if (this.tipoActual === 'tabla_verdad') {
+          this.syncArgumento();
+        } else {
+          this.syncFormula();
+        }
+        this.syncDiccionario();
+      });
+
+      // Si ya está en modo determinacion_verdad al cargar (edición), evaluar fórmula
+      if (this.tipoActual === 'determinacion_verdad') {
+        this.$nextTick(() => this.evaluarDeterminacion());
+      }
+    },
+
+    async probar() {
+      if (this.enviando) return;
+      this.enviando = true;
+      this.resultado = null;
+      this.errorFormulaSolucion = '';
+
+      try {
+        const response = await fetch('/api/preview-verificacion/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': this.getCookie('csrftoken'),
+          },
+          body: JSON.stringify({
+            formula_solucion: this.normalizar(this.formulaDisplay.trim()),
+            respuesta_prueba: this.normalizar(this.respuestaPrueba.trim()),
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          this.errorFormulaSolucion = data?.formula_solucion?.[0] || `No se pudo verificar (${response.status}).`;
+          return;
+        }
+        this.resultado = data;
+      } catch (_) {
+        this.errorFormulaSolucion = 'Error de conexión al probar la corrección.';
+      } finally {
+        this.enviando = false;
+      }
+    },
+
+    async probarArgumento() {
+      if (this.enviando) return;
+      this.enviando = true;
+      this.resultado = null;
+      this.errorFormulaSolucion = '';
+
+      const enunciados = this.filasArgumento.map(f => ({
+        formula: this.normalizar(f.formula.trim()),
+        tipo: f.tipo,
+      }));
+
+      try {
+        const response = await fetch('/api/preview-argumento/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': this.getCookie('csrftoken'),
+          },
+          body: JSON.stringify({
+            enunciados_solucion: enunciados,
+            enunciados_prueba: enunciados,
+            juicio_valido: null,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          this.errorFormulaSolucion = data?.enunciados_solucion?.[0] || `Error al calcular (${response.status}).`;
+          return;
+        }
+        this.resultado = data;
+      } catch (_) {
+        this.errorFormulaSolucion = 'Error de conexión al calcular el argumento.';
+      } finally {
+        this.enviando = false;
+      }
+    },
+  }));
+});
+</script>
+<style>[x-cloak]{display:none !important;}</style>
+{% endblock %}

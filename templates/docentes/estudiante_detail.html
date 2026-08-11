@@ -1,0 +1,403 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-wide">
+  <div class="card">
+    <div class="breadcrumb">
+      {% if vista_propia_estudiante %}
+        <a href="{% url 'ejercicios:home' %}">Inicio</a>
+        / Mi historial
+      {% else %}
+        <a href="{% url 'docentes:comisiones_list' %}">Panel docente</a>
+        / {{ estudiante.nombre_display }}
+      {% endif %}
+    </div>
+
+    <h1>
+      {% if vista_propia_estudiante %}
+        Mi historial de intentos
+      {% else %}
+        {{ estudiante.nombre_display }}
+      {% endif %}
+    </h1>
+    <p><strong>Email:</strong> {{ estudiante.email|default:'sin email' }}</p>
+
+    {% if not vista_propia_estudiante %}
+    {# ── Consentimientos (visible solo para docentes) ── #}
+    <div style="background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; padding: 0.75rem 1rem; margin-top: 0.75rem; font-size: 0.85rem; color: #5d4037;">
+      <strong>Consentimientos registrados</strong>
+      <ul style="margin: 0.4rem 0 0; padding-left: 1.2rem;">
+        <li>
+          <em>Uso pedagógico (datos identificables):</em>
+          {% if estudiante.consentimiento_pedagogico is None %}
+            <span style="color:#999;">sin respuesta</span>
+          {% elif estudiante.consentimiento_pedagogico %}
+            <span style="color:#2e7d32;">Aceptado</span>
+          {% else %}
+            <span style="color:#c62828;">No aceptado</span>
+          {% endif %}
+        </li>
+        <li>
+          <em>Uso académico/investigación (datos anonimizados):</em>
+          {% if estudiante.consentimiento_investigacion is None %}
+            <span style="color:#999;">sin respuesta</span>
+          {% elif estudiante.consentimiento_investigacion %}
+            <span style="color:#2e7d32;">Aceptado</span>
+          {% else %}
+            <span style="color:#c62828;">No aceptado</span>
+          {% endif %}
+        </li>
+      </ul>
+      {% if estudiante.fecha_consentimiento %}
+      <p style="margin: 0.4rem 0 0; color: #888; font-size: 0.82rem;">
+        Respondido el {{ estudiante.fecha_consentimiento|date:"d/m/Y \a\s H:i" }}
+      </p>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <form method="get" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-top: 1rem;">
+      <div>
+        <label for="id_comision">Comisión</label>
+        <select id="id_comision" name="comision" style="width:100%; padding:0.5rem; margin-top: 0.25rem;">
+          <option value="">Todas</option>
+          {% for comision in comisiones_disponibles %}
+            <option value="{{ comision.id }}" {% if filtro_comision_id == comision.id %}selected{% endif %}>{{ comision.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="id_pc">Práctica</label>
+        <select id="id_pc" name="pc" style="width:100%; padding:0.5rem; margin-top: 0.25rem;">
+          <option value="">Todas</option>
+          {% for pc in practicas_disponibles %}
+            <option value="{{ pc.id }}" {% if filtro_pc_id == pc.id %}selected{% endif %}>{{ pc.comision.nombre }} · {{ pc.practica.titulo }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="align-self:end; display:flex; gap:0.5rem;">
+        <button class="btn btn-primary" type="submit">Filtrar</button>
+        <a class="btn btn-secondary" href="{% if vista_propia_estudiante %}{% url 'ejercicios:mi_historial' %}{% else %}{% url 'docentes:estudiante_detail' estudiante.id %}{% endif %}">Limpiar</a>
+      </div>
+    </form>
+  </div>
+
+  {% if historial_por_cohorte %}
+    {% for seccion in historial_por_cohorte %}
+      <h2 style="margin:1.5rem 0 0.5rem; padding-bottom:0.3rem; border-bottom:2px solid #ddd; font-size:1.2rem; color:#444;">
+        {{ seccion.cohorte }}
+      </h2>
+      {% for grupo in seccion.grupos %}
+      <div class="card" x-data="{ mostrarHistorial: false }">
+        <h3 style="margin-bottom: 0.25rem;">{{ grupo.comision.nombre }} · {{ grupo.ejercicio_practica.practica.titulo }}</h3>
+        <p style="margin-top: 0; color:#666;">Ejercicio {{ grupo.ejercicio_practica.orden }} · {{ grupo.ejercicio_practica.ejercicio.get_tipo_display }}</p>
+        <div style="font-size:0.95rem; margin-bottom:0.75rem; padding:0.5rem 0.75rem; background:#f8f9fa; border-left:3px solid #ccc; border-radius:3px;">
+          {{ grupo.ejercicio_practica.ejercicio.enunciado|safe }}
+        </div>
+
+        <p><strong>Último intento</strong></p>
+        <ul style="margin-top:0.4rem;">
+          <li>
+            <strong>Respuesta:</strong>
+            {% if grupo.ultimo_intento.enunciados_parsed %}
+              <ul style="margin-top:0.3rem; margin-bottom:0.3rem;">
+                {% for e in grupo.ultimo_intento.enunciados_parsed %}
+                  <li>
+                    <span class="badge" style="background:#e8e8e8; color:#333; font-weight:normal; margin-right:0.25rem;">{{ e.tipo }}</span>
+                    <code>{{ e.formula }}</code>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% elif grupo.ultimo_intento.diccionario_con_valores %}
+              <div style="margin-top:0.4rem; padding:0.6rem 0.75rem; background:#f8f9fa; border-radius:4px; border:1px solid #e9ecef;">
+                <table style="border-collapse:collapse; font-size:0.88rem; margin-bottom:0.5rem; width:100%;">
+                  <thead>
+                    <tr style="border-bottom:1px solid #dee2e6;">
+                      <th style="text-align:left; padding:0.2rem 0.5rem; width:3rem; color:#555;">Letra</th>
+                      <th style="text-align:left; padding:0.2rem 0.5rem; color:#555;">Proposición simple</th>
+                      <th style="text-align:center; padding:0.2rem 0.5rem; width:4.5rem; color:#555;">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for entrada in grupo.ultimo_intento.diccionario_con_valores %}
+                      <tr>
+                        <td style="padding:0.2rem 0.5rem; font-weight:bold; font-family:monospace;">{{ entrada.letra }}</td>
+                        <td style="padding:0.2rem 0.5rem;">{{ entrada.frase }}</td>
+                        <td style="padding:0.2rem 0.5rem; text-align:center; font-weight:bold;">
+                          {% if entrada.valor == True %}
+                            <span style="color:#1a7a1a;">V</span>
+                          {% elif entrada.valor == False %}
+                            <span style="color:#c00;">F</span>
+                          {% else %}
+                            <span style="color:#aaa;">—</span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+                <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+                  <span style="font-size:0.88rem; color:#555; font-weight:600;">Fórmula:</span>
+                  <code style="font-size:0.95rem;">{{ grupo.ultimo_intento.respuesta_raw }}</code>
+                  <span style="font-size:0.88rem; color:#555; font-weight:600; margin-left:0.5rem;">Valor asignado:</span>
+                  {% if grupo.ultimo_intento.valor_verdad_estudiante == True %}
+                    <span style="font-size:1.05rem; font-weight:bold; color:#1a7a1a; padding:0.1rem 0.5rem; background:#d4edda; border-radius:4px;">V — Verdadero</span>
+                  {% elif grupo.ultimo_intento.valor_verdad_estudiante == False %}
+                    <span style="font-size:1.05rem; font-weight:bold; color:#c00; padding:0.1rem 0.5rem; background:#f8d7da; border-radius:4px;">F — Falso</span>
+                  {% else %}
+                    <span style="color:#aaa; font-style:italic;">no indicado</span>
+                  {% endif %}
+                </div>
+              </div>
+            {% else %}
+              <code>{{ grupo.ultimo_intento.respuesta_raw }}</code>
+            {% endif %}
+          </li>
+          <li>
+            <strong>Verificación formal:</strong>
+            {% if grupo.ultimo_intento.es_correcto %}
+              <span class="badge badge-ok">Formalmente válido</span>
+            {% else %}
+              <span class="badge badge-bloqueado">No verificado</span>
+            {% endif %}
+            <span style="font-size:0.8rem; color:#888; margin-left:0.3rem;">(automático)</span>
+          </li>
+          <li><strong>Fecha:</strong> {{ grupo.ultimo_intento.timestamp|date:'d/m/Y H:i' }}</li>
+          {% if grupo.ultimo_intento.diccionario and not grupo.ultimo_intento.diccionario_con_valores %}
+            <li>
+              <strong>Diccionario de variables:</strong>
+              <ul style="margin-top:0.2rem;">
+                {% for letra, frase in grupo.ultimo_intento.diccionario.items %}
+                  <li><code>{{ letra }}</code>: {{ frase }}</li>
+                {% endfor %}
+              </ul>
+            </li>
+          {% endif %}
+          {% if grupo.ultimo_intento.tabla_json %}
+            <li style="margin-top:0.5rem;">
+              <strong>Tabla completada por lx estudiante:</strong>
+              <div style="overflow-x:auto; margin-top:0.4rem;">
+                <table class="truth-table" style="min-width:max-content; font-size:0.9rem;">
+                  <thead>
+                    <tr>
+                      {% for col in grupo.ultimo_intento.tabla_json.0.keys %}
+                        <th>{{ col }}</th>
+                      {% endfor %}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for fila in grupo.ultimo_intento.tabla_json %}
+                      <tr>
+                        {% for col, val in fila.items %}
+                          <td style="text-align:center;">{% if val %}V{% else %}F{% endif %}</td>
+                        {% endfor %}
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </li>
+          {% endif %}
+        </ul>
+
+        <!-- Revisión docente -->
+        <div style="margin-top:0.75rem; padding:0.6rem 0.75rem; border-radius:4px;
+          {% if grupo.ultimo_intento.aprobado_docente == True %}background:#d4edda; border-left:4px solid #28a745;
+          {% elif grupo.ultimo_intento.aprobado_docente == False %}background:#f8d7da; border-left:4px solid #dc3545;
+          {% else %}background:#f5f5f5; border-left:4px solid #aaa;{% endif %}">
+          <strong>Revisión docente:</strong>
+          {% if grupo.ultimo_intento.aprobado_docente == True %}
+            <span class="badge badge-ok" style="margin-left:0.4rem;">Aprobado</span>
+          {% elif grupo.ultimo_intento.aprobado_docente == False %}
+            <span class="badge badge-bloqueado" style="margin-left:0.4rem;">Rechazado</span>
+          {% else %}
+            <span style="color:#888; font-style:italic; margin-left:0.4rem;">Pendiente de revisión.</span>
+          {% endif %}
+          {% if grupo.ultimo_intento.comentario_docente %}
+            <p style="margin:0.4rem 0 0; color:#333;">{{ grupo.ultimo_intento.comentario_docente|linebreaksbr }}</p>
+          {% endif %}
+        </div>
+
+        {% if not vista_propia_estudiante %}
+          <form method="post" action="{% url 'docentes:intento_aprobacion_update' grupo.ultimo_intento.id %}" style="margin-top:0.75rem; margin-bottom:1rem;">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <label for="comentario_u_{{ grupo.ultimo_intento.id }}"><strong>Devolución docente</strong></label>
+            <textarea id="comentario_u_{{ grupo.ultimo_intento.id }}" name="comentario_docente" rows="2"
+                      placeholder="Devolución (obligatoria al rechazar)…"
+                      style="width:100%; margin-top:0.3rem; margin-bottom:0.4rem;">{{ grupo.ultimo_intento.comentario_docente }}</textarea>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+              <button class="btn" type="submit" name="accion" value="aprobar"
+                      style="background:#28a745; color:#fff; border:none; padding:0.4rem 1rem; border-radius:4px; cursor:pointer;">
+                ✓ Aprobar
+              </button>
+              <button class="btn" type="submit" name="accion" value="rechazar"
+                      style="background:#dc3545; color:#fff; border:none; padding:0.4rem 1rem; border-radius:4px; cursor:pointer;"
+                      onclick="var ta=document.getElementById('comentario_u_{{ grupo.ultimo_intento.id }}');if(!ta.value.trim()){alert('Escribí una devolución antes de rechazar.');ta.focus();return false;}">
+                ✗ Rechazar
+              </button>
+              <button class="btn btn-secondary" type="submit" name="accion" value="pendiente"
+                      style="padding:0.4rem 1rem;">
+                ↺ Pendiente
+              </button>
+            </div>
+          </form>
+        {% endif %}
+
+        {% if grupo.intentos_anteriores %}
+          <button class="btn btn-secondary" type="button" @click="mostrarHistorial = !mostrarHistorial">
+            <span x-show="!mostrarHistorial">Ver historial ({{ grupo.intentos_anteriores|length }})</span>
+            <span x-show="mostrarHistorial">Ocultar historial</span>
+          </button>
+
+          <div x-show="mostrarHistorial" style="margin-top: 0.8rem;">
+            <p><strong>Intentos anteriores</strong></p>
+            <ul>
+              {% for intento in grupo.intentos_anteriores %}
+                <li style="margin-bottom:0.8rem;">
+                  {% if intento.enunciados_parsed %}
+                    <ul style="margin:0 0 0.2rem 0; padding-left:1.2rem;">
+                      {% for e in intento.enunciados_parsed %}
+                        <li>
+                          <span class="badge" style="background:#e8e8e8; color:#333; font-weight:normal; margin-right:0.2rem; font-size:0.8rem;">{{ e.tipo }}</span>
+                          <code style="font-size:0.9rem;">{{ e.formula }}</code>
+                        </li>
+                      {% endfor %}
+                    </ul>
+                  {% elif intento.diccionario_con_valores %}
+                    <div style="margin-top:0.3rem; margin-bottom:0.4rem; padding:0.5rem 0.6rem; background:#f8f9fa; border-radius:4px; border:1px solid #e9ecef;">
+                      <table style="border-collapse:collapse; font-size:0.85rem; margin-bottom:0.4rem; width:100%;">
+                        <thead>
+                          <tr style="border-bottom:1px solid #dee2e6;">
+                            <th style="text-align:left; padding:0.15rem 0.4rem; width:3rem; color:#555;">Letra</th>
+                            <th style="text-align:left; padding:0.15rem 0.4rem; color:#555;">Proposición simple</th>
+                            <th style="text-align:center; padding:0.15rem 0.4rem; width:4rem; color:#555;">Valor</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for entrada in intento.diccionario_con_valores %}
+                            <tr>
+                              <td style="padding:0.15rem 0.4rem; font-weight:bold; font-family:monospace;">{{ entrada.letra }}</td>
+                              <td style="padding:0.15rem 0.4rem;">{{ entrada.frase }}</td>
+                              <td style="padding:0.15rem 0.4rem; text-align:center; font-weight:bold;">
+                                {% if entrada.valor == True %}
+                                  <span style="color:#1a7a1a;">V</span>
+                                {% elif entrada.valor == False %}
+                                  <span style="color:#c00;">F</span>
+                                {% else %}
+                                  <span style="color:#aaa;">—</span>
+                                {% endif %}
+                              </td>
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                      <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; font-size:0.88rem;">
+                        <span style="color:#555; font-weight:600;">Fórmula:</span>
+                        <code>{{ intento.respuesta_raw }}</code>
+                        <span style="color:#555; font-weight:600; margin-left:0.4rem;">Valor asignado:</span>
+                        {% if intento.valor_verdad_estudiante == True %}
+                          <span style="font-weight:bold; color:#1a7a1a; padding:0.1rem 0.4rem; background:#d4edda; border-radius:4px;">V — Verdadero</span>
+                        {% elif intento.valor_verdad_estudiante == False %}
+                          <span style="font-weight:bold; color:#c00; padding:0.1rem 0.4rem; background:#f8d7da; border-radius:4px;">F — Falso</span>
+                        {% else %}
+                          <span style="color:#aaa; font-style:italic;">no indicado</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                  {% else %}
+                    <code>{{ intento.respuesta_raw }}</code>
+                  {% endif %}
+                  —
+                  <strong>Verificación formal:</strong>
+                  {% if intento.es_correcto %}
+                    <span class="badge badge-ok">Formalmente válido</span>
+                  {% else %}
+                    <span class="badge badge-bloqueado">No verificado</span>
+                  {% endif %}
+                  <span style="font-size:0.8rem; color:#888;">(automático)</span>
+                  — {{ intento.timestamp|date:'d/m/Y H:i' }}
+                  {% if intento.diccionario and not intento.diccionario_con_valores %}
+                    <ul style="margin-top:0.2rem; margin-bottom:0.2rem;">
+                      {% for letra, frase in intento.diccionario.items %}
+                        <li><code>{{ letra }}</code>: {{ frase }}</li>
+                      {% endfor %}
+                    </ul>
+                  {% endif %}
+                  {% if intento.tabla_json %}
+                    <div style="overflow-x:auto; margin-top:0.3rem; margin-bottom:0.3rem;">
+                      <table class="truth-table" style="min-width:max-content; font-size:0.85rem;">
+                        <thead>
+                          <tr>
+                            {% for col in intento.tabla_json.0.keys %}
+                              <th>{{ col }}</th>
+                            {% endfor %}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for fila in intento.tabla_json %}
+                            <tr>
+                              {% for col, val in fila.items %}
+                                <td style="text-align:center;">{% if val %}V{% else %}F{% endif %}</td>
+                              {% endfor %}
+                            </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  {% endif %}
+                  <div style="padding:0.4rem 0.6rem; border-radius:4px; font-size:0.9rem; margin-top:0.3rem;
+                    {% if intento.aprobado_docente == True %}background:#d4edda; border-left:3px solid #28a745;
+                    {% elif intento.aprobado_docente == False %}background:#f8d7da; border-left:3px solid #dc3545;
+                    {% else %}background:#f5f5f5;{% endif %}">
+                    <strong>Revisión docente:</strong>
+                    {% if intento.aprobado_docente == True %}
+                      <span class="badge badge-ok" style="font-size:0.8rem; margin-left:0.3rem;">Aprobado</span>
+                    {% elif intento.aprobado_docente == False %}
+                      <span class="badge badge-bloqueado" style="font-size:0.8rem; margin-left:0.3rem;">Rechazado</span>
+                    {% else %}
+                      <span style="color:#888; font-style:italic;">Pendiente.</span>
+                    {% endif %}
+                    {% if intento.comentario_docente %}
+                      <span style="color:#333; display:block; margin-top:0.2rem;">{{ intento.comentario_docente|linebreaksbr }}</span>
+                    {% endif %}
+                  </div>
+                  {% if not vista_propia_estudiante %}
+                    <form method="post" action="{% url 'docentes:intento_aprobacion_update' intento.id %}" style="margin-top:0.4rem;">
+                      {% csrf_token %}
+                      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                      <textarea name="comentario_docente" rows="2"
+                                placeholder="Devolución (obligatoria al rechazar)…"
+                                style="width:100%; margin-bottom:0.3rem;">{{ intento.comentario_docente }}</textarea>
+                      <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                        <button class="btn" type="submit" name="accion" value="aprobar"
+                                style="background:#28a745; color:#fff; border:none; padding:0.25rem 0.7rem; border-radius:4px; cursor:pointer; font-size:0.85rem;">
+                          ✓ Aprobar
+                        </button>
+                        <button class="btn" type="submit" name="accion" value="rechazar"
+                                style="background:#dc3545; color:#fff; border:none; padding:0.25rem 0.7rem; border-radius:4px; cursor:pointer; font-size:0.85rem;"
+                                onclick="var ta=this.form.querySelector('textarea[name=comentario_docente]');if(!ta.value.trim()){alert('Escribí una devolución antes de rechazar.');ta.focus();return false;}">
+                          ✗ Rechazar
+                        </button>
+                        <button class="btn btn-secondary" type="submit" name="accion" value="pendiente"
+                                style="padding:0.25rem 0.7rem; font-size:0.85rem;">
+                          ↺ Pendiente
+                        </button>
+                      </div>
+                    </form>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    {% endfor %}
+  {% else %}
+    <div class="card">
+      <p>No hay intentos para los filtros seleccionados.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

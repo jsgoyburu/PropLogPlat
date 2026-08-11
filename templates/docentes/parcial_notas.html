@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block title %}Notas — {{ parcial.nombre }} · {{ comision.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container-wide">
+
+  <!-- Encabezado -->
+  <div class="card">
+    <div class="breadcrumb">
+      <a href="{% url 'docentes:comisiones_list' %}">Panel docente</a>
+      &rsaquo; <a href="{% url 'docentes:comision_detail' comision.id %}">{{ comision.nombre }}</a>
+      &rsaquo; {{ parcial.nombre }}
+    </div>
+
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.5rem;">
+      <div>
+        <h1 style="margin: 0.25rem 0 0.25rem;">{{ parcial.nombre }}</h1>
+        <p style="margin: 0; color: #555; font-size: 0.9rem;">
+          {{ comision.nombre }} &nbsp;·&nbsp; {{ parcial.fecha|date:"j \d\e N \d\e Y" }}
+          &nbsp;·&nbsp; Puntaje total (lógica): <strong>{{ parcial.puntaje_total }}</strong>
+        </p>
+      </div>
+      <div style="text-align: right;">
+        <div style="font-size: 1.1rem; font-weight: 600; color: {% if cargadas == total %}#2a7a2a{% else %}#c07000{% endif %};">
+          {{ cargadas }} / {{ total }} notas cargadas
+        </div>
+        <a href="{% url 'docentes:parcial_edit' parcial.id %}"
+           style="font-size: 0.82rem; color: #555;">Editar parcial</a>
+        &nbsp;·&nbsp;
+        <a href="{% url 'docentes:parcial_notas_exportar' parcial.id %}"
+           style="font-size: 0.82rem; color: #555;">Exportar Excel</a>
+      </div>
+    </div>
+
+    {% if messages %}
+      {% for msg in messages %}
+        <div class="alert alert-{{ msg.tags }}" style="margin-top: 0.75rem;">{{ msg }}</div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <!-- Tabla de notas -->
+  <div class="card" style="margin-top: 1rem;">
+    <form method="post">
+      {% csrf_token %}
+      {{ formset.management_form }}
+
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.93rem;">
+          <thead>
+            <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+              <th style="padding: 0.5rem 0.75rem;">Estudiante</th>
+              <th style="padding: 0.5rem 0.75rem; width: 3rem; text-align: center;">Ausente</th>
+              <th style="padding: 0.5rem 0.75rem; width: 9rem;">Nota global</th>
+              <th style="padding: 0.5rem 0.75rem; width: 9rem;">Nota lógica</th>
+              <th style="padding: 0.5rem 0.75rem; width: 7rem; text-align: center;">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for form in formset %}
+              {% with est=form.instance.estudiante cargada=form.instance.puntaje es_ausente=form.instance.ausente %}
+              <tr style="border-bottom: 1px solid #eee;{% if cargada is None and not es_ausente %} background-color: rgba(255, 193, 7, 0.08);{% endif %}">
+                {{ form.id }}
+                <td style="padding: 0.5rem 0.75rem; font-weight: 500;">
+                  {% if est.last_name and est.first_name %}
+                    {{ est.last_name }}, {{ est.first_name }}
+                  {% else %}
+                    {{ est.username }}
+                  {% endif %}
+                  {% if est.last_name or est.first_name %}
+                    <br><span style="font-size: 0.78rem; color: #999; font-weight: 400;">@{{ est.username }}</span>
+                  {% endif %}
+                </td>
+                <td style="padding: 0.4rem 0.75rem; text-align: center;">
+                  {{ form.ausente }}
+                </td>
+                <td style="padding: 0.4rem 0.75rem;">
+                  {{ form.puntaje }}
+                  {% if form.puntaje.errors %}
+                    <span style="color: #b00020; font-size: 0.8rem; display: block;">{{ form.puntaje.errors|striptags }}</span>
+                  {% endif %}
+                </td>
+                <td style="padding: 0.4rem 0.75rem;">
+                  {{ form.nota_logica_parcial }}
+                  {% if form.nota_logica_parcial.errors %}
+                    <span style="color: #b00020; font-size: 0.8rem; display: block;">{{ form.nota_logica_parcial.errors|striptags }}</span>
+                  {% endif %}
+                </td>
+                <td style="padding: 0.4rem 0.75rem; text-align: center;">
+                  {% if es_ausente %}
+                    <span style="background: #f8d7da; color: #842029; font-size: 0.78rem; padding: 0.15rem 0.55rem; border-radius: 10px; white-space: nowrap;">
+                      Ausente
+                    </span>
+                  {% elif cargada is not None %}
+                    <span style="background: #d4edda; color: #155724; font-size: 0.78rem; padding: 0.15rem 0.55rem; border-radius: 10px; white-space: nowrap;">
+                      Cargada
+                    </span>
+                  {% else %}
+                    <span style="background: #fff3cd; color: #856404; font-size: 0.78rem; padding: 0.15rem 0.55rem; border-radius: 10px; white-space: nowrap;">
+                      Pendiente
+                    </span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endwith %}
+            {% empty %}
+              <tr>
+                <td colspan="5" style="padding: 1rem; color: #888; text-align: center;">
+                  Sin estudiantes inscriptos en esta comisión.
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if formset.forms %}
+        <div style="margin-top: 1rem; display: flex; gap: 0.6rem; align-items: center;">
+          <button type="submit" class="btn btn-primary">Guardar</button>
+          <a class="btn btn-secondary" href="{% url 'docentes:comision_detail' comision.id %}">Volver a la comisión</a>
+        </div>
+      {% endif %}
+    </form>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  function syncAusente(cb) {
+    // Deriva el prefijo: "id_form-N-ausente" → "id_form-N"
+    var prefix = cb.id.slice(0, cb.id.lastIndexOf('-ausente'));
+    var inputs = [
+      document.getElementById(prefix + '-puntaje'),
+      document.getElementById(prefix + '-nota_logica_parcial'),
+    ];
+    inputs.forEach(function (inp) {
+      if (!inp) return;
+      if (cb.checked) {
+        inp.value = '';
+        inp.readOnly = true;
+        inp.style.opacity = '0.35';
+        inp.style.background = '#f5f5f5';
+      } else {
+        inp.readOnly = false;
+        inp.style.opacity = '';
+        inp.style.background = '';
+      }
+    });
+  }
+
+  document.querySelectorAll('input[type="checkbox"][id$="-ausente"]').forEach(function (cb) {
+    syncAusente(cb);                            // inicializar al cargar la página
+    cb.addEventListener('change', function () { syncAusente(this); });
+  });
+});
+</script>
+{% endblock %}

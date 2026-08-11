@@ -1,0 +1,23 @@
+.git
+.github
+.claude
+.codex
+.env
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+db.sqlite3
+media
+staticfiles
+docs/_build
+.pytest_cache
+backups
+test_files
+data_utf8.json
+check_err.txt
+check_out.txt
+share
+mario.png
+docs/Enseñanza lógica

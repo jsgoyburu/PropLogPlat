@@ -1,0 +1,2009 @@
+{% extends "base.html" %}
+
+{% block title %}Analíticas de investigación — {{ config_sitio.nombre_sitio }}{% endblock %}
+
+{% block scripts %}
+<style>
+  .inv-section { margin-bottom: 2rem; }
+  .inv-section h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: #1a1a2e; border-bottom: 2px solid #e0e0e0; padding-bottom: 0.3rem; }
+  .consent-banner { background: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 6px; padding: 0.85rem 1rem; margin-bottom: 1.5rem; font-size: 0.88rem; color: #1b5e20; }
+  .consent-banner strong { color: #2e7d32; }
+  .consent-bar { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-top: 0.5rem; }
+  .consent-pill { display: inline-block; border-radius: 20px; padding: 0.2rem 0.7rem; font-size: 0.82rem; font-weight: 600; }
+  .pill-green  { background: #c8e6c9; color: #1b5e20; }
+  .pill-red    { background: #ffcdd2; color: #b71c1c; }
+  .pill-grey   { background: #eeeeee; color: #555; }
+  .export-row { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap; align-items: center; }
+  .export-row span { font-size: 0.83rem; color: #555; }
+  .btn-export { display: inline-block; padding: 0.3rem 0.75rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; text-decoration: none; border: 1px solid; cursor: pointer; }
+  .btn-csv  { background: #f5f5f5; border-color: #bbb; color: #333; }
+  .btn-xlsx { background: #e8f5e9; border-color: #a5d6a7; color: #1b5e20; }
+  .btn-ods  { background: #e3f2fd; border-color: #90caf9; color: #0d47a1; }
+  .btn-export:hover { opacity: 0.85; }
+  .inv-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.5rem; }
+  .inv-table th { background: #f5f5f5; text-align: left; padding: 0.4rem 0.6rem; font-weight: 600; border-bottom: 2px solid #ddd; white-space: nowrap; }
+  .inv-table td { padding: 0.35rem 0.6rem; border-bottom: 1px solid #eee; vertical-align: top; }
+  .inv-table tr:last-child td { border-bottom: none; }
+  .num { text-align: right; }
+  .pct { text-align: right; color: #555; }
+  .empty-msg { color: #888; font-size: 0.88rem; padding: 0.5rem 0; }
+  .desacople-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem; margin-top: 0.5rem; }
+  .desacople-card { background: #fafafa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 0.75rem 1rem; }
+  .desacople-card .val { font-size: 1.4rem; font-weight: 700; color: #1a1a2e; }
+  .desacople-card .lbl { font-size: 0.78rem; color: #666; margin-top: 0.2rem; }
+  .warn-desacople { color: #c62828; }
+  .info-sesgo { font-size: 0.78rem; color: #888; margin-top: 0.35rem; font-style: italic; }
+  /* Colapsables */
+  .table-toggle { display: flex; align-items: center; gap: 0.4rem; cursor: pointer;
+    font-size: 0.83rem; color: #666; padding: 0.45rem 0.7rem; border-radius: 4px;
+    border: 1px solid #ddd; background: #fafafa; user-select: none; width: fit-content; margin-top: 0.6rem; }
+  .table-toggle:hover { background: #f0f0f0; }
+  .table-toggle .panel-chevron { font-size: 0.65rem; opacity: 0.5; transition: transform 0.15s; }
+  details.tbl-collapse[open] .table-toggle .panel-chevron { transform: rotate(90deg); }
+  details.tbl-collapse > div { margin-top: 0.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3-cloud@1.2.7/build/d3.layout.cloud.js"></script>
+
+{# ── Serialización de datos para Chart.js ── #}
+{% if nse %}{{ nse|json_script:"data-nse" }}{% endif %}
+{% if logicas %}{{ logicas|json_script:"data-logicas" }}{% endif %}
+{% if pandemia %}{{ pandemia|json_script:"data-pandemia" }}{% endif %}
+{% if facultades %}{{ facultades|json_script:"data-facultades" }}{% endif %}
+{% if carreras %}{{ carreras|json_script:"data-carreras" }}{% endif %}
+{% if entrada %}{{ entrada|json_script:"data-entrada" }}{% endif %}
+{% if abandono %}{{ abandono|json_script:"data-abandono" }}{% endif %}
+{% if intentos %}{{ intentos|json_script:"data-intentos" }}{% endif %}
+{% if persistencia %}{{ persistencia|json_script:"data-persistencia" }}{% endif %}
+{% if cohortes %}{{ cohortes|json_script:"data-cohortes" }}{% endif %}
+{% if correlaciones %}{{ correlaciones|json_script:"data-correlaciones" }}{% endif %}
+{% if desempeno_nse %}{{ desempeno_nse|json_script:"data-desempeno-nse" }}{% endif %}
+{% if desempeno_pandemia %}{{ desempeno_pandemia|json_script:"data-desempeno-pandemia" }}{% endif %}
+{% if desempeno_logicas %}{{ desempeno_logicas|json_script:"data-desempeno-logicas" }}{% endif %}
+{% if nube_palabras_ciencia %}{{ nube_palabras_ciencia|json_script:"data-nube-ciencia" }}{% endif %}
+{% if trabajo_nota %}{{ trabajo_nota|json_script:"data-trabajo-nota" }}{% endif %}
+
+<div class="container-wide">
+
+  {# ── Sección de descarga de datasets ── #}
+  <div class="card" style="margin-bottom:1.5rem; padding:1.25rem 1.5rem;"
+       x-data="{
+         comisiones_sel: [],
+         cohorte_sel: '',
+         get params() {
+           const p = new URLSearchParams();
+           if (this.comisiones_sel.length) p.set('comision_ids', this.comisiones_sel.join(','));
+           if (this.cohorte_sel) p.set('cohorte', this.cohorte_sel);
+           return p.toString();
+         },
+         url(dataset, formato) {
+           const p = new URLSearchParams({ dataset, formato });
+           if (this.comisiones_sel.length) p.set('comision_ids', this.comisiones_sel.join(','));
+           if (this.cohorte_sel) p.set('cohorte', this.cohorte_sel);
+           return '{% url "analiticas:descargar_investigacion" %}?' + p.toString();
+         }
+       }">
+
+    <h3 style="margin:0 0 1rem; font-size:1rem; font-weight:600; color:#1a1a2e;">
+      Descargar datos de investigación
+    </h3>
+
+    <div style="display:flex; gap:2rem; flex-wrap:wrap; align-items:flex-start; margin-bottom:1.25rem;">
+
+      {# Filtro: comisiones #}
+      <div>
+        <div style="font-size:0.82rem; font-weight:600; color:#555; margin-bottom:0.4rem;">
+          Comisiones <span style="font-weight:400;">(default: todas)</span>
+        </div>
+        {% for comision in comisiones %}
+        <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.84rem; cursor:pointer; margin-bottom:0.2rem;">
+          <input type="checkbox" :value="{{ comision.id }}" x-model="comisiones_sel"
+                 style="cursor:pointer;">
+          {{ comision.nombre }}
+        </label>
+        {% empty %}
+        <span style="font-size:0.83rem; color:#888;">Sin comisiones disponibles</span>
+        {% endfor %}
+      </div>
+
+      {# Filtro: cohorte #}
+      {% if cohortes_disponibles %}
+      <div>
+        <div style="font-size:0.82rem; font-weight:600; color:#555; margin-bottom:0.4rem;">
+          Cohorte <span style="font-weight:400;">(default: todas)</span>
+        </div>
+        <select x-model="cohorte_sel"
+                style="font-size:0.84rem; padding:0.3rem 0.5rem; border:1px solid #ccc; border-radius:4px; background:#fff;">
+          <option value="">Todas las cohortes</option>
+          {% for c in cohortes_disponibles %}
+          <option value="{{ c.anio }}-{{ c.cuatri }}">{{ c.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+    </div>
+
+    {# Botones de descarga #}
+    <div style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start;">
+
+      <div>
+        <div style="font-size:0.82rem; font-weight:600; color:#333; margin-bottom:0.5rem;">
+          Encuesta inicial
+          <span style="font-weight:400; color:#777; font-size:0.78rem;">(1 fila por estudiante)</span>
+        </div>
+        <div style="display:flex; gap:0.4rem;">
+          <a class="btn-export btn-csv"  :href="url('encuesta', 'csv')"  download>CSV</a>
+          <a class="btn-export btn-xlsx" :href="url('encuesta', 'xlsx')" download>XLSX</a>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:0.82rem; font-weight:600; color:#333; margin-bottom:0.5rem;">
+          Intentos
+          <span style="font-weight:400; color:#777; font-size:0.78rem;">(1 fila por intento)</span>
+        </div>
+        <div style="display:flex; gap:0.4rem;">
+          <a class="btn-export btn-csv"  :href="url('intentos', 'csv')"  download>CSV</a>
+          <a class="btn-export btn-ods"  :href="url('intentos', 'json')" download
+             style="background:#fff3e0; border-color:#ffcc80; color:#e65100;">JSON</a>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:0.82rem; font-weight:600; color:#333; margin-bottom:0.5rem;">
+          Ejercicios
+          <span style="font-weight:400; color:#777; font-size:0.78rem;">(catálogo con soluciones)</span>
+        </div>
+        <div style="display:flex; gap:0.4rem;">
+          <a class="btn-export btn-csv"  :href="url('ejercicios', 'csv')"  download>CSV</a>
+          <a class="btn-export btn-xlsx" :href="url('ejercicios', 'xlsx')" download>XLSX</a>
+          <a class="btn-export btn-ods"  :href="url('ejercicios', 'json')" download
+             style="background:#fff3e0; border-color:#ffcc80; color:#e65100;">JSON</a>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:0.82rem; font-weight:600; color:#333; margin-bottom:0.5rem;">
+          Prácticas
+          <span style="font-weight:400; color:#777; font-size:0.78rem;">(catálogo por comisión)</span>
+        </div>
+        <div style="display:flex; gap:0.4rem;">
+          <a class="btn-export btn-csv"  :href="url('practicas', 'csv')"  download>CSV</a>
+          <a class="btn-export btn-xlsx" :href="url('practicas', 'xlsx')" download>XLSX</a>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:0.82rem; font-weight:600; color:#333; margin-bottom:0.5rem;">
+          Trabajo vs nota de lógica
+          <span style="font-weight:400; color:#777; font-size:0.78rem;">(1 fila por estudiante)</span>
+        </div>
+        <div style="display:flex; gap:0.4rem;">
+          <a class="btn-export btn-csv"  :href="url('trabajo_nota', 'csv')"  download>CSV</a>
+          <a class="btn-export btn-xlsx" :href="url('trabajo_nota', 'xlsx')" download>XLSX</a>
+        </div>
+      </div>
+
+    </div>
+
+    <p style="font-size:0.78rem; color:#888; margin:0.9rem 0 0;">
+      Solo se incluyen estudiantes con <em>consentimiento de investigación</em>.
+      <code>pseudonimo</code> es la clave entre encuesta e intentos;
+      <code>ejercicio_practica_id</code> y <code>practica_comision_id</code> vinculan intentos con ejercicios y prácticas.
+    </p>
+
+  </div>
+
+  <div style="display:flex; align-items:baseline; gap:1rem; margin-bottom:1rem; flex-wrap:wrap;">
+    <h2 style="margin:0;">Analíticas de investigación</h2>
+    <a href="{% url 'analiticas:dashboard' %}" style="font-size:0.85rem; color:#1976d2;">← Dashboard operativo</a>
+    <a href="{% url 'analiticas:encuesta_resumen' %}" style="font-size:0.85rem; color:#388e3c;">Encuesta inicial →</a>
+  </div>
+
+  {# ── Banner de consentimiento ── #}
+  <div class="consent-banner">
+    <strong>Política de consentimiento:</strong>
+    Los datos mostrados aquí corresponden exclusivamente a estudiantes que otorgaron su
+    <em>consentimiento de investigación</em>. Los datos de quienes no consintieron o tienen
+    respuesta pendiente no se incluyen en ninguna métrica ni exportación.
+    <div class="consent-bar">
+      <span class="consent-pill pill-green">{{ con_consent }} con consentimiento</span>
+      <span class="consent-pill pill-red">{{ sin_consent }} sin consentimiento</span>
+      {% if pendiente %}<span class="consent-pill pill-grey">{{ pendiente }} pendiente</span>{% endif %}
+      <span style="color:#555; font-size:0.82rem;">de {{ total_est }} estudiante{{ total_est|pluralize }} en tus comisiones</span>
+    </div>
+  </div>
+
+  {% if con_consent == 0 %}
+  <div class="card" style="padding:1.5rem; color:#666;">
+    Ningún estudiante en tus comisiones ha otorgado consentimiento de investigación todavía.
+    Las métricas estarán disponibles cuando al menos un estudiante consienta.
+  </div>
+  {% else %}
+
+  {# ── A. Tasa de entrada efectiva ── #}
+  <div class="inv-section">
+    <h3>A. Tasa de entrada efectiva</h3>
+    <p style="font-size:0.84rem; color:#555; margin:0 0 0.5rem;">
+      Proporción de estudiantes (con consentimiento) que realizó ≥1 intento por práctica.
+    </p>
+    <div class="export-row">
+      <span>Exportar:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'entrada' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'entrada' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'entrada' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if entrada %}
+    <div style="position:relative; height:220px;">
+      <canvas id="chart-entrada"></canvas>
+    </div>
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla de datos
+      </summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Práctica</th>
+              <th>Comisión</th>
+              <th class="num">Inscriptos</th>
+              <th class="num">Con intento</th>
+              <th class="num">Sin intento</th>
+              <th class="num">Tasa entrada</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in entrada %}
+            <tr>
+              <td>{{ r.practica_titulo }}</td>
+              <td class="num">{{ r.comision_id }}</td>
+              <td class="num">{{ r.total_estudiantes }}</td>
+              <td class="num">{{ r.con_intento }}</td>
+              <td class="num">{{ r.sin_intento }}</td>
+              <td class="num">{% if r.tasa_entrada is not None %}{{ r.tasa_entrada|floatformat:2 }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    <p class="info-sesgo">Sesgo: no controla si la práctica estaba abierta durante toda la ventana del estudiante.</p>
+    {% else %}
+    <p class="empty-msg">Sin datos disponibles.</p>
+    {% endif %}
+  </div>
+
+  {# ── C1. Intentos hasta correcto (sin sesgo) ── #}
+  <div class="inv-section">
+    <h3>C1. Intentos hasta correcto (incluyendo quienes no resolvieron)</h3>
+    <p style="font-size:0.84rem; color:#555; margin:0 0 0.5rem;">
+      Mediana de intentos sobre quienes resolvieron + proporción que nunca resolvió.
+      El par (mediana, % no resolvió) describe la dificultad real sin sesgo de supervivencia.
+    </p>
+    <div class="export-row">
+      <span>Exportar:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'intentos' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'intentos' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'intentos' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if intentos %}
+    <div style="position:relative; height:220px;">
+      <canvas id="chart-intentos"></canvas>
+    </div>
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla de datos
+      </summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>EP</th>
+              <th>Comisión</th>
+              <th class="num">Resolvieron</th>
+              <th class="num">No resolvieron</th>
+              <th class="pct">% no resolvió</th>
+              <th class="num">Mediana</th>
+              <th class="num">Promedio</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in intentos %}
+            <tr>
+              <td>{% if r.pc_id %}<a href="{% url 'ejercicios:ejercicio' r.pc_id r.ep_id %}" title="{{ r.enunciado_corto }}" target="_blank">EP {{ r.ep_id }}</a>{% else %}EP {{ r.ep_id }}{% endif %}</td>
+              <td class="num">{{ r.comision_id }}</td>
+              <td class="num">{{ r.resolvieron }}</td>
+              <td class="num">{{ r.no_resolvieron }}</td>
+              <td class="pct">{% if r.pct_no_resolvio is not None %}{{ r.pct_no_resolvio|floatformat:1 }}%{% else %}—{% endif %}</td>
+              <td class="num">{% if r.mediana_hasta_correcto is not None %}{{ r.mediana_hasta_correcto }}{% else %}—{% endif %}</td>
+              <td class="num">{% if r.promedio_hasta_correcto is not None %}{{ r.promedio_hasta_correcto }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    <p class="info-sesgo">Usar mediana + % no resolvió como par. El promedio subestima la dificultad real al ignorar datos censurados.</p>
+    {% else %}
+    <p class="empty-msg">Sin datos disponibles.</p>
+    {% endif %}
+  </div>
+
+  {# ── B2. Persistencia relativa ── #}
+  <div class="inv-section">
+    <h3>B2. Persistencia relativa</h3>
+    <p style="font-size:0.84rem; color:#555; margin:0 0 0.5rem;">
+      De quienes tuvieron al menos un fallo en un EP: ¿cuántos volvieron a intentarlo?
+    </p>
+    <div class="export-row">
+      <span>Exportar:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'persistencia' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'persistencia' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'persistencia' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if persistencia %}
+    <div style="position:relative; height:220px;">
+      <canvas id="chart-persistencia"></canvas>
+    </div>
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla de datos
+      </summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>EP</th>
+              <th>Comisión</th>
+              <th class="num">Con fallo</th>
+              <th class="num">Persistieron</th>
+              <th class="num">Abandonaron</th>
+              <th class="num">Tasa persistencia</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in persistencia %}
+            <tr>
+              <td>{% if r.pc_id %}<a href="{% url 'ejercicios:ejercicio' r.pc_id r.ep_id %}" title="{{ r.enunciado_corto }}" target="_blank">EP {{ r.ep_id }}</a>{% else %}EP {{ r.ep_id }}{% endif %}</td>
+              <td class="num">{{ r.comision_id }}</td>
+              <td class="num">{{ r.intentaron_con_fallo }}</td>
+              <td class="num">{{ r.persistieron }}</td>
+              <td class="num">{{ r.abandonaron }}</td>
+              <td class="num">{% if r.tasa_persistencia is not None %}{{ r.tasa_persistencia|floatformat:2 }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    <p class="info-sesgo">No distingue abandono local (deja ese EP) de abandono global. Combinar con tasa de entrada para ese análisis.</p>
+    {% else %}
+    <p class="empty-msg">Sin datos disponibles.</p>
+    {% endif %}
+  </div>
+
+  {# ── D1. Tasa de abandono local ── #}
+  <div class="inv-section">
+    <h3>D1. Tasa de abandono local por EP</h3>
+    <p style="font-size:0.84rem; color:#555; margin:0 0 0.5rem;">
+      De quienes llegaron a un EP: ¿cuántos nunca lo resolvieron?
+      Incluye prácticas abiertas y cerradas.
+    </p>
+    <div class="export-row">
+      <span>Exportar:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'abandono' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'abandono' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'abandono' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if abandono %}
+    <div style="position:relative; height:220px;">
+      <canvas id="chart-abandono"></canvas>
+    </div>
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla de datos
+      </summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>EP</th>
+              <th>Comisión</th>
+              <th class="num">Intentaron</th>
+              <th class="num">No resolvieron</th>
+              <th class="num">Tasa abandono</th>
+              <th>Práctica cerrada</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in abandono %}
+            <tr>
+              <td>{% if r.pc_id %}<a href="{% url 'ejercicios:ejercicio' r.pc_id r.ep_id %}" title="{{ r.enunciado_corto }}" target="_blank">EP {{ r.ep_id }}</a>{% else %}EP {{ r.ep_id }}{% endif %}</td>
+              <td class="num">{{ r.comision_id }}</td>
+              <td class="num">{{ r.intentaron }}</td>
+              <td class="num">{{ r.no_resolvieron }}</td>
+              <td class="num">{% if r.tasa_abandono is not None %}{{ r.tasa_abandono|floatformat:2 }}{% else %}—{% endif %}</td>
+              <td>{% if r.practica_cerrada %}Sí{% else %}No (aún pueden resolver){% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    <p class="info-sesgo">Para análisis comparativos entre comisiones, filtrar solo prácticas cerradas.</p>
+    {% else %}
+    <p class="empty-msg">Sin datos disponibles.</p>
+    {% endif %}
+  </div>
+
+  {# ── C2. Desacople docente-máquina ── #}
+  <div class="inv-section">
+    <h3>C2. Desacople docente-máquina</h3>
+    <p style="font-size:0.84rem; color:#555; margin:0 0 0.5rem;">
+      Proporción de intentos revisados por docente donde el juicio difiere
+      de la corrección automática del motor. Solo sobre intentos con
+      <code>aprobado_docente</code> registrado.
+    </p>
+    <div class="export-row">
+      <span>Exportar:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'desacople' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'desacople' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'desacople' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if desacople.total_revisados %}
+    <div style="display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap;">
+      <div style="position:relative; width:220px; height:220px; flex-shrink:0;">
+        <canvas id="chart-desacople"></canvas>
+      </div>
+      <div class="desacople-grid" style="flex:1; min-width:200px;">
+        <div class="desacople-card">
+          <div class="val">{{ desacople.total_revisados }}</div>
+          <div class="lbl">intentos revisados por docente</div>
+        </div>
+        <div class="desacople-card">
+          <div class="val{% if desacople.tasa_desacople and desacople.tasa_desacople > 0.2 %} warn-desacople{% endif %}">
+            {% if desacople.tasa_desacople is not None %}{{ desacople.tasa_desacople|floatformat:2 }}{% else %}—{% endif %}
+          </div>
+          <div class="lbl">tasa de desacople total</div>
+        </div>
+        <div class="desacople-card">
+          <div class="val">{{ desacople.maquina_ok_docente_no }}</div>
+          <div class="lbl">motor aprueba, docente rechaza</div>
+        </div>
+        <div class="desacople-card">
+          <div class="val">{{ desacople.maquina_no_docente_ok }}</div>
+          <div class="lbl">motor rechaza, docente aprueba</div>
+        </div>
+        <div class="desacople-card">
+          <div class="val">{{ desacople.acuerdo }}</div>
+          <div class="lbl">acuerdo entre motor y docente</div>
+        </div>
+      </div>
+    </div>
+    <p class="info-sesgo">
+      Advertencia: el denominador son solo los intentos revisados por el docente,
+      que es una muestra sesgada hacia los casos dudosos. No generalizar al total de intentos.
+    </p>
+    {# Datos embebidos para el donut #}
+    <script type="application/json" id="data-desacople">
+      {"acuerdo": {{ desacople.acuerdo }}, "maquina_ok_docente_no": {{ desacople.maquina_ok_docente_no }}, "maquina_no_docente_ok": {{ desacople.maquina_no_docente_ok }}}
+    </script>
+    {% else %}
+    <p class="empty-msg">Sin intentos revisados por docente en las comisiones seleccionadas.</p>
+    {% endif %}
+  </div>
+
+  {# —— E. Encuesta socioeducativa incorporada al sitio —— #}
+  <div class="inv-section">
+    <h3>E. Encuesta socioeducativa e índices derivados</h3>
+    <p style="font-size:0.84rem; color:#555; margin:0 0 0.5rem;">
+      Estas métricas reproducen el bloque de la Memoria Profesional que depende de la encuesta de onboarding ya incorporada al sitio.
+      Los cruces con <em>situación final</em> no se muestran aquí porque la plataforma no registra notas de examen; en su lugar se cruzan con desempeño real en ejercicios.
+    </p>
+    <div class="desacople-grid">
+      <div class="desacople-card">
+        <div class="val">{{ encuesta_total }}</div>
+        <div class="lbl">encuestas completas incluidas</div>
+      </div>
+      <div class="desacople-card">
+        <div class="val">{{ nse|length }}</div>
+        <div class="lbl">categorías NSE presentes</div>
+      </div>
+      <div class="desacople-card">
+        <div class="val">{{ facultades|length }}</div>
+        <div class="lbl">facultades declaradas</div>
+      </div>
+    </div>
+    <div class="export-row" style="margin-top:0.75rem;">
+      <span>Exportar base anonimizada:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_perfiles' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_perfiles' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_perfiles' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+  </div>
+
+  <div class="inv-section">
+    <h3>E1. NSE, lógica y pandemia</h3>
+
+    <div class="export-row">
+      <span>NSE:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_nse' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_nse' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_nse' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if nse %}
+    <div style="display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:1rem;">
+      <div style="position:relative; width:220px; height:220px; flex-shrink:0;">
+        <canvas id="chart-nse"></canvas>
+      </div>
+      <details class="tbl-collapse" style="flex:1; min-width:200px; margin-top:0;">
+        <summary class="table-toggle">
+          <span class="panel-chevron">▶</span>
+          Ver tabla
+        </summary>
+        <div style="overflow-x:auto;">
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th>Categoría NSE</th>
+                <th class="num">Cantidad</th>
+                <th class="num">%</th>
+                <th class="num">Puntaje promedio</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in nse %}
+              <tr>
+                <td>{{ r.categoria_nse }}</td>
+                <td class="num">{{ r.count }}</td>
+                <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:2 }}%{% else %}—{% endif %}</td>
+                <td class="num">{% if r.puntaje_promedio is not None %}{{ r.puntaje_promedio|floatformat:2 }}{% else %}—{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+    {% endif %}
+
+    <div class="export-row">
+      <span>Puntaje de lógicas:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_logicas' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_logicas' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_logicas' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if logicas %}
+    <div style="display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:1rem;">
+      <div style="position:relative; height:200px; flex:1; min-width:200px;">
+        <canvas id="chart-logicas"></canvas>
+      </div>
+      <details class="tbl-collapse" style="flex:1; min-width:160px; margin-top:0;">
+        <summary class="table-toggle">
+          <span class="panel-chevron">▶</span>
+          Ver tabla
+        </summary>
+        <div style="overflow-x:auto;">
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th>Puntaje</th>
+                <th class="num">Cantidad</th>
+                <th class="num">%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in logicas %}
+              <tr>
+                <td>{{ r.puntaje_logicas }}</td>
+                <td class="num">{{ r.count }}</td>
+                <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:2 }}%{% else %}—{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+    {% endif %}
+
+    <div class="export-row">
+      <span>Pandemia:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_pandemia' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_pandemia' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_pandemia' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if pandemia %}
+    <div style="display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap;">
+      <div style="position:relative; width:220px; height:220px; flex-shrink:0;">
+        <canvas id="chart-pandemia"></canvas>
+      </div>
+      <details class="tbl-collapse" style="flex:1; min-width:200px; margin-top:0;">
+        <summary class="table-toggle">
+          <span class="panel-chevron">▶</span>
+          Ver tabla
+        </summary>
+        <div style="overflow-x:auto;">
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th>Clasificación</th>
+                <th class="num">Cantidad</th>
+                <th class="num">%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for r in pandemia %}
+              <tr>
+                <td>{{ r.pandemia }}</td>
+                <td class="num">{{ r.count }}</td>
+                <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:2 }}%{% else %}—{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="inv-section">
+    <h3>E2. Cohortes, facultades y carreras</h3>
+
+    <div class="export-row">
+      <span>Cohortes:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_cohortes' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_cohortes' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_cohortes' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if cohortes %}
+    <div style="position:relative; height:200px; margin-bottom:0.5rem;">
+      <canvas id="chart-cohortes"></canvas>
+    </div>
+    <details class="tbl-collapse" style="margin-bottom:1rem;">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla
+      </summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Año</th>
+              <th>Cuatrimestre</th>
+              <th class="num">Cantidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in cohortes %}
+            <tr>
+              <td>{{ r.anio }}</td>
+              <td>{{ r.cuatri }}</td>
+              <td class="num">{{ r.count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% endif %}
+
+    <div class="export-row">
+      <span>Cohortes × NSE:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_cohortes_nse' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_cohortes_nse' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_cohortes_nse' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if cohortes_nse %}
+    <details class="tbl-collapse" style="margin-bottom:1rem;">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla cohortes × NSE
+      </summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Año</th>
+              <th>Cuatrimestre</th>
+              <th>Categoría NSE</th>
+              <th class="num">Cantidad</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in cohortes_nse %}
+            <tr>
+              <td>{{ r.anio }}</td>
+              <td>{{ r.cuatri }}</td>
+              <td>{{ r.categoria_nse }}</td>
+              <td class="num">{{ r.count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% endif %}
+
+    <div class="export-row">
+      <span>Cohortes × pandemia:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_cohortes_pandemia' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_cohortes_pandemia' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_cohortes_pandemia' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if cohortes_pandemia %}
+    <details class="tbl-collapse" style="margin-bottom:1rem;">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla cohortes × pandemia
+      </summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Año</th>
+              <th>Cuatrimestre</th>
+              <th>Pandemia</th>
+              <th class="num">Cantidad</th>
+              <th class="num">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in cohortes_pandemia %}
+            <tr>
+              <td>{{ r.anio }}</td>
+              <td>{{ r.cuatri }}</td>
+              <td>{{ r.pandemia }}</td>
+              <td class="num">{{ r.count }}</td>
+              <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:2 }}%{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% endif %}
+
+    <div class="export-row">
+      <span>Facultades:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_facultades' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_facultades' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_facultades' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if facultades %}
+    <div style="position:relative; margin-bottom:0.5rem;" id="cont-facultades">
+      <canvas id="chart-facultades"></canvas>
+    </div>
+    <details class="tbl-collapse" style="margin-bottom:1rem;">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla
+      </summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Facultad</th>
+              <th class="num">Cantidad</th>
+              <th class="num">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in facultades %}
+            <tr>
+              <td>{{ r.facultad }}</td>
+              <td class="num">{{ r.count }}</td>
+              <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:2 }}%{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% endif %}
+
+    <div class="export-row">
+      <span>Carreras:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_carreras' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_carreras' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_carreras' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if carreras %}
+    <div style="position:relative; margin-bottom:0.5rem;" id="cont-carreras">
+      <canvas id="chart-carreras"></canvas>
+    </div>
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla
+      </summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Carrera</th>
+              <th class="num">Cantidad</th>
+              <th class="num">%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in carreras %}
+            <tr>
+              <td>{{ r.carrera }}</td>
+              <td class="num">{{ r.count }}</td>
+              <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:2 }}%{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% endif %}
+  </div>
+
+  <div class="inv-section">
+    <h3>E3. Cruces con desempeño en ejercicios</h3>
+    <p style="font-size:0.84rem; color:#555; margin:0 0 0.5rem;">
+      En lugar de cruzar con notas de examen, estos cuadros usan desempeño observado en la plataforma: intentos, ejercicios resueltos y prácticas completadas.
+    </p>
+
+    <div class="export-row">
+      <span>NSE × desempeño:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'desempeno_nse' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'desempeno_nse' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'desempeno_nse' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if desempeno_nse %}
+    <div style="position:relative; height:220px; margin-bottom:0.5rem;">
+      <canvas id="chart-desempeno-nse"></canvas>
+    </div>
+    <details class="tbl-collapse" style="margin-bottom:1rem;">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla NSE × desempeño
+      </summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Categoría NSE</th>
+              <th class="num">N</th>
+              <th class="num">% con intento</th>
+              <th class="num">% resolvió alguno</th>
+              <th class="num">Prom. intentos</th>
+              <th class="num">Prom. ejercicios resueltos</th>
+              <th class="num">Prom. tasa resolución</th>
+              <th class="num">Prom. prácticas completas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in desempeno_nse %}
+            <tr>
+              <td>{{ r.categoria_nse }}</td>
+              <td class="num">{{ r.count }}</td>
+              <td class="num">{% if r.pct_con_intento is not None %}{{ r.pct_con_intento|floatformat:2 }}%{% else %}—{% endif %}</td>
+              <td class="num">{% if r.pct_resolvio_alguno is not None %}{{ r.pct_resolvio_alguno|floatformat:2 }}%{% else %}—{% endif %}</td>
+              <td class="num">{% if r.promedio_intentos is not None %}{{ r.promedio_intentos|floatformat:2 }}{% else %}—{% endif %}</td>
+              <td class="num">{% if r.promedio_resueltos is not None %}{{ r.promedio_resueltos|floatformat:2 }}{% else %}—{% endif %}</td>
+              <td class="num">{% if r.promedio_tasa_resolucion is not None %}{{ r.promedio_tasa_resolucion|floatformat:2 }}{% else %}—{% endif %}</td>
+              <td class="num">{% if r.promedio_practicas_completadas is not None %}{{ r.promedio_practicas_completadas|floatformat:2 }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% endif %}
+
+    <div class="export-row">
+      <span>Pandemia × desempeño:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'desempeno_pandemia' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'desempeno_pandemia' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'desempeno_pandemia' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if desempeno_pandemia %}
+    <div style="position:relative; height:220px; margin-bottom:0.5rem;">
+      <canvas id="chart-desempeno-pandemia"></canvas>
+    </div>
+    <details class="tbl-collapse" style="margin-bottom:1rem;">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla pandemia × desempeño
+      </summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Pandemia</th>
+              <th class="num">N</th>
+              <th class="num">% con intento</th>
+              <th class="num">% resolvió alguno</th>
+              <th class="num">Prom. intentos</th>
+              <th class="num">Prom. ejercicios resueltos</th>
+              <th class="num">Prom. tasa resolución</th>
+              <th class="num">Prom. prácticas completas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in desempeno_pandemia %}
+            <tr>
+              <td>{{ r.pandemia }}</td>
+              <td class="num">{{ r.count }}</td>
+              <td class="num">{% if r.pct_con_intento is not None %}{{ r.pct_con_intento|floatformat:2 }}%{% else %}—{% endif %}</td>
+              <td class="num">{% if r.pct_resolvio_alguno is not None %}{{ r.pct_resolvio_alguno|floatformat:2 }}%{% else %}—{% endif %}</td>
+              <td class="num">{% if r.promedio_intentos is not None %}{{ r.promedio_intentos|floatformat:2 }}{% else %}—{% endif %}</td>
+              <td class="num">{% if r.promedio_resueltos is not None %}{{ r.promedio_resueltos|floatformat:2 }}{% else %}—{% endif %}</td>
+              <td class="num">{% if r.promedio_tasa_resolucion is not None %}{{ r.promedio_tasa_resolucion|floatformat:2 }}{% else %}—{% endif %}</td>
+              <td class="num">{% if r.promedio_practicas_completadas is not None %}{{ r.promedio_practicas_completadas|floatformat:2 }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% endif %}
+
+    <div class="export-row">
+      <span>Lógicas × desempeño:</span>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'desempeno_logicas' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'desempeno_logicas' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'desempeno_logicas' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+    </div>
+    {% if desempeno_logicas %}
+    <div style="position:relative; height:220px; margin-bottom:0.5rem;">
+      <canvas id="chart-desempeno-logicas"></canvas>
+    </div>
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla lógicas × desempeño
+      </summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Puntaje lógicas</th>
+              <th class="num">N</th>
+              <th class="num">% con intento</th>
+              <th class="num">% resolvió alguno</th>
+              <th class="num">Prom. intentos</th>
+              <th class="num">Prom. ejercicios resueltos</th>
+              <th class="num">Prom. tasa resolución</th>
+              <th class="num">Prom. prácticas completas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in desempeno_logicas %}
+            <tr>
+              <td>{{ r.puntaje_logicas }}</td>
+              <td class="num">{{ r.count }}</td>
+              <td class="num">{% if r.pct_con_intento is not None %}{{ r.pct_con_intento|floatformat:2 }}%{% else %}—{% endif %}</td>
+              <td class="num">{% if r.pct_resolvio_alguno is not None %}{{ r.pct_resolvio_alguno|floatformat:2 }}%{% else %}—{% endif %}</td>
+              <td class="num">{% if r.promedio_intentos is not None %}{{ r.promedio_intentos|floatformat:2 }}{% else %}—{% endif %}</td>
+              <td class="num">{% if r.promedio_resueltos is not None %}{{ r.promedio_resueltos|floatformat:2 }}{% else %}—{% endif %}</td>
+              <td class="num">{% if r.promedio_tasa_resolucion is not None %}{{ r.promedio_tasa_resolucion|floatformat:2 }}{% else %}—{% endif %}</td>
+              <td class="num">{% if r.promedio_practicas_completadas is not None %}{{ r.promedio_practicas_completadas|floatformat:2 }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% endif %}
+  </div>
+
+  {% endif %}{# fin si con_consent > 0 #}
+
+  {# ── Trabajo en plataforma vs. nota de lógica ── #}
+  <div class="card" style="margin-bottom:1.5rem; padding:1.25rem 1.5rem;">
+    <h3 style="margin:0 0 0.25rem; font-size:1rem; font-weight:600; color:#1a1a2e;">
+      Trabajo en la plataforma vs. nota de lógica del parcial
+    </h3>
+    <p style="margin:0 0 0.75rem; font-size:0.82rem; color:#666;">
+      Un punto por estudiante (consentido, con nota de lógica). Eje X: esfuerzo
+      antes del 1er parcial. Color: desenlace del parcial.
+      <span id="trabajo-r" style="font-weight:600; color:#1a1a2e;"></span>
+    </p>
+    <label style="font-size:0.84rem; color:#555;">
+      Indicador de trabajo:
+      <select id="sel-trabajo-x" style="font-size:0.84rem; padding:0.25rem 0.5rem; border:1px solid #ccc; border-radius:4px;">
+        <option value="indice_trabajo">Índice de trabajo (compuesto)</option>
+        <option value="intentos_totales">Intentos totales</option>
+        <option value="dias_activos">Días activos</option>
+        <option value="ejercicios_distintos">Ejercicios distintos</option>
+        <option value="practicas_abiertas">Prácticas abiertas</option>
+      </select>
+    </label>
+    <div style="position:relative; height:360px; margin-top:0.75rem;">
+      <canvas id="chart-trabajo-nota"></canvas>
+    </div>
+  </div>
+
+  {# ── Correlaciones encuesta × rendimiento ── #}
+  {% if correlaciones %}
+  <div class="inv-section" id="sec-correlaciones">
+    <h3>Factores del onboarding y rendimiento</h3>
+    <p style="font-size:0.83rem;color:#555;margin-bottom:0.5rem;">
+      Asociación entre cada variable de la encuesta inicial y un índice de rendimiento con ausentismo (0–1).
+      El tope se fija en el último ejercicio con al menos un intento y se pondera por estado:
+      sin intento < error/rechazado docente < verificación formal automática < aprobación docente.
+      <strong>r de Pearson</strong> para variables numéricas/binarias,
+      <strong>r de Spearman</strong> para ordinales,
+      <strong>√η²</strong> para nominales (sin dirección).
+      Ordenado por magnitud de efecto.
+    </p>
+
+    <div id="cont-correlaciones" style="position:relative; margin-bottom:0.5rem;">
+      <canvas id="chart-correlaciones"></canvas>
+    </div>
+
+    {# Drill-down: medias por grupo al hacer click en una barra #}
+    <div id="drill-wrapper" style="display:none; margin-top:0.75rem; padding:0.75rem; background:#fafafa; border:1px solid #e0e0e0; border-radius:6px;">
+      <p id="drill-titulo" style="font-size:0.85rem;font-weight:600;margin:0 0 0.5rem;color:#1a1a2e;"></p>
+      <div style="position:relative;height:180px;">
+        <canvas id="chart-drill"></canvas>
+      </div>
+      <p class="info-sesgo" id="drill-nota"></p>
+    </div>
+
+    <p class="info-sesgo" style="margin-top:0.4rem;">
+      Solo variables con N ≥ 5 casos válidos. Nominal: se excluyen grupos con menos de 2 casos.
+      A N pequeño, los efectos son inestables — interpretá con cautela.
+    </p>
+
+    <details class="tbl-collapse" style="margin-top:0.75rem;">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla completa de correlaciones
+      </summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead>
+            <tr>
+              <th>Variable</th>
+              <th>Tipo</th>
+              <th>Método</th>
+              <th class="num">r / √η²</th>
+              <th class="num">Efecto bruto</th>
+              <th class="num">N</th>
+              <th>Dirección</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in correlaciones %}
+            <tr>
+              <td>{{ c.label }}</td>
+              <td style="color:#666;font-size:0.82rem;">{{ c.tipo }}</td>
+              <td style="color:#666;font-size:0.82rem;">{{ c.metodo }}</td>
+              <td class="num"><strong>{{ c.r|floatformat:3 }}</strong></td>
+              <td class="num">{{ c.efecto_raw|floatformat:3 }}</td>
+              <td class="num">{{ c.n }}</td>
+              <td style="font-size:0.82rem;">
+                {% if c.direction == 'positiva' %}<span style="color:#1565c0;">↑ positiva</span>
+                {% elif c.direction == 'negativa' %}<span style="color:#b71c1c;">↓ negativa</span>
+                {% else %}<span style="color:#888;">—</span>{% endif %}
+              </td>
+            </tr>
+            {% if c.grupos %}
+            <tr style="background:#f9f9f9;">
+              <td colspan="7" style="padding:0.2rem 1.2rem 0.5rem;">
+                <span style="font-size:0.78rem;color:#666;">Grupos:</span>
+                {% for g in c.grupos %}
+                <span style="font-size:0.78rem;margin-right:0.8rem;">
+                  <strong>{{ g.label }}</strong> n={{ g.n }}, media={{ g.media|floatformat:2 }}
+                </span>
+                {% endfor %}
+              </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </div>
+  {% endif %}
+
+  {# ── Nube de palabras: ¿qué es la ciencia? ── #}
+  {% if nube_palabras_ciencia %}
+  <div class="inv-section" id="sec-nube-ciencia">
+    <h3>¿Qué es la ciencia? — nube de palabras</h3>
+    <p style="font-size:0.83rem;color:#555;margin-bottom:0.75rem;">
+      Respuestas libres del onboarding. Se quitaron artículos, preposiciones y palabras
+      de menos de 3 letras. El tamaño es proporcional a la frecuencia.
+    </p>
+    <div id="nube-ciencia-wrap" style="width:100%;background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;"></div>
+  </div>
+  {% endif %}
+
+  {# ── Red de co-ocurrencia de errores ── #}
+  <div class="inv-section" id="sec-red-errores">
+    <h3>Red de co-ocurrencia de errores</h3>
+    <p style="font-size:0.83rem;color:#555;margin-bottom:0.75rem;">
+      Cada nodo es un tipo de error. El grosor de la arista refleja cuántos pares
+      <em>(estudiante, ejercicio)</em> acumularon ambos tipos de error en el mismo ejercicio.
+      El tamaño del nodo refleja con qué frecuencia aparece. Arrastrá los nodos para reorganizar.
+    </p>
+
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;flex-wrap:wrap;">
+      <label for="red-errores-selector" style="font-size:0.85rem;font-weight:600;color:#333;">Alcance:</label>
+      <select id="red-errores-selector" style="font-size:0.85rem;padding:0.3rem 0.6rem;border:1px solid #ccc;border-radius:4px;background:#fff;">
+        <option value="all">Global (todas las comisiones)</option>
+        {% for c in comisiones %}
+        <option value="{{ c.id }}">{{ c.nombre }}</option>
+        {% endfor %}
+      </select>
+      <span id="red-errores-meta" style="font-size:0.8rem;color:#888;"></span>
+    </div>
+
+    <div id="red-errores-svg" style="background:#fafafa;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;"></div>
+
+    {# Leyenda de grupos semánticos #}
+    <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.6rem;">
+      <span style="font-size:0.78rem;color:#555;font-weight:600;">Grupos:</span>
+      <span style="font-size:0.78rem;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#c62828;margin-right:3px;"></span>Extremos lógicos</span>
+      <span style="font-size:0.78rem;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#6a1b9a;margin-right:3px;"></span>Equivalencia / dirección</span>
+      <span style="font-size:0.78rem;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#e65100;margin-right:3px;"></span>Fuerza lógica</span>
+      <span style="font-size:0.78rem;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1565c0;margin-right:3px;"></span>Error parcial</span>
+      <span style="font-size:0.78rem;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#2e7d32;margin-right:3px;"></span>Sistemático</span>
+      <span style="font-size:0.78rem;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#00838f;margin-right:3px;"></span>Variables</span>
+      <span style="font-size:0.78rem;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#757575;margin-right:3px;"></span>Sin clasificar</span>
+    </div>
+    <p class="info-sesgo" style="margin-top:0.4rem;">
+      Co-ocurrencia medida por pares (estudiante × ejercicio). Sin rankings de ejercicios ni estudiantes.
+      Aristas con peso 1 se muestran en gris claro; a mayor peso, más gruesa y oscura.
+    </p>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  const C = {
+    verde:   'rgba(42,122,42,0.75)',
+    rojo:    'rgba(176,0,32,0.75)',
+    naranja: 'rgba(192,112,0,0.75)',
+    azul:    'rgba(21,101,192,0.75)',
+    gris:    'rgba(100,100,100,0.65)',
+    lila:    'rgba(103,58,183,0.75)',
+    cian:    'rgba(0,131,143,0.75)',
+    rosa:    'rgba(194,24,91,0.75)',
+  };
+  const PALETTE = [C.azul, C.verde, C.naranja, C.rojo, C.lila, C.cian, C.rosa, C.gris];
+
+  function parseData(id) {
+    const el = document.getElementById(id);
+    return el ? JSON.parse(el.textContent) : null;
+  }
+
+  function trunc(s, n) {
+    return s && s.length > n ? s.slice(0, n) + '…' : (s || '');
+  }
+
+  function noData(canvas, msg) {
+    const p = document.createElement('p');
+    p.style.cssText = 'color:#888;font-size:0.9rem;text-align:center;padding:1.5rem 0;margin:0;';
+    p.textContent = msg || 'Sin datos suficientes para mostrar el gráfico.';
+    if (canvas && canvas.parentElement) canvas.parentElement.replaceChild(p, canvas);
+  }
+
+  if (typeof Chart === 'undefined') {
+    document.querySelectorAll('canvas[id^="chart-"]').forEach(c => noData(c, 'No se pudo cargar la librería de gráficos.'));
+    return;
+  }
+
+  Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+  Chart.defaults.font.size = 12;
+
+  // ── A. Tasa de entrada ──
+  (function() {
+    const data = parseData('data-entrada');
+    const canvas = document.getElementById('chart-entrada');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    const labels = data.map(d => trunc(d.practica_titulo, 28) + ' [' + d.comision_id + ']');
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Tasa entrada',
+          data: data.map(d => d.tasa_entrada !== null ? +(d.tasa_entrada * 100).toFixed(1) : 0),
+          backgroundColor: C.azul,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { min: 0, max: 100, title: { display: true, text: '%' } } },
+      },
+    });
+  })();
+
+  // ── C1. Intentos hasta correcto ──
+  (function() {
+    const data = parseData('data-intentos');
+    const canvas = document.getElementById('chart-intentos');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    const labels = data.map(d => 'EP ' + d.ep_id + ' [' + d.comision_id + ']');
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Mediana intentos',
+            data: data.map(d => d.mediana_hasta_correcto || 0),
+            backgroundColor: C.azul,
+            yAxisID: 'y',
+          },
+          {
+            label: '% no resolvió',
+            data: data.map(d => d.pct_no_resolvio !== null ? +d.pct_no_resolvio : 0),
+            backgroundColor: C.rojo,
+            yAxisID: 'y2',
+          },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+          y:  { beginAtZero: true, title: { display: true, text: 'Mediana' } },
+          y2: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false },
+                min: 0, max: 100, title: { display: true, text: '% no resolvió' } },
+        },
+      },
+    });
+  })();
+
+  // ── B2. Persistencia ──
+  (function() {
+    const data = parseData('data-persistencia');
+    const canvas = document.getElementById('chart-persistencia');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    const labels = data.map(d => 'EP ' + d.ep_id + ' [' + d.comision_id + ']');
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Tasa persistencia',
+          data: data.map(d => d.tasa_persistencia !== null ? +(d.tasa_persistencia * 100).toFixed(1) : 0),
+          backgroundColor: data.map(d =>
+            d.tasa_persistencia !== null && d.tasa_persistencia < 0.5 ? C.rojo :
+            d.tasa_persistencia !== null && d.tasa_persistencia < 0.75 ? C.naranja : C.verde
+          ),
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { min: 0, max: 100, title: { display: true, text: '%' } } },
+      },
+    });
+  })();
+
+  // ── D1. Abandono local ──
+  (function() {
+    const data = parseData('data-abandono');
+    const canvas = document.getElementById('chart-abandono');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    const labels = data.map(d => 'EP ' + d.ep_id + ' [' + d.comision_id + ']');
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Tasa abandono',
+          data: data.map(d => d.tasa_abandono !== null ? +(d.tasa_abandono * 100).toFixed(1) : 0),
+          backgroundColor: data.map(d =>
+            d.tasa_abandono !== null && d.tasa_abandono >= 0.6 ? C.rojo :
+            d.tasa_abandono !== null && d.tasa_abandono >= 0.3 ? C.naranja : C.verde
+          ),
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { min: 0, max: 100, title: { display: true, text: '%' } } },
+      },
+    });
+  })();
+
+  // ── C2. Desacople (donut) ──
+  (function() {
+    const data = parseData('data-desacople');
+    const canvas = document.getElementById('chart-desacople');
+    if (!canvas) return;
+    if (!data) { noData(canvas); return; }
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: ['Acuerdo', 'Motor ok, docente no', 'Docente ok, motor no'],
+        datasets: [{
+          data: [data.acuerdo, data.maquina_ok_docente_no, data.maquina_no_docente_ok],
+          backgroundColor: [C.verde, C.rojo, C.naranja],
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+      },
+    });
+  })();
+
+  // ── E1. NSE (donut) ──
+  (function() {
+    const data = parseData('data-nse');
+    const canvas = document.getElementById('chart-nse');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: data.map(d => d.categoria_nse),
+        datasets: [{
+          data: data.map(d => d.count),
+          backgroundColor: PALETTE.slice(0, data.length),
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+      },
+    });
+  })();
+
+  // ── E1. Lógicas (bar) ──
+  (function() {
+    const data = parseData('data-logicas');
+    const canvas = document.getElementById('chart-logicas');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => 'Puntaje ' + d.puntaje_logicas),
+        datasets: [{
+          label: 'Estudiantes',
+          data: data.map(d => d.count),
+          backgroundColor: C.azul,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
+  })();
+
+  // ── E1. Pandemia (donut) ──
+  (function() {
+    const data = parseData('data-pandemia');
+    const canvas = document.getElementById('chart-pandemia');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: data.map(d => d.pandemia),
+        datasets: [{
+          data: data.map(d => d.count),
+          backgroundColor: [C.azul, C.naranja, C.rojo, C.gris],
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+      },
+    });
+  })();
+
+  // ── E2. Cohortes (bar) ──
+  (function() {
+    const data = parseData('data-cohortes');
+    const canvas = document.getElementById('chart-cohortes');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => d.anio + ' C' + d.cuatri),
+        datasets: [{
+          label: 'Estudiantes',
+          data: data.map(d => d.count),
+          backgroundColor: C.azul,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
+  })();
+
+  // ── E2. Facultades (horizontal bar) ──
+  (function() {
+    const data = parseData('data-facultades');
+    const canvas = document.getElementById('chart-facultades');
+    const cont = document.getElementById('cont-facultades');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    const n = data.length;
+    cont.style.height = Math.min(Math.max(n * 40, 120), 400) + 'px';
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => trunc(d.facultad, 35)),
+        datasets: [{
+          label: 'Estudiantes',
+          data: data.map(d => d.count),
+          backgroundColor: C.azul,
+        }],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
+  })();
+
+  // ── E2. Carreras (horizontal bar) ──
+  (function() {
+    const data = parseData('data-carreras');
+    const canvas = document.getElementById('chart-carreras');
+    const cont = document.getElementById('cont-carreras');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    const n = data.length;
+    cont.style.height = Math.min(Math.max(n * 40, 120), 500) + 'px';
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => trunc(d.carrera, 35)),
+        datasets: [{
+          label: 'Estudiantes',
+          data: data.map(d => d.count),
+          backgroundColor: C.azul,
+        }],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
+  })();
+
+  // ── E3. Desempeño × NSE ──
+  (function() {
+    const data = parseData('data-desempeno-nse');
+    const canvas = document.getElementById('chart-desempeno-nse');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    const labels = data.map(d => d.categoria_nse);
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: '% con intento',     data: data.map(d => d.pct_con_intento || 0),    backgroundColor: C.azul },
+          { label: '% resolvió alguno', data: data.map(d => d.pct_resolvio_alguno || 0),backgroundColor: C.verde },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: { y: { min: 0, max: 100, title: { display: true, text: '%' } } },
+      },
+    });
+  })();
+
+  // ── E3. Desempeño × Pandemia ──
+  (function() {
+    const data = parseData('data-desempeno-pandemia');
+    const canvas = document.getElementById('chart-desempeno-pandemia');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    const labels = data.map(d => d.pandemia);
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: '% con intento',     data: data.map(d => d.pct_con_intento || 0),    backgroundColor: C.azul },
+          { label: '% resolvió alguno', data: data.map(d => d.pct_resolvio_alguno || 0),backgroundColor: C.verde },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: { y: { min: 0, max: 100, title: { display: true, text: '%' } } },
+      },
+    });
+  })();
+
+  // ── E4. Trabajo en plataforma × nota de lógica ──
+  (function() {
+    const payload = parseData('data-trabajo-nota');
+    const canvas = document.getElementById('chart-trabajo-nota');
+    if (!canvas) return;
+    if (!payload || !payload.puntos || !payload.puntos.length) { noData(canvas); return; }
+
+    const puntos = payload.puntos;
+    const corr = payload.correlaciones || {};
+    const sel = document.getElementById('sel-trabajo-x');
+    const rLabel = document.getElementById('trabajo-r');
+    const COLOR_DESENLACE = { 'Aplazo': C.rojo, 'Final': C.naranja, 'Promoción': C.verde, 'Sin dato': C.gris };
+    const X_LABEL = {
+      indice_trabajo: 'Índice de trabajo (0–100)',
+      intentos_totales: 'Intentos totales',
+      dias_activos: 'Días activos',
+      ejercicios_distintos: 'Ejercicios distintos',
+      practicas_abiertas: 'Prácticas abiertas',
+    };
+
+    function trendline(pts) {
+      const n = pts.length;
+      if (n < 2) return null;
+      const mx = pts.reduce((s, p) => s + p.x, 0) / n;
+      const my = pts.reduce((s, p) => s + p.y, 0) / n;
+      let num = 0, den = 0;
+      for (const p of pts) { num += (p.x - mx) * (p.y - my); den += (p.x - mx) ** 2; }
+      if (den === 0) return null;
+      const m = num / den, b = my - m * mx;
+      const xs = pts.map(p => p.x);
+      const x0 = Math.min(...xs), x1 = Math.max(...xs);
+      return [{ x: x0, y: m * x0 + b }, { x: x1, y: m * x1 + b }];
+    }
+
+    let chart = null;
+    function render(ind) {
+      const grupos = { 'Promoción': [], 'Final': [], 'Aplazo': [], 'Sin dato': [] };
+      for (const p of puntos) {
+        const key = p.desenlace || 'Sin dato';
+        (grupos[key] || (grupos[key] = [])).push({ x: p[ind], y: p.nota_logica });
+      }
+      const datasets = Object.keys(grupos).filter(k => grupos[k].length).map(k => ({
+        label: k, data: grupos[k],
+        backgroundColor: COLOR_DESENLACE[k] || C.gris, pointRadius: 5,
+      }));
+      const linea = trendline(puntos.map(p => ({ x: p[ind], y: p.nota_logica })));
+      if (linea) datasets.push({
+        label: 'Tendencia', data: linea, type: 'line',
+        borderColor: C.gris, borderWidth: 2, pointRadius: 0, fill: false,
+      });
+      const c = corr[ind] || {};
+      const rp = c.r_pearson == null ? '—' : c.r_pearson.toFixed(3);
+      const rs = c.r_spearman == null ? '—' : c.r_spearman.toFixed(3);
+      rLabel.textContent = `· r = ${rp}  ·  rₛ = ${rs}  ·  N = ${c.n ?? puntos.length}`;
+      if (chart) chart.destroy();
+      chart = new Chart(canvas, {
+        type: 'scatter',
+        data: { datasets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom' } },
+          scales: {
+            x: { title: { display: true, text: X_LABEL[ind] } },
+            y: { title: { display: true, text: 'Nota de lógica' }, beginAtZero: true },
+          },
+        },
+      });
+    }
+
+    render('indice_trabajo');
+    if (sel) sel.addEventListener('change', () => render(sel.value));
+  })();
+
+  // ── F. Correlaciones encuesta × rendimiento (lollipop horizontal) ──
+  (function() {
+    const data = parseData('data-correlaciones');
+    const canvas = document.getElementById('chart-correlaciones');
+    const cont   = document.getElementById('cont-correlaciones');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+
+    // Opacidad proporcional a N: plena a N≥30, mínima (0.20) a N=5.
+    // Mantiene el r intacto pero el ojo depondera visualmente los datos poco confiables.
+    const N_PLENA = 30, N_MIN_CONF = 5;
+    function nOpacity(n) {
+      if (n >= N_PLENA) return 0.80;
+      if (n <= N_MIN_CONF) return 0.20;
+      return 0.20 + 0.60 * (n - N_MIN_CONF) / (N_PLENA - N_MIN_CONF);
+    }
+
+    // Etiqueta: incluye "(N=X)" cuando N < 20 para que sea visible sin hover
+    function labelConN(d) {
+      const base = trunc(d.label, 36);
+      return d.n < 20 ? `${base} (N=${d.n})` : base;
+    }
+
+    const itemCount = data.length;
+    cont.style.height = Math.max(itemCount * 34, 120) + 'px';
+
+    const labels   = data.map(labelConN);
+    const values   = data.map(d => d.r || 0);
+    const bgColors = data.map(d => {
+      const op = nOpacity(d.n);
+      if (d.tipo === 'nominal') return `rgba(100,100,100,${op})`;
+      return d.direction === 'positiva'
+        ? `rgba(21,101,192,${op})`
+        : `rgba(176,0,32,${op})`;
+    });
+
+    const chartCorr = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: bgColors,
+          borderColor: bgColors,
+          borderWidth: 1,
+          barThickness: 14,
+        }],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                const d = data[ctx.dataIndex];
+                const metodoLabel = d.metodo === 'eta2' ? '√η²' : (d.metodo === 'spearman' ? 'rₛ' : 'r');
+                const lines = [`${metodoLabel} = ${d.r.toFixed(3)}  (N=${d.n})`];
+                if (d.n < 15) lines.push('⚠ Muestra pequeña — resultado poco confiable');
+                if (d.direction) lines.push('Dirección: ' + d.direction);
+                if (d.grupos && d.grupos.length) {
+                  lines.push('—');
+                  d.grupos.slice(0, 5).forEach(g => {
+                    lines.push(`  ${g.label}: media=${g.media.toFixed(2)} (n=${g.n})`);
+                  });
+                  if (d.grupos.length > 5) lines.push(`  … y ${d.grupos.length - 5} grupos más`);
+                }
+                return lines;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            min: -1, max: 1,
+            grid: { color: ctx => ctx.tick.value === 0 ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.06)' },
+            ticks: {
+              callback: v => v === 0 ? '0' : (v > 0 ? '+' + v.toFixed(1) : v.toFixed(1)),
+            },
+            title: { display: true, text: 'Efecto (r / √η²)' },
+          },
+          y: { ticks: { font: { size: 11 } } },
+        },
+        onClick: function(evt, elements) {
+          if (!elements.length) return;
+          _mostrarDrill(data[elements[0].index]);
+        },
+      },
+    });
+
+    let drillChart = null;
+    function _mostrarDrill(d) {
+      const wrapper     = document.getElementById('drill-wrapper');
+      const titulo      = document.getElementById('drill-titulo');
+      const nota        = document.getElementById('drill-nota');
+      const drillCanvas = document.getElementById('chart-drill');
+      if (!wrapper || !drillCanvas) return;
+
+      const gruposValidos = (d.grupos || []).filter(g => g.n >= 1);
+      if (!gruposValidos.length) { wrapper.style.display = 'none'; return; }
+
+      wrapper.style.display = 'block';
+      const metodoLabel = d.metodo === 'eta2' ? '√η²' : (d.metodo === 'spearman' ? 'rₛ' : 'r');
+      titulo.textContent = `${d.label}  —  ${metodoLabel} = ${d.r.toFixed(3)}  (N=${d.n})`;
+
+      const tipoDesc = d.tipo === 'nominal' ? 'Variable nominal (sin orden).'
+        : d.tipo === 'ordinal' ? 'Variable ordinal.'
+        : 'Variable binaria.';
+      nota.textContent = tipoDesc + (d.n < 15 ? '  ⚠ N pequeño — interpretá con cautela.' : '');
+
+      const glabels  = gruposValidos.map(g => trunc(g.label, 25));
+      const gvals    = gruposValidos.map(g => +(g.media * 100).toFixed(1));
+      const gns      = gruposValidos.map(g => g.n);
+      // Opacidad también en el drill-down según n por grupo
+      const gColors  = gruposValidos.map(g => {
+        const base = d.tipo === 'nominal' ? '100,100,100' : d.direction === 'positiva' ? '21,101,192' : '176,0,32';
+        return `rgba(${base},${nOpacity(g.n)})`;
+      });
+
+      if (drillChart) { drillChart.destroy(); drillChart = null; }
+      drillChart = new Chart(drillCanvas, {
+        type: 'bar',
+        data: {
+          labels: glabels,
+          datasets: [{
+            label: 'Media tasa resolución (%)',
+            data: gvals,
+            backgroundColor: gColors,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const g = gruposValidos[ctx.dataIndex];
+                  const aviso = g.n < 10 ? '  ⚠ n pequeño' : '';
+                  return `Media: ${ctx.raw}%  (n=${g.n})${aviso}`;
+                },
+              },
+            },
+          },
+          scales: {
+            y: { min: 0, max: 100, title: { display: true, text: '% resuelto' } },
+          },
+        },
+      });
+    }
+  })();
+
+  // ── E3. Desempeño × Lógicas ──
+  (function() {
+    const data = parseData('data-desempeno-logicas');
+    const canvas = document.getElementById('chart-desempeno-logicas');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    const labels = data.map(d => 'Puntaje ' + d.puntaje_logicas);
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: '% con intento',     data: data.map(d => d.pct_con_intento || 0),    backgroundColor: C.azul },
+          { label: '% resolvió alguno', data: data.map(d => d.pct_resolvio_alguno || 0),backgroundColor: C.verde },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: { y: { min: 0, max: 100, title: { display: true, text: '%' } } },
+      },
+    });
+  })();
+
+  // ── Red de co-ocurrencia de errores (D3 force-directed) ──
+  (function() {
+    const container = document.getElementById('red-errores-svg');
+    const selector  = document.getElementById('red-errores-selector');
+    const metaEl    = document.getElementById('red-errores-meta');
+    if (!container || !selector) return;
+
+    if (typeof d3 === 'undefined') {
+      container.innerHTML = '<p style="color:#888;text-align:center;padding:2rem 0;">No se pudo cargar D3.js.</p>';
+      return;
+    }
+
+    // Colores por grupo semántico (coinciden con la leyenda HTML)
+    const GRUPO_COLOR = [
+      '#c62828',  // 0 extremos
+      '#6a1b9a',  // 1 equivalencia/dirección
+      '#e65100',  // 2 fuerza lógica
+      '#1565c0',  // 3 parcial
+      '#2e7d32',  // 4 sistemático
+      '#00838f',  // 5 variables
+      '#757575',  // 6 sin clasificar
+    ];
+
+    let simulation = null;
+
+    function render(data) {
+      container.innerHTML = '';
+
+      const nPares = data.n_pares || 0;
+      if (metaEl) metaEl.textContent = nPares ? `${nPares} pares (estudiante × ejercicio) con errores clasificados` : '';
+
+      if (!data.nodes || !data.nodes.length) {
+        container.innerHTML = '<p style="color:#888;text-align:center;padding:2rem 0;">Sin datos de errores clasificados para este alcance.</p>';
+        return;
+      }
+
+      const width  = container.clientWidth || 680;
+      const height = 460;
+      container.style.height = height + 'px';
+
+      // Escalas
+      const maxCount  = d3.max(data.nodes, d => d.count) || 1;
+      const maxWeight = d3.max(data.links, d => d.weight) || 1;
+      const rScale    = d => Math.sqrt(d.count / maxCount) * 32 + 10;
+      const wScale    = d => Math.sqrt(d.weight / maxWeight) * 10 + 1;
+      const opScale   = d => 0.25 + 0.65 * (d.weight / maxWeight);
+
+      const nodes = data.nodes.map(d => ({...d}));
+      const links = data.links.map(d => ({...d}));
+
+      const svg = d3.select(container).append('svg')
+        .attr('width', width).attr('height', height)
+        .attr('viewBox', [0, 0, width, height]);
+
+      // Fondo dividido en dos mitades por línea de referencia (opcional)
+      const defs = svg.append('defs');
+      // Gradiente para aristas
+      defs.append('linearGradient').attr('id', 'edge-grad')
+        .attr('gradientUnits', 'userSpaceOnUse');
+
+      if (simulation) simulation.stop();
+      simulation = d3.forceSimulation(nodes)
+        .force('link', d3.forceLink(links).id(d => d.id)
+          .distance(d => 180 - Math.sqrt(d.weight / maxWeight) * 80)
+          .strength(0.25))
+        .force('charge', d3.forceManyBody().strength(-350))
+        .force('center', d3.forceCenter(width / 2, height / 2))
+        .force('collision', d3.forceCollide().radius(d => rScale(d) + 6));
+
+      // Aristas
+      const link = svg.append('g').attr('class', 'links')
+        .selectAll('line').data(links).join('line')
+        .attr('stroke', d => d.weight === 1 ? '#ddd' : '#aaa')
+        .attr('stroke-width', wScale)
+        .attr('stroke-opacity', opScale);
+
+      // Nodos
+      const node = svg.append('g').attr('class', 'nodes')
+        .selectAll('g').data(nodes).join('g')
+        .style('cursor', 'grab')
+        .call(d3.drag()
+          .on('start', (event, d) => {
+            if (!event.active) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x; d.fy = d.y;
+          })
+          .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
+          .on('end', (event, d) => {
+            if (!event.active) simulation.alphaTarget(0);
+            d.fx = null; d.fy = null;
+          }));
+
+      node.append('circle')
+        .attr('r', rScale)
+        .attr('fill', d => GRUPO_COLOR[d.grupo] ?? '#757575')
+        .attr('fill-opacity', 0.82)
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 2);
+
+      // Etiqueta dentro del nodo (primera palabra del label)
+      node.append('text')
+        .attr('text-anchor', 'middle').attr('dominant-baseline', 'middle')
+        .attr('font-size', d => Math.min(11, rScale(d) * 0.5) + 'px')
+        .attr('font-family', "'Segoe UI', system-ui, sans-serif")
+        .attr('fill', '#fff').attr('pointer-events', 'none')
+        .text(d => d.label.split(' ')[0]);
+
+      // Etiqueta fuera del nodo (label completo, fuera del círculo)
+      node.append('text')
+        .attr('text-anchor', 'middle')
+        .attr('dy', d => rScale(d) + 11)
+        .attr('font-size', '10px')
+        .attr('font-family', "'Segoe UI', system-ui, sans-serif")
+        .attr('fill', '#444').attr('pointer-events', 'none')
+        .text(d => d.label);
+
+      // Tooltip
+      node.append('title')
+        .text(d => `${d.label}\n${d.count} pares (est. × ej.) con este error`);
+      link.append('title')
+        .text(d => {
+          const s = typeof d.source === 'object' ? d.source.label : d.source;
+          const t = typeof d.target === 'object' ? d.target.label : d.target;
+          return `${s} ↔ ${t}\nCo-ocurren en ${d.weight} par${d.weight !== 1 ? 'es' : ''} (est. × ej.)`;
+        });
+
+      simulation.on('tick', () => {
+        link
+          .attr('x1', d => d.source.x).attr('y1', d => d.source.y)
+          .attr('x2', d => d.target.x).attr('y2', d => d.target.y);
+        node.attr('transform', d => `translate(${d.x},${d.y})`);
+      });
+    }
+
+    function load(comisionId) {
+      const url = '{% url "analiticas:red_errores" %}?comision_id=' + comisionId;
+      container.innerHTML = '<p style="color:#888;text-align:center;padding:2rem 0;font-size:0.85rem;">Cargando…</p>';
+      fetch(url)
+        .then(r => r.json())
+        .then(data => render(data))
+        .catch(() => {
+          container.innerHTML = '<p style="color:#c62828;text-align:center;padding:2rem 0;">Error al cargar los datos.</p>';
+        });
+    }
+
+    selector.addEventListener('change', () => load(selector.value));
+    load(selector.value);
+  })();
+
+})();
+
+// ── Nube de palabras: ¿qué es la ciencia? (d3-cloud) ──────────────────────
+(function () {
+  const el   = document.getElementById('data-nube-ciencia');
+  const wrap = document.getElementById('nube-ciencia-wrap');
+  if (!el || !wrap) return;
+  const rawData = JSON.parse(el.textContent);
+  if (!rawData || !rawData.length) return;
+
+  const palette = ['#1565c0','#2e7d32','#6a1b9a','#c62828','#0277bd','#558b2f','#37474f','#ad1457'];
+
+  function renderNube() {
+    if (typeof d3 === 'undefined' || !d3.layout || !d3.layout.cloud) return;
+
+    const W = wrap.clientWidth || wrap.offsetWidth || 700;
+    const H = Math.round(W * 0.50);
+
+    const maxCount = rawData[0]?.count || 1;
+    const minSize  = Math.max(11, Math.round(W * 0.016));
+    const maxSize  = Math.round(W * 0.10);
+
+    const words = rawData.map(d => ({
+      text: d.word,
+      size: minSize + Math.round((d.count / maxCount) * (maxSize - minSize)),
+    }));
+
+    d3.layout.cloud()
+      .size([W, H])
+      .words(words)
+      .padding(4)
+      .rotate(() => Math.random() < 0.2 ? 90 : 0)
+      .font('system-ui, sans-serif')
+      .fontSize(d => d.size)
+      .on('end', drawn => {
+        wrap.innerHTML = '';
+        d3.select(wrap)
+          .append('svg')
+          .attr('width', W)
+          .attr('height', H)
+          .append('g')
+          .attr('transform', `translate(${W / 2},${H / 2})`)
+          .selectAll('text')
+          .data(drawn)
+          .enter().append('text')
+            .style('font-size',   d => d.size + 'px')
+            .style('font-family', 'system-ui, sans-serif')
+            .style('font-weight', d => d.size > (minSize + (maxSize - minSize) * 0.5) ? '600' : '400')
+            .style('fill', (_, i) => palette[i % palette.length])
+            .attr('text-anchor', 'middle')
+            .attr('transform',   d => `translate(${d.x},${d.y})rotate(${d.rotate})`)
+            .text(d => d.text);
+      })
+      .start();
+  }
+
+  if (document.readyState === 'complete') {
+    renderNube();
+  } else {
+    window.addEventListener('load', renderNube);
+  }
+})();
+</script>
+{% endblock %}

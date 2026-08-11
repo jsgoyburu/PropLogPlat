@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load ui_i18n %}
+
+{% block title %}{% ui 'log_in' %} — {{ config_sitio.nombre_sitio }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 420px;">
+  <div class="card" style="margin-top: 3rem;">
+    <h2 style="margin-top: 0; margin-bottom: 1.5rem;">{% ui 'log_in' %}</h2>
+
+    {% if form.errors %}
+    <div class="alert alert-error" style="margin-bottom: 1rem;">
+      {% ui 'bad_login' %}
+    </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      <div style="margin-bottom: 1rem;">
+        <label for="id_username">{% ui 'username' %}</label>
+        <input
+          type="text"
+          name="username"
+          id="id_username"
+          autofocus
+          autocomplete="username"
+          required
+        >
+      </div>
+
+      <div style="margin-bottom: 1.5rem;">
+        <label for="id_password">{% ui 'password' %}</label>
+        <input
+          type="password"
+          name="password"
+          id="id_password"
+          autocomplete="current-password"
+          required
+        >
+      </div>
+
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit" class="btn btn-primary" style="width: 100%;">{% ui 'enter' %}</button>
+    </form>
+  </div>
+
+  <p style="text-align: center; font-size: 0.85rem; color: #666; margin-top: 1rem;">
+    {% ui 'account_from_class_link' %}
+  </p>
+</div>
+{% endblock %}

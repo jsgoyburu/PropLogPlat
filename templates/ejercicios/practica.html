@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load ui_i18n %}
+
+{% block title %}{{ practica.titulo_localizado }} — {{ config_sitio.nombre_sitio }}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="breadcrumb">
+    <a href="{% url 'ejercicios:home' %}">{% ui 'home' %}</a>
+    &rsaquo; {{ pc.comision.nombre }}
+    &rsaquo; {{ practica.titulo_localizado }}
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top: 0;">{{ practica.titulo_localizado }}</h2>
+    <p style="margin: 0; color: #555; font-size: 0.9rem;">
+      {% ui 'class' %}: {{ pc.comision.nombre }}
+    </p>
+    {% if practica.descripcion_localizada %}
+      <div style="margin-top:0.75rem; color:#333; font-size:0.92rem; line-height:1.45;">
+        {{ practica.descripcion_localizada|safe }}
+      </div>
+    {% endif %}
+    {% if pc.fecha_cierre %}
+      <p style="margin: 0.4rem 0 0; font-size: 0.85rem; color: #888;">
+        Cierra el {{ pc.fecha_cierre|date:"j \d\e N \d\e Y" }} a las {{ pc.fecha_cierre|time:"H:i" }}
+      </p>
+    {% endif %}
+  </div>
+
+  {% if not eps_data %}
+  <div class="card">
+    <p style="margin: 0; color: #666;">{% ui 'practice_no_exercises' %}</p>
+  </div>
+  {% else %}
+  <ul class="ep-list">
+    {% for item in eps_data %}
+    <li class="ep-item {% if item.estado == 'bloqueado' %}ep-bloqueado{% endif %}">
+
+      <span class="ep-icon">
+        {% if item.estado == 'aprobado' %}✓
+        {% elif item.estado == 'pendiente' %}🕐
+        {% elif item.estado == 'rechazado' %}🚫
+        {% elif item.estado == 'actual' %}→
+        {% else %}🔒
+        {% endif %}
+      </span>
+
+      <span class="badge
+        {% if item.estado == 'aprobado' %}badge-ok
+        {% elif item.estado == 'pendiente' %}badge-pendiente
+        {% elif item.estado == 'rechazado' %}badge-rechazado
+        {% elif item.estado == 'actual' %}badge-actual
+        {% else %}badge-bloqueado
+        {% endif %}"
+            style="min-width: 2.5rem; text-align: center;">
+        {{ item.ep.orden }}
+      </span>
+
+      <span class="ep-desc">
+        {% if item.estado != 'bloqueado' %}
+          <a href="{% url 'ejercicios:ejercicio' pc.id item.ep.id %}">
+            {% ui 'exercise' %} {{ item.ep.orden }}
+          </a>
+          &nbsp;<span class="badge badge-tipo">{{ item.ep.ejercicio.tipo_localizado }}</span>
+        {% else %}
+          {% ui 'exercise' %} {{ item.ep.orden }}
+          <span class="badge badge-tipo">{{ item.ep.ejercicio.tipo_localizado }}</span>
+        {% endif %}
+      </span>
+
+      {% if item.estado == 'actual' or item.estado == 'rechazado' %}
+      <a class="btn {% if item.estado == 'rechazado' %}btn-danger{% else %}btn-primary{% endif %}"
+         href="{% url 'ejercicios:ejercicio' pc.id item.ep.id %}"
+         style="font-size: 0.85rem; padding: 0.3rem 0.9rem;">
+        {% if item.estado == 'rechazado' %}{% ui 'fix' %}{% else %}{% ui 'solve' %}{% endif %}
+      </a>
+      {% endif %}
+
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endblock %}

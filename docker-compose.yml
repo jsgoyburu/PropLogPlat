@@ -1,0 +1,32 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      SECRET_KEY: local-compose-change-before-production
+      SETUP_TOKEN: change-me-before-production
+      DEBUG: "False"
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      DATABASE_URL: postgres://ipc:ipc@db:5432/ipc
+      USE_DATABASE_URL: "True"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ipc
+      POSTGRES_USER: ipc
+      POSTGRES_PASSWORD: ipc
+    volumes:
+      - ipc_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ipc -d ipc"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  ipc_postgres_data:

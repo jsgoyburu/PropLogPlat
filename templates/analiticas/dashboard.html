@@ -1,0 +1,1018 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — {{ config_sitio.nombre_sitio }}{% endblock %}
+
+{% block scripts %}
+<style>
+  .panel-card > summary { outline: none; list-style: none; border-radius: 6px; }
+  .panel-card > summary::-webkit-details-marker { display: none; }
+  .panel-card > summary::marker { display: none; }
+  .panel-card > summary:hover { background: #fafafa; }
+  .panel-card[open] > summary .panel-chevron { transform: rotate(90deg); }
+  .table-toggle { display: flex; align-items: center; gap: 0.4rem; cursor: pointer;
+    font-size: 0.83rem; color: #666; padding: 0.45rem 0.7rem; border-radius: 4px;
+    border: 1px solid #ddd; background: #fafafa; user-select: none; width: fit-content; margin-top: 0.75rem; }
+  .table-toggle:hover { background: #f0f0f0; }
+  .table-toggle .panel-chevron { font-size: 0.65rem; opacity: 0.5; transition: transform 0.15s; }
+  details.tbl-collapse[open] .table-toggle .panel-chevron { transform: rotate(90deg); }
+  details.tbl-collapse > div { margin-top: 0.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<div class="container-wide">
+  <div style="display:flex; align-items:baseline; gap:1.5rem; margin-bottom:1rem; flex-wrap:wrap;">
+    <h2 style="margin:0;">Dashboard analítico</h2>
+    <a href="{% url 'analiticas:encuesta_resumen' %}"
+       style="display:inline-block; padding:0.3rem 0.85rem; border-radius:4px; border:1px solid #388e3c; background:#e8f5e9; color:#1b5e20; font-size:0.83rem; font-weight:600; text-decoration:none;">
+      Encuesta inicial →
+    </a>
+    <a href="{% url 'analiticas:investigacion' %}"
+       style="display:inline-block; padding:0.3rem 0.85rem; border-radius:4px; border:1px solid #1976d2; background:#e3f2fd; color:#1565c0; font-size:0.83rem; font-weight:600; text-decoration:none;">
+      Analíticas de investigación →
+    </a>
+  </div>
+
+  {# ── Aviso de consentimientos ── #}
+  <div style="background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; padding: 0.85rem 1rem; margin-bottom: 1.5rem; font-size: 0.88rem; color: #5d4037;">
+    <strong>Uso de datos:</strong>
+    Los datos mostrados en este panel incluyen información identificable de estudiantes que han dado su consentimiento pedagógico.
+    Los datos anonimizados pueden utilizarse con fines académicos y de investigación según los consentimientos registrados en cada perfil.
+    El uso de estos datos nunca será comercial.
+  </div>
+
+  {% if not comisiones_data %}
+  <div class="card">
+    <p style="margin: 0; color: #666;">
+      {% if user.is_staff %}
+        No hay comisiones creadas todavía.
+      {% else %}
+        Todavía no tenés comisiones asignadas.
+      {% endif %}
+      Creá una desde el <a href="{% url 'admin:index' %}">panel de administración</a>.
+    </p>
+  </div>
+  {% endif %}
+
+  {# ── Resumen por comisión ── #}
+  {% for item in comisiones_data %}
+  <div class="card">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem;">
+      <h3 style="margin: 0;">{{ item.comision.nombre }}</h3>
+      <span style="font-size: 0.9rem; color: #555;">
+        {{ item.total_estudiantes }} estudiante{{ item.total_estudiantes|pluralize }}
+      </span>
+    </div>
+
+    {% if not item.practicas %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">
+      Esta comisión no tiene prácticas asignadas.
+    </p>
+    {% else %}
+
+    {# Gráfico de barras: tasa de acierto por práctica #}
+    <div style="position:relative; height:200px; margin-bottom:0.5rem;">
+      <canvas id="chart-comision-{{ item.comision.id }}"></canvas>
+    </div>
+    <script>
+    (function(){
+      var labels=[{% for p in item.practicas %}"{{ p.practica.titulo|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+      var acierto=[{% for p in item.practicas %}{% if p.tasa_acierto is not None %}{{ p.tasa_acierto }}{% else %}0{% endif %}{% if not forloop.last %},{% endif %}{% endfor %}];
+      var completaron=[{% for p in item.practicas %}{{ p.completaron }}{% if not forloop.last %},{% endif %}{% endfor %}];
+      var total=[{% for p in item.practicas %}{{ p.total_estudiantes }}{% if not forloop.last %},{% endif %}{% endfor %}];
+      var c=document.getElementById('chart-comision-{{ item.comision.id }}');
+      if (!labels.length || typeof Chart==='undefined') {
+        if(c){var p=document.createElement('p');p.style.cssText='color:#888;font-size:0.9rem;text-align:center;padding:1rem 0;margin:0;';p.textContent=typeof Chart==='undefined'?'No se pudo cargar la librería de gráficos.':'Sin intentos registrados todavía.';c.parentElement.replaceChild(p,c);}
+        return;
+      }
+      new Chart(c,{
+        type:'bar',
+        data:{
+          labels:labels,
+          datasets:[
+            {label:'% Acierto',data:acierto,backgroundColor:'rgba(21,101,192,0.75)'},
+            {label:'% Completaron',data:completaron.map(function(c,i){return total[i]>0?Math.round(c/total[i]*100):0;}),backgroundColor:'rgba(42,122,42,0.75)'},
+          ],
+        },
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'}},scales:{y:{min:0,max:100,title:{display:true,text:'%'}}}},
+      });
+    })();
+    </script>
+
+    {# Tabla colapsable #}
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla de datos ({{ item.practicas|length }} práctica{{ item.practicas|length|pluralize }})
+      </summary>
+      <div style="overflow-x: auto;">
+        <div class="stat-row stat-header" style="padding-bottom: 0.4rem;">
+          <span>Práctica</span>
+          <span class="stat-num">Completaron</span>
+          <span class="stat-num">Intentos</span>
+          <span class="stat-num">Acierto %</span>
+        </div>
+        {% for p in item.practicas %}
+        <div class="stat-row">
+          <span>
+            <a href="{% url 'ejercicios:practica' p.pc.id %}"
+               style="color: #1a6fa8; text-decoration: none; font-weight: 500;">
+              {{ p.practica.titulo }}
+            </a>
+          </span>
+          <span class="stat-num">{{ p.completaron }}&nbsp;/&nbsp;{{ p.total_estudiantes }}</span>
+          <span class="stat-num">{{ p.total_intentos }}</span>
+          <span class="stat-num">
+            {% if p.tasa_acierto is not None %}{{ p.tasa_acierto }}&thinsp;%{% else %}—{% endif %}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+    </details>
+
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  {# ── Ejercicios más difíciles ── #}
+  {% if ejercicios_dificiles %}{{ ejercicios_dificiles|json_script:"data-dificiles" }}{% endif %}
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3 style="margin: 0 0 0.5rem;">🔴 Ejercicios más difíciles</h3>
+    <p style="font-size: 0.85rem; color: #666; margin: 0 0 0.75rem;">
+      Ranking por tasa de error.
+      Solo se muestran ejercicios con ≥ {{ cfg_umbral_min_intentos }} intentos totales (umbral configurable en el admin).
+    </p>
+    {% if ejercicios_dificiles %}
+    <div style="position:relative; margin-bottom:0.5rem;" id="cont-dificiles">
+      <canvas id="chart-dificiles"></canvas>
+    </div>
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla de datos ({{ ejercicios_dificiles|length }} ejercicio{{ ejercicios_dificiles|length|pluralize }})
+      </summary>
+      <div style="overflow-x: auto; margin-top:0.5rem;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;" id="tbl-dificiles">
+          <thead>
+            <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+              <th style="padding: 0.4rem 0.6rem;">Ejercicio</th>
+              <th style="padding: 0.4rem 0.6rem;">Práctica</th>
+              <th style="padding: 0.4rem 0.6rem;">Tipo</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">Intentos</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">% Error</th>
+              {% if comisiones_data|length == 1 %}<th style="padding: 0.4rem 0.6rem;"></th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for ej in ejercicios_dificiles %}
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 0.4rem 0.6rem; color: #333;">{{ ej.enunciado_corto }}{% if ej.enunciado_corto|length >= 69 %}…{% endif %}</td>
+              <td style="padding: 0.4rem 0.6rem; color: #555;">{{ ej.practica_titulo }}</td>
+              <td style="padding: 0.4rem 0.6rem;">
+                <span style="font-size: 0.75rem; background: {% if ej.tipo == 'tabla_verdad' %}#e0f0ff{% else %}#f0f0f0{% endif %}; padding: 0.1rem 0.4rem; border-radius: 3px;">
+                  {{ ej.tipo|cut:"_"|capfirst }}
+                </span>
+              </td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right; color: #555;">{{ ej.total }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right; font-weight: 600;
+                         color: {% if ej.error_rate >= 70 %}#b00020{% elif ej.error_rate >= 40 %}#c07000{% else %}#2a7a2a{% endif %};">
+                {{ ej.error_rate }}&thinsp;%
+              </td>
+              {% if comisiones_data|length == 1 %}
+              <td style="padding: 0.3rem 0.4rem;">
+                <button class="btn-drill"
+                        data-ej="{{ ej.ejercicio_id }}"
+                        data-com="{{ comision_ids_csv }}"
+                        data-tipo="{{ ej.tipo }}"
+                        style="font-size:0.75rem; padding:0.2rem 0.55rem; border:1px solid #bbb;
+                               border-radius:3px; background:#f5f5f5; cursor:pointer; white-space:nowrap;">
+                  ▶ Análisis
+                </button>
+              </td>
+              {% endif %}
+            </tr>
+            {% if comisiones_data|length == 1 %}
+            <tr class="drill-row" data-ej="{{ ej.ejercicio_id }}" style="display:none;">
+              <td colspan="6" style="padding: 0; background: #fafafa;">
+                <div class="drill-content" style="padding: 0.75rem 1rem; border-top: 1px solid #e8e8e8;">
+                  <span style="color:#999; font-size:0.85rem;">Cargando…</span>
+                </div>
+              </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Sin datos suficientes (se necesitan ≥ 3 intentos por ejercicio).</p>
+    {% endif %}
+  </div>
+
+  {# ── Señales de alerta ── #}
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3 style="margin: 0 0 0.4rem;">⚠️ Señales de alerta — estudiantes que podrían necesitar acompañamiento</h3>
+    <p style="font-size: 0.85rem; color: #666; margin: 0 0 0.75rem;">
+      Estudiantes con ≥ {{ cfg_umbral_riesgo }} intentos incorrectos consecutivos en algún ejercicio sin haberlo resuelto aún.
+      Una racha prolongada puede ser una oportunidad para una intervención pedagógica.
+      <em style="color: #999;">(Umbral configurable en el admin.)</em>
+    </p>
+    {% if en_riesgo %}
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla ({{ en_riesgo|length }} alerta{{ en_riesgo|length|pluralize }})
+      </summary>
+      <div style="overflow-x: auto; margin-top:0.5rem;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+          <thead>
+            <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+              <th style="padding: 0.4rem 0.6rem;">Estudiante</th>
+              <th style="padding: 0.4rem 0.6rem;">Ejercicio</th>
+              <th style="padding: 0.4rem 0.6rem;">Práctica</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">Intentos incorrectos seguidos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for est in en_riesgo %}
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 0.4rem 0.6rem;">
+                <span style="font-weight: 500;">{{ est.nombre }}</span>
+                {% if est.nombre != est.username %}
+                <br><span style="font-size: 0.8rem; color: #888;">@{{ est.username }}</span>
+                {% endif %}
+              </td>
+              <td style="padding: 0.4rem 0.6rem; color: #333;">{{ est.enunciado_corto }}…</td>
+              <td style="padding: 0.4rem 0.6rem; color: #555;">{{ est.practica_titulo }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right; font-weight: 700; color: #b00020;">
+                {{ est.racha }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Ninguna señal de alerta activa. ✓</p>
+    {% endif %}
+  </div>
+
+  {# ── Distribución de intentos ── #}
+  {% if distribucion_intentos %}{{ distribucion_intentos|json_script:"data-distribucion" }}{% endif %}
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3 style="margin: 0 0 0.5rem;">📊 Distribución de intentos hasta resolver</h3>
+    <p style="font-size: 0.85rem; color: #666; margin: 0 0 0.75rem;">
+      Incluye a todos los estudiantes que intentaron el EP: quienes resolvieron (hasta el primer correcto) y quienes no resolvieron (abandonaron). <em>% no resolvió</em> mide el abandono real del ejercicio.
+    </p>
+    {% if distribucion_intentos %}
+    <div style="position:relative; margin-bottom:0.5rem;" id="cont-distribucion">
+      <canvas id="chart-distribucion"></canvas>
+    </div>
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla de datos ({{ distribucion_intentos|length }} ejercicio{{ distribucion_intentos|length|pluralize }})
+      </summary>
+      <div style="overflow-x: auto; margin-top:0.5rem;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+          <thead>
+            <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+              <th style="padding: 0.4rem 0.6rem;">Ejercicio</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">Resolvieron</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;" title="Estudiantes que intentaron pero nunca resolvieron">No resolvieron</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;" title="Porcentaje de quienes intentaron que nunca resolvieron">% abandono</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;" title="Promedio de intentos hasta el primer correcto (solo quienes resolvieron)">Prom.</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;" title="Mediana de intentos hasta el primer correcto">Med.</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;" title="1 intento">1</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;" title="2–3 intentos">2–3</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;" title="4–6 intentos">4–6</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;" title="7 o más intentos">7+</th>
+              <th style="padding: 0.4rem 0.6rem; width: 2rem;"></th>
+            </tr>
+          </thead>
+          {% for d in distribucion_intentos %}
+          <tbody x-data="{ abierto: false }">
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 0.4rem 0.6rem; color: #333;">{{ d.enunciado_corto }}{% if d.enunciado_corto|length >= 69 %}…{% endif %}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ d.resolvieron }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right; color: {% if d.no_resolvieron > 0 %}#b00020{% else %}#555{% endif %};">{{ d.no_resolvieron }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right; font-weight: {% if d.pct_no_resolvio and d.pct_no_resolvio >= 40 %}600{% else %}400{% endif %};
+                         color: {% if d.pct_no_resolvio and d.pct_no_resolvio >= 60 %}#b00020{% elif d.pct_no_resolvio and d.pct_no_resolvio >= 30 %}#c07000{% else %}#555{% endif %};">
+                {% if d.pct_no_resolvio is not None %}{{ d.pct_no_resolvio }}%{% else %}—{% endif %}
+              </td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right; font-weight: 600;
+                         color: {% if d.promedio and d.promedio <= 2 %}#2a7a2a{% elif d.promedio and d.promedio <= 4 %}#c07000{% elif d.promedio %}#b00020{% else %}#aaa{% endif %};">
+                {% if d.promedio is not None %}{{ d.promedio }}{% else %}—{% endif %}
+              </td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right; color: #555;">
+                {% if d.mediana is not None %}{{ d.mediana }}{% else %}—{% endif %}
+              </td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right; color: #555;">{{ d.bucket_1 }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right; color: #555;">{{ d.bucket_2_3 }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right; color: #555;">{{ d.bucket_4_6 }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right; color: {% if d.bucket_7plus > 0 %}#b00020{% else %}#555{% endif %};">{{ d.bucket_7plus }}</td>
+              <td style="padding: 0.4rem 0.3rem; text-align: right;">
+                {% if d.detalle|length > 1 %}
+                <button type="button" @click="abierto = !abierto"
+                        style="background:none; border:1px solid #ccc; border-radius:3px; cursor:pointer; font-size:0.75rem; color:#666; padding:0.1rem 0.35rem; line-height:1;"
+                        :title="abierto ? 'Ocultar desglose' : 'Ver por comisión/práctica'">
+                  <span x-show="!abierto">▼</span><span x-show="abierto">▲</span>
+                </button>
+                {% endif %}
+              </td>
+            </tr>
+            {% if d.detalle|length > 1 %}
+            <tr x-show="abierto" x-cloak>
+              <td colspan="8" style="padding: 0; border-bottom: 2px solid #ddd;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.83rem; background: #f8f9fa;">
+                  <thead>
+                    <tr style="color: #888; border-bottom: 1px solid #ddd;">
+                      <th style="padding: 0.3rem 0.6rem 0.3rem 1.5rem; font-weight: normal; text-align: left;">Comisión · Práctica</th>
+                      <th style="padding: 0.3rem 0.6rem; text-align: right; font-weight: normal;">Resolvieron</th>
+                      <th style="padding: 0.3rem 0.6rem; text-align: right; font-weight: normal;">Promedio</th>
+                      <th style="padding: 0.3rem 0.6rem; text-align: right; font-weight: normal;">1</th>
+                      <th style="padding: 0.3rem 0.6rem; text-align: right; font-weight: normal;">2–3</th>
+                      <th style="padding: 0.3rem 0.6rem; text-align: right; font-weight: normal;">4–6</th>
+                      <th style="padding: 0.3rem 0.6rem; text-align: right; font-weight: normal;">7+</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for det in d.detalle %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                      <td style="padding: 0.3rem 0.6rem 0.3rem 1.5rem; color: #555;">{{ det.comision_nombre }} · {{ det.practica_titulo }}</td>
+                      <td style="padding: 0.3rem 0.6rem; text-align: right;">{{ det.resolvieron }}</td>
+                      <td style="padding: 0.3rem 0.6rem; text-align: right; font-weight: 600;
+                                 color: {% if det.promedio <= 2 %}#2a7a2a{% elif det.promedio <= 4 %}#c07000{% else %}#b00020{% endif %};">{{ det.promedio }}</td>
+                      <td style="padding: 0.3rem 0.6rem; text-align: right; color: #555;">{{ det.bucket_1 }}</td>
+                      <td style="padding: 0.3rem 0.6rem; text-align: right; color: #555;">{{ det.bucket_2_3 }}</td>
+                      <td style="padding: 0.3rem 0.6rem; text-align: right; color: #555;">{{ det.bucket_4_6 }}</td>
+                      <td style="padding: 0.3rem 0.6rem; text-align: right; color: {% if det.bucket_7plus > 0 %}#b00020{% else %}#555{% endif %};">{{ det.bucket_7plus }}</td>
+                      <td></td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+            {% endif %}
+          </tbody>
+          {% endfor %}
+        </table>
+      </div>
+    </details>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Sin datos suficientes (ningún ejercicio resuelto todavía).</p>
+    {% endif %}
+  </div>
+
+  {# ── Evolución temporal ── #}
+  {% if evolucion_temporal %}{{ evolucion_temporal|json_script:"data-evolucion" }}{% endif %}
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3 style="margin: 0 0 0.5rem;">📅 Evolución temporal (últimas 8 semanas)</h3>
+    {% if evolucion_temporal %}
+    <div style="position:relative; height:260px; margin-bottom:0.5rem;">
+      <canvas id="chart-evolucion"></canvas>
+    </div>
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla de datos
+      </summary>
+      <div style="overflow-x: auto; margin-top:0.5rem;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+          <thead>
+            <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+              <th style="padding: 0.4rem 0.6rem;">Semana</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">Intentos</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">Correctos</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">Acierto %</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">Estudiantes únicos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sem in evolucion_temporal %}
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 0.4rem 0.6rem; font-weight: 500;">{{ sem.semana_label }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ sem.total }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right; color: #2a7a2a;">{{ sem.correctos }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right;">
+                {% if sem.total %}
+                  {% widthratio sem.correctos sem.total 100 %}%
+                {% else %}—{% endif %}
+              </td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ sem.estudiantes_unicos }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Sin actividad en las últimas 8 semanas.</p>
+    {% endif %}
+  </div>
+
+  {# ── Errores sistemáticos ── #}
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3 style="margin: 0 0 0.4rem;">🔁 Errores compartidos</h3>
+    <p style="color: #888; font-size: 0.85rem; margin: 0 0 1rem;">
+      Misma respuesta incorrecta dada por ≥ {{ cfg_error_consenso_min }} estudiantes distintos en el mismo ejercicio.
+      Puede indicar una concepción errónea compartida.
+      <em style="color: #999;">(Umbral configurable en el admin.)</em>
+    </p>
+    <div class="export-row" style="margin-bottom: 0.5rem;">
+      <span>Exportar:</span>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'errores_sistematicos' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'errores_sistematicos' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+    </div>
+    {% if errores_sistematicos %}
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla ({{ errores_sistematicos|length }} error{{ errores_sistematicos|length|pluralize }}es compartido{{ errores_sistematicos|length|pluralize }})
+      </summary>
+      <div style="overflow-x: auto; margin-top:0.5rem;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+          <thead>
+            <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+              <th style="padding: 0.4rem 0.6rem;">Ejercicio</th>
+              <th style="padding: 0.4rem 0.6rem;">Práctica</th>
+              <th style="padding: 0.4rem 0.6rem;">Respuesta compartida</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">Estudiantes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for e in errores_sistematicos %}
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 0.4rem 0.6rem; max-width: 22rem;">
+                <span style="font-size: 0.82rem; color: #555;">{{ e.enunciado|striptags|truncatechars:100 }}</span>
+              </td>
+              <td style="padding: 0.4rem 0.6rem; white-space: nowrap;">{{ e.practica_titulo }}</td>
+              <td style="padding: 0.4rem 0.6rem;">
+                <code style="background: #f5f5f5; padding: 0.15rem 0.35rem; border-radius: 3px; font-size: 0.85rem;">{{ e.respuesta_display }}</code>
+              </td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right; font-weight: bold;">{{ e.n_estudiantes }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Sin errores compartidos detectados.</p>
+    {% endif %}
+  </div>
+
+  {# ── Matriz juicio × cómputo (M2) ── #}
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3 style="margin: 0 0 0.4rem;">⊞ Juicio lógico vs. cómputo de tabla (tabla de verdad)</h3>
+    <p style="color: #888; font-size: 0.85rem; margin: 0 0 1rem;">
+      Descomposición de los intentos en ejercicios de tabla de verdad según si el estudiante acertó
+      en el <strong>juicio</strong> (validez del argumento) y/o en el <strong>cómputo</strong>
+      (completar correctamente la tabla).
+      Solo disponible cuando se filtra una única comisión.
+    </p>
+    {% if matriz_juicio %}
+    {% with m=matriz_juicio %}
+    <div style="overflow-x: auto;">
+      <table style="border-collapse: collapse; font-size: 0.9rem; min-width: 380px;">
+        <thead>
+          <tr>
+            <th style="padding: 0.5rem 0.8rem; border: 1px solid #ddd; background: #f5f5f5;"></th>
+            <th style="padding: 0.5rem 0.8rem; border: 1px solid #ddd; background: #e3f2fd; text-align: center;">Tabla ✓</th>
+            <th style="padding: 0.5rem 0.8rem; border: 1px solid #ddd; background: #fdecea; text-align: center;">Tabla ✗</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th style="padding: 0.5rem 0.8rem; border: 1px solid #ddd; background: #e8f5e9; text-align: left;">Juicio ✓</th>
+            <td style="padding: 0.6rem 0.8rem; border: 1px solid #ddd; text-align: center; background: #e8f5e9;">
+              <strong style="font-size: 1.1rem;">{{ m.celdas.comprension_plena.count }}</strong>
+              <span style="color: #888; font-size: 0.82rem;">&nbsp;({{ m.celdas.comprension_plena.pct }}&thinsp;%)</span>
+              <div style="font-size: 0.78rem; color: #555; margin-top: 0.2rem;">Comprensión plena</div>
+            </td>
+            <td style="padding: 0.6rem 0.8rem; border: 1px solid #ddd; text-align: center; background: #fff8e1;">
+              <strong style="font-size: 1.1rem;">{{ m.celdas.comprende_no_computa.count }}</strong>
+              <span style="color: #888; font-size: 0.82rem;">&nbsp;({{ m.celdas.comprende_no_computa.pct }}&thinsp;%)</span>
+              <div style="font-size: 0.78rem; color: #555; margin-top: 0.2rem;">Comprende, no computa</div>
+            </td>
+          </tr>
+          <tr>
+            <th style="padding: 0.5rem 0.8rem; border: 1px solid #ddd; background: #fce4ec; text-align: left;">Juicio ✗</th>
+            <td style="padding: 0.6rem 0.8rem; border: 1px solid #ddd; text-align: center; background: #fff8e1;">
+              <strong style="font-size: 1.1rem;">{{ m.celdas.computa_no_comprende.count }}</strong>
+              <span style="color: #888; font-size: 0.82rem;">&nbsp;({{ m.celdas.computa_no_comprende.pct }}&thinsp;%)</span>
+              <div style="font-size: 0.78rem; color: #555; margin-top: 0.2rem;">Computa, no comprende</div>
+            </td>
+            <td style="padding: 0.6rem 0.8rem; border: 1px solid #ddd; text-align: center; background: #fdecea;">
+              <strong style="font-size: 1.1rem;">{{ m.celdas.doble_obstaculo.count }}</strong>
+              <span style="color: #888; font-size: 0.82rem;">&nbsp;({{ m.celdas.doble_obstaculo.pct }}&thinsp;%)</span>
+              <div style="font-size: 0.78rem; color: #555; margin-top: 0.2rem;">Doble obstáculo</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size: 0.82rem; color: #999; margin: 0.6rem 0 0;">
+      Total de intentos considerados: {{ m.total }}.
+      Cada intento se clasifica de forma independiente (un mismo estudiante puede aparecer en varias celdas si realizó múltiples intentos).
+    </p>
+    {% endwith %}
+    {% elif comisiones_data|length > 1 %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Seleccioná una única comisión para ver esta métrica.</p>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Sin intentos de tabla de verdad con juicio registrado en esta comisión.</p>
+    {% endif %}
+  </div>
+
+  {# ── Silencio temprano ── #}
+  <details class="card panel-card" style="margin-top: 1.5rem;">
+    <summary style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; list-style: none; margin-bottom: 0;">
+      <span style="display: flex; align-items: center; gap: 0.4rem;">
+        <span class="panel-chevron" style="font-size: 0.7rem; opacity: 0.5; transition: transform 0.15s;">▶</span>
+        <h3 style="margin: 0;">🔕 Actividad reciente por estudiante</h3>
+      </span>
+      <span style="font-size: 0.85rem; color: #888;">
+        {{ silencio_resumen.total }} inscriptos
+        {% if silencio_resumen.nunca %}&nbsp;·&nbsp;<span style="color: #c62828;">{{ silencio_resumen.nunca }} nunca</span>{% endif %}
+        {% if silencio_resumen.alertas %}&nbsp;·&nbsp;<span style="color: #f57f17;">{{ silencio_resumen.alertas }} &ge;{{ cfg_umbral_silencio_dias }}d</span>{% endif %}
+      </span>
+    </summary>
+    <div style="margin-top: 1rem;">
+    {% if silencio %}
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+            <th style="padding: 0.4rem 0.6rem;">Estudiante</th>
+            <th style="padding: 0.4rem 0.6rem;">Último intento</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Días sin actividad</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Total intentos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in silencio %}
+          <tr style="border-bottom: 1px solid #eee;{% if s.nunca %} background: #fdecea;{% elif s.dias_silencio >= cfg_umbral_silencio_dias %} background: #fff8e1;{% endif %}">
+            <td style="padding: 0.4rem 0.6rem;">
+              {{ s.nombre }}
+              {% if s.nombre != s.username %}<span style="color: #999; font-size: 0.82rem;">({{ s.username }})</span>{% endif %}
+            </td>
+            <td style="padding: 0.4rem 0.6rem;">
+              {% if s.nunca %}<em style="color: #c62828;">Nunca</em>{% else %}{{ s.ultimo_intento|date:"d/m/Y" }}{% endif %}
+            </td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right;">
+              {% if s.nunca %}—{% else %}{{ s.dias_silencio }}{% endif %}
+            </td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ s.total_intentos }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Sin estudiantes inscriptos.</p>
+    {% endif %}
+    </div>
+  </details>
+
+  {# ── Práctica concentrada ── #}
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3 style="margin: 0 0 0.4rem;">⚡ Práctica concentrada (posible maratón)</h3>
+    <p style="color: #888; font-size: 0.85rem; margin: 0 0 1rem;">
+      Ratio intentos/días activos ≥ {{ cfg_umbral_maraton }}. Puede indicar práctica de última hora.
+      <em style="color: #999;">(Umbral configurable en el admin.)</em>
+    </p>
+    {% if concentracion %}
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla ({{ concentracion|length }} caso{{ concentracion|length|pluralize }})
+      </summary>
+      <div style="overflow-x: auto; margin-top:0.5rem;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+          <thead>
+            <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+              <th style="padding: 0.4rem 0.6rem;">Estudiante</th>
+              <th style="padding: 0.4rem 0.6rem;">Práctica</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">Intentos</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">Días activos</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">Ratio</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c in concentracion %}
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 0.4rem 0.6rem;">{{ c.nombre }}</td>
+              <td style="padding: 0.4rem 0.6rem;">{{ c.practica_titulo }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ c.total }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ c.dias_unicos }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right;"><strong>{{ c.ratio }}</strong></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Ningún estudiante supera el umbral de concentración.</p>
+    {% endif %}
+  </div>
+
+  {# ── Arranque tardío ── #}
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3 style="margin: 0 0 0.4rem;">🐢 Arranque tardío</h3>
+    <p style="color: #888; font-size: 0.85rem; margin: 0 0 1rem;">
+      Estudiantes que no realizaron ningún intento en los primeros {{ cfg_umbral_arranque_dias }} días desde la apertura de la práctica.
+      <em style="color: #999;">(Umbral configurable en el admin.)</em>
+    </p>
+    {% if velocidad %}
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla ({{ velocidad|length }} caso{{ velocidad|length|pluralize }})
+      </summary>
+      <div style="overflow-x: auto; margin-top:0.5rem;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+          <thead>
+            <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+              <th style="padding: 0.4rem 0.6rem;">Estudiante</th>
+              <th style="padding: 0.4rem 0.6rem;">Práctica</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">Intentos totales</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in velocidad %}
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 0.4rem 0.6rem;">{{ v.nombre }}</td>
+              <td style="padding: 0.4rem 0.6rem;">{{ v.practica_titulo }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ v.intentos_total }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Sin arranques tardíos detectados.</p>
+    {% endif %}
+  </div>
+
+  {# ── Práctica con baja variación entre intentos (M6) ── #}
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3 style="margin: 0 0 0.4rem;">🔁 Práctica con baja variación entre intentos</h3>
+    <p style="color: #888; font-size: 0.85rem; margin: 0 0 1rem;">
+      Pares (estudiante, ejercicio) con ≥ {{ cfg_umbral_adivinacion_intentos }} intentos
+      e intervalo promedio &lt; {{ cfg_umbral_adivinacion_segundos }}&thinsp;s entre intentos consecutivos,
+      sin convergencia semántica detectable.
+      Puede indicar práctica mecánica sin reflexión entre intentos.
+      Solo disponible para una única comisión y estudiantes con consentimiento pedagógico.
+      <em style="color: #999;">(Umbrales configurables en el admin.)</em>
+    </p>
+    {% if patron_baja_variacion %}
+    <details class="tbl-collapse">
+      <summary class="table-toggle">
+        <span class="panel-chevron">▶</span>
+        Ver tabla ({{ patron_baja_variacion|length }} caso{{ patron_baja_variacion|length|pluralize }})
+      </summary>
+      <div style="overflow-x: auto; margin-top:0.5rem;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+          <thead>
+            <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+              <th style="padding: 0.4rem 0.6rem;">Estudiante</th>
+              <th style="padding: 0.4rem 0.6rem;">Ejercicio</th>
+              <th style="padding: 0.4rem 0.6rem;">Práctica</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">Intentos</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: right;">Intervalo prom. (s)</th>
+              <th style="padding: 0.4rem 0.6rem; text-align: center;">¿Resolvió?</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in patron_baja_variacion %}
+            <tr style="border-bottom: 1px solid #eee;">
+              <td style="padding: 0.4rem 0.6rem;">
+                {{ p.nombre }}
+                {% if p.nombre != p.username %}<span style="color: #999; font-size: 0.82rem;">({{ p.username }})</span>{% endif %}
+              </td>
+              <td style="padding: 0.4rem 0.6rem; color: #333;">{{ p.enunciado_corto }}{% if p.enunciado_corto|length >= 69 %}…{% endif %}</td>
+              <td style="padding: 0.4rem 0.6rem; color: #555;">{{ p.practica_titulo }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right; font-weight: 600;">{{ p.n_intentos }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ p.intervalo_promedio_seg|floatformat:1 }}</td>
+              <td style="padding: 0.4rem 0.6rem; text-align: center;">
+                {% if p.resolvio %}<span style="color: #2a7a2a;">✓</span>{% else %}<span style="color: #b00020;">✗</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% elif comisiones_data|length > 1 %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Seleccioná una única comisión para ver esta métrica.</p>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Sin casos detectados con los umbrales actuales.</p>
+    {% endif %}
+  </div>
+
+  <p style="font-size: 0.82rem; color: #999; text-align: center; margin-top: 2rem;">
+    Para gestionar comisiones, ejercicios y estudiantes usá el
+    <a href="{% url 'admin:index' %}">panel de administración</a>.
+  </p>
+</div>
+
+<script>
+(function() {
+  const C = {
+    verde:    'rgba(42,122,42,0.75)',
+    rojo:     'rgba(176,0,32,0.75)',
+    naranja:  'rgba(192,112,0,0.75)',
+    azul:     'rgba(21,101,192,0.75)',
+    azulClaro:'rgba(21,101,192,0.45)',
+    grisLinea:'rgba(100,100,100,0.65)',
+  };
+
+  function parseData(id) {
+    const el = document.getElementById(id);
+    return el ? JSON.parse(el.textContent) : null;
+  }
+
+  function trunc(s, n) {
+    return s && s.length > n ? s.slice(0, n) + '…' : (s || '');
+  }
+
+  function noData(canvas, msg) {
+    const p = document.createElement('p');
+    p.style.cssText = 'color:#888;font-size:0.9rem;text-align:center;padding:1.5rem 0;margin:0;';
+    p.textContent = msg || 'Sin datos suficientes para mostrar el gráfico.';
+    if (canvas && canvas.parentElement) canvas.parentElement.replaceChild(p, canvas);
+  }
+
+  if (typeof Chart === 'undefined') {
+    document.querySelectorAll('canvas[id^="chart-"]').forEach(c => noData(c, 'No se pudo cargar la librería de gráficos.'));
+    return;
+  }
+
+  Chart.defaults.font.family = "'Segoe UI', system-ui, sans-serif";
+  Chart.defaults.font.size = 12;
+
+  // ── Evolución temporal ──
+  (function() {
+    const data = parseData('data-evolucion');
+    const canvas = document.getElementById('chart-evolucion');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: data.map(d => d.semana_label),
+        datasets: [
+          {
+            label: 'Intentos totales',
+            data: data.map(d => d.total),
+            borderColor: C.azul,
+            backgroundColor: C.azulClaro,
+            fill: true,
+            tension: 0.3,
+            yAxisID: 'y',
+          },
+          {
+            label: 'Correctos',
+            data: data.map(d => d.correctos),
+            borderColor: C.verde,
+            backgroundColor: 'transparent',
+            tension: 0.3,
+            yAxisID: 'y',
+          },
+          {
+            label: 'Estudiantes únicos',
+            data: data.map(d => d.estudiantes_unicos),
+            borderColor: C.grisLinea,
+            backgroundColor: 'transparent',
+            borderDash: [5, 4],
+            tension: 0.3,
+            yAxisID: 'y2',
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+          y:  { beginAtZero: true, title: { display: true, text: 'Intentos' } },
+          y2: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false },
+                title: { display: true, text: 'Estudiantes' } },
+        },
+      },
+    });
+  })();
+
+  // ── Ejercicios más difíciles ──
+  (function() {
+    const data = parseData('data-dificiles');
+    const canvas = document.getElementById('chart-dificiles');
+    const cont   = document.getElementById('cont-dificiles');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    const n = data.length;
+    cont.style.height = Math.min(Math.max(n * 48, 120), 400) + 'px';
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => trunc(d.enunciado_corto, 42)),
+        datasets: [{
+          label: '% Error',
+          data: data.map(d => d.error_rate),
+          backgroundColor: data.map(d =>
+            d.error_rate >= 70 ? C.rojo :
+            d.error_rate >= 40 ? C.naranja : C.verde
+          ),
+        }],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { min: 0, max: 100, title: { display: true, text: '% Error' } },
+          y: { ticks: { font: { size: 11 } } },
+        },
+      },
+    });
+  })();
+
+  // ── Distribución de intentos ──
+  (function() {
+    const data = parseData('data-distribucion');
+    const canvas = document.getElementById('chart-distribucion');
+    const cont   = document.getElementById('cont-distribucion');
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    const n = data.length;
+    cont.style.height = Math.min(Math.max(n * 48, 120), 500) + 'px';
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => trunc(d.enunciado_corto, 42)),
+        datasets: [
+          { label: '1 intento',  data: data.map(d => d.bucket_1),    backgroundColor: C.verde },
+          { label: '2–3',        data: data.map(d => d.bucket_2_3),  backgroundColor: 'rgba(255,193,7,0.75)' },
+          { label: '4–6',        data: data.map(d => d.bucket_4_6),  backgroundColor: C.naranja },
+          { label: '7+',         data: data.map(d => d.bucket_7plus),backgroundColor: C.rojo },
+        ],
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } },
+        scales: {
+          x: { stacked: true, title: { display: true, text: 'Estudiantes' } },
+          y: { stacked: true, ticks: { font: { size: 11 } } },
+        },
+      },
+    });
+  })();
+
+  // ── Drill-down M3/M4/M5 por ejercicio ──
+  (function() {
+    const cache = {};
+
+    const PERFIL_LABEL = {
+      directo: 'Directo (1er intento)', convergente: 'Convergente',
+      plateau: 'Plateau', oscilante: 'Oscilante', pendiente: 'Sin resolver',
+    };
+    const TIPO_LABEL = {
+      atomica: 'Atómica', negacion: 'Negación', conjuncion: 'Conjunción',
+      disyuncion: 'Disyunción', condicional: 'Condicional',
+      verdad_vacua: 'Verdad vacua (⊃)', compuesto: 'Compuesto',
+    };
+
+    function bar(pct, color) {
+      return `<span style="display:inline-block;width:${Math.round(pct * 0.9)}px;height:10px;background:${color};border-radius:2px;vertical-align:middle;margin-right:4px;"></span>`;
+    }
+
+    function renderDrill(container, tipo, data) {
+      const { convergencia, perfil_tabla, atomizacion } = data;
+      let html = '<div style="display:flex;flex-wrap:wrap;gap:1.2rem;">';
+
+      // M3: convergencia (solo formalización)
+      if (tipo === 'formalizacion') {
+        const p = convergencia.perfiles || {};
+        const total = Object.values(p).reduce((a, b) => a + b, 0);
+        html += '<div style="min-width:200px;flex:1;">';
+        html += '<strong style="font-size:0.82rem;color:#555;">M3 · Perfiles de convergencia</strong>';
+        if (total === 0) {
+          html += '<p style="font-size:0.82rem;color:#999;margin:0.3rem 0 0;">Sin datos de formalización.</p>';
+        } else {
+          html += '<table style="font-size:0.82rem;width:100%;margin-top:0.4rem;">';
+          for (const [k, label] of Object.entries(PERFIL_LABEL)) {
+            if (!(k in p)) continue;
+            const pct = total ? Math.round(p[k] / total * 100) : 0;
+            html += `<tr><td style="padding:0.15rem 0;color:#444;">${label}</td>`
+                  + `<td style="padding:0.15rem 0.3rem;">${bar(pct,'#1565c0')}${pct}%</td>`
+                  + `<td style="padding:0.15rem 0;color:#888;">(${p[k]})</td></tr>`;
+          }
+          html += '</table>';
+          if (convergencia.distancia_primer_intento !== null && convergencia.distancia_primer_intento !== undefined) {
+            html += `<p style="font-size:0.79rem;color:#888;margin:0.35rem 0 0;">Dist. media 1er intento: <strong>${convergencia.distancia_primer_intento}</strong> filas</p>`;
+          }
+        }
+        html += '</div>';
+
+        // M5: atomización (solo formalización)
+        const at = atomizacion;
+        html += '<div style="min-width:180px;flex:1;">';
+        html += '<strong style="font-size:0.82rem;color:#555;">M5 · Atomización</strong>';
+        if (!at.total_estudiantes) {
+          html += '<p style="font-size:0.82rem;color:#999;margin:0.3rem 0 0;">Sin datos.</p>';
+        } else {
+          html += `<p style="font-size:0.82rem;margin:0.3rem 0 0;color:#444;">Variables en solución: <strong>${at.n_solucion}</strong></p>`;
+          html += `<p style="font-size:0.82rem;margin:0.2rem 0;color:#b00020;">Sub-atomización (menos vars): <strong>${at.sub_atomizacion}</strong></p>`;
+          html += `<p style="font-size:0.82rem;margin:0.2rem 0;color:#c07000;">Correcta atomización pero con error: <strong>${at.correcta_con_error}</strong></p>`;
+          html += `<p style="font-size:0.82rem;margin:0.2rem 0;color:#6a1b9a;">Sobre-atomización (más vars): <strong>${at.sobre_atomizacion}</strong></p>`;
+          html += `<p style="font-size:0.79rem;color:#888;margin:0.2rem 0 0;">Total estudiantes: ${at.total_estudiantes}</p>`;
+        }
+        html += '</div>';
+      }
+
+      // M4: perfil de error en tabla (solo tabla_verdad)
+      if (tipo === 'tabla_verdad') {
+        const pt = perfil_tabla;
+        html += '<div style="min-width:200px;flex:1;">';
+        html += '<strong style="font-size:0.82rem;color:#555;">M4 · Errores por tipo de columna</strong>';
+        if (!pt.total_intentos_incorrectos) {
+          html += '<p style="font-size:0.82rem;color:#999;margin:0.3rem 0 0;">Sin intentos incorrectos de tabla de verdad.</p>';
+        } else {
+          const tasas = pt.tasa_error_por_columna || {};
+          html += '<table style="font-size:0.82rem;width:100%;margin-top:0.4rem;">';
+          for (const [k, label] of Object.entries(TIPO_LABEL)) {
+            if (!(k in tasas)) continue;
+            const pct = Math.round(tasas[k]);
+            html += `<tr><td style="padding:0.15rem 0;color:#444;">${label}</td>`
+                  + `<td style="padding:0.15rem 0.3rem;">${bar(pct, pct>50?'#b00020':'#c07000')}${pct}%</td></tr>`;
+          }
+          html += '</table>';
+          if (pt.verdad_vacua_count) {
+            html += `<p style="font-size:0.79rem;color:#6a1b9a;margin:0.35rem 0 0;">Error de verdad vacua: ${pt.verdad_vacua_count} intento${pt.verdad_vacua_count!==1?'s':''} (${Math.round(pt.verdad_vacua_pct)}%)</p>`;
+          }
+        }
+        html += '</div>';
+      }
+
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    document.addEventListener('click', function(e) {
+      const btn = e.target.closest('.btn-drill');
+      if (!btn) return;
+
+      const ejId  = btn.dataset.ej;
+      const comId = btn.dataset.com;
+      const tipo  = btn.dataset.tipo;
+      const key   = ejId + '_' + comId;
+
+      // Encontrar la fila de drill-down correspondiente
+      const drillRow = document.querySelector(`.drill-row[data-ej="${ejId}"]`);
+      if (!drillRow) return;
+
+      const isOpen = drillRow.style.display !== 'none';
+      if (isOpen) {
+        drillRow.style.display = 'none';
+        btn.textContent = '▶ Análisis';
+        return;
+      }
+
+      drillRow.style.display = '';
+      btn.textContent = '▼ Análisis';
+      const content = drillRow.querySelector('.drill-content');
+      content.innerHTML = '<span style="color:#999;font-size:0.85rem;">Cargando…</span>';
+
+      if (cache[key]) {
+        renderDrill(content, tipo, cache[key]);
+        return;
+      }
+
+      fetch(`{% url 'analiticas:detalle_ejercicio' %}?ejercicio_id=${ejId}&comision_id=${comId}`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      })
+      .then(r => r.json())
+      .then(data => {
+        cache[key] = data;
+        renderDrill(content, tipo, data);
+      })
+      .catch(() => {
+        content.innerHTML = '<span style="color:#b00020;font-size:0.85rem;">Error al cargar el análisis.</span>';
+      });
+    });
+  })();
+
+})();
+</script>
+{% endblock %}

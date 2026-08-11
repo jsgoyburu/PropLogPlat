@@ -1,0 +1,293 @@
+### Sección 1 – Datos básicos
+
+1. **DNI** (obligatorio): campo numérico.
+
+3. **Apellido/s** (obligatorio): campo de texto.
+
+4. **Nombre/s** (obligatorio): campo de texto.
+
+5. **Correo electrónico**:
+
+   * *No tengo*
+   * *Otras* (permite introducir un correo).
+
+6. **WhatsApp (sin 0 y sin 15)**: campo numérico.
+
+7. **Fecha de nacimiento**: selector de fecha.
+
+### Sección 2 – Consentimiento informado
+
+La información relevada en las preguntas siguientes de esta encuesta podrá ser utilizada con fines pedagógicos vinculados a la cursada y, en caso de que prestes tu consentimiento específico, también con fines de investigación educativa sobre la cursada de Introducción al Pensamiento Científico. Tus respuestas podrán ser vinculadas con registros académicos de la materia (por ejemplo, desempeño en evaluaciones) y, eventualmente, si prestás tu consentimiento específico, con una encuesta posterior de seguimiento, con el único fin de analizar trayectorias estudiantiles y mejorar las prácticas de enseñanza. La participación es voluntaria y no afectará en ningún caso tu cursada, calificaciones, ni vínculo con el equipo docente. Los datos personales serán resguardados de manera confidencial y, para su análisis y eventual presentación académica, serán disociados y/o presentados de forma agregada. Podés dejar sin responder las preguntas no obligatorias y ejercer tus derechos de acceso, rectificación o supresión de tus datos mediante contacto con Juan Sebastián Goyburu (jsgoyburu@uba.ar).
+El responsable del tratamiento de los datos es Juan Sebastián Goyburu, con domicilio a estos efectos en Sede Prof. Alberto Fernández (Sede 7), Ramos Mejía 841, CABA. El consentimiento puede ser revocado en cualquier momento, sin efectos retroactivos, mediante comunicación al contacto indicado.
+
+Si no prestás tu consentimiento de uso de datos para fines pedagógicos, el formulario finalizará en este punto, no se utilizarán tus datos para ningún fin, y esto no afectará de ningún modo tu cursada, calificaciones ni vínculo con el equipo docente.
+
+Si no prestás tu consentimiento de uso de datos para fines de investigación, el formulario continuará, pero tus datos no serán utilizados en ninguna investigación futura. Esto tampoco afectará de ningún modo tu cursada, calificaciones ni vínculo con el equipo docente.
+
+Si decidís no contestar la encuesta y necesitás comunicar alguna situación particular vinculada con tu cursada o requerís adecuaciones, podés escribirle a lx profesorx de tu comisión.
+
+8. ¿Prestás tu consentimiento libre e informado para que las respuestas de esta encuesta sean utilizadas con fines pedagógicos vinculados a la cursada, por ejemplo para seguimiento, acompañamiento y, si correspondiera, contacto del equipo docente?
+
+   * *Sí, presto mi consentimiento*
+   * *No, no presto mi consentimiento* ⇒ **Si se elige “No”, el formulario finaliza**.
+
+9. Además, ¿prestás tu consentimiento libre e informado para que las respuestas de esta encuesta sean utilizadas con fines de investigación educativa, pudiendo ser vinculadas con tus registros académicos de la materia y analizadas luego de manera disociada y/o presentada de forma agregada?
+
+   * *Sí, presto mi consentimiento*
+   * *No, no presto mi consentimiento*
+
+10. ¿Aceptás que podamos contactarte más adelante por correo o WhatsApp para invitarte, de manera totalmente voluntaria, a una encuesta de seguimiento sobre tu trayectoria académica?
+
+    * *Sí, presto mi consentimiento*
+    * *No, no presto mi consentimiento*.
+
+### Sección 3 – Sobre tu Facultad y Carrera elegidas
+Indicanos a qué facultad y en qué carrera te inscribiste
+
+11. **Facultad** (obligatorio): Ya lo hace el template correctamente, tomando los datos de facultades_carreras.json
+
+12. **Carrera** (obligatorio): Ya lo hace el template correctamente, actualizando dinámicamente las opciones por la facultad elegida en la pregunta anterior, a partir de los datos de facultades_carreras.json
+
+### Sección 4 – Sobre tu situación personal
+(Texto introductorio) Vamos a hacerte algunas preguntas personales para poder tener una mejor idea de tus tiempos y recursos para el estudio. Aunque, para resguardar tu privacidad, estas preguntas no son obligatorias, nos servirían mucho para poder planificar los medios y ritmos de trabajo.
+
+13. **¿Tu lugar de origen es la Ciudad de Buenos Aires o el Gran Buenos Aires?**
+
+    * *Sí*
+    * *No* ⇒ si se selecciona **No**, se muestra la Sección 5.
+
+### Sección 5 – Si tu lugar de origen **no es** el Área Metropolitana de Buenos Aires (AMBA)
+
+14. **¿Vivís en la Ciudad de Buenos Aires o en el Gran Buenos Aires?**
+
+    * *Ciudad de Buenos Aires*
+    * *Gran Buenos Aires*.
+
+15. **¿Te mudaste al AMBA con tu familia?**
+
+    * *Sí*
+    * *No*.
+
+16. **¿Te mudaste al AMBA para trabajar y/o estudiar?**
+
+    * *Sí*
+    * *No*.
+
+17. **¿Hace cuánto tiempo te mudaste al AMBA?**
+
+    * *Menos de un año*
+    * *1 año*
+    * *2‑3 años*
+    * *Más de 3 años*.
+
+18. **¿Desde dónde te mudaste al AMBA?**
+
+    * *Desde otra parte de la Argentina* ⇒ abre Sección 6.
+    * *Desde fuera de la Argentina* ⇒ abre Sección 7.
+
+#### Sección 6 – Si te mudaste desde otra parte de la Argentina
+
+19. **¿Desde qué provincia te mudaste?**
+    Lista desplegable con todas las provincias argentinas: *Buenos Aires (Interior), Catamarca, Chaco, Chubut, Córdoba, Corrientes, Entre Ríos, Formosa, Jujuy, La Pampa, La Rioja, Mendoza, Misiones, Neuquén, Río Negro, Salta, San Juan, San Luis, Santa Cruz, Santa Fe, Santiago del Estero, Tierra del Fuego, Tucumán*, entre otras.
+
+#### Sección 7 – Si te mudaste desde fuera de la Argentina
+
+20. **Indicanos desde qué país te mudaste**: campo de texto.
+
+### Sección 8 – Sobre tu situación personal
+
+21. **¿Hay alguna adecuación, apoyo o consideración particular que necesites para cursar o rendir esta materia?**
+(Texto aclaratorio) El equipo docente podrá comunicarse con vos para conversarlo de manera confidencial.
+
+**LA RESPUESTA A ESTA PREGUNTA ES ESTRICTAMENTE OPCIONAL.**
+
+    * *Sí*
+    * *No*.
+
+22. **En caso de que quieras informarlo: ¿contás con CUD (Certificado Único de Discapacidad)?**
+(Texto aclaratorio) El equipo docente podrá comunicarse con vos para conversar sobre tu situación de manera confidencial. Además, te recomendamos comunicarte con la/s persona/s responsable/s del **Área de Discapacidad del CBC**. Podés preguntar por ellas en el Departamento de Alumnos.
+
+**LA RESPUESTA A ESTA PREGUNTA ES ESTRICTAMENTE OPCIONAL.**
+
+    * *Sí*
+    * *No*.
+
+23. **¿Con quién vivís?**
+
+    * *Vivo sola/e/o*
+    * *Vivo en la vivienda familiar*
+    * *Comparto vivienda con otras personas, fuera de la vivienda familiar (vivienda compartida, alojamiento, hotel, etc.)*.
+
+24. **¿Cuánto tiempo de viaje tenés hasta Puán?**
+
+    * *Menos de 30 minutos*
+    * *30 min ‑ 1 hora*
+    * *Más de 1 hora*.
+
+25. **Situación laboral** (única elección):
+
+    * *No trabajo y no estoy buscando*
+    * *Busco trabajo*
+    * *Trabajo hasta 4 horas por día*
+    * *Trabajo entre 4 y 6 horas por día*
+    * *Trabajo 6 o más horas por día*.
+
+26. **¿Cuántos días de la semana trabajás?**
+
+    * *No trabajo*
+    * *Trabajo menos de 5 días a la semana*
+    * *Trabajo 5 días de la semana*
+    * *Trabajo más de 5 días a la semana*.
+
+27. **Acceso a internet** (casillas múltiples):
+
+    * *No tengo acceso a internet*
+    * *Datos en plan prepago*
+    * *Datos con abono mensual*
+    * *WiFi*
+    * *Conexión cableada*.
+
+28. **Dispositivos informáticos** (tabla con tres columnas: *No tengo*, *Compartido*, *Individual*):
+
+    * *Celular*
+    * *Tablet*
+    * *PC de escritorio*
+    * *Computadora portátil*.
+
+### Sección 9 – Sobre tu secundaria
+
+29. **¿Hace cuánto tiempo terminaste la escuela secundaria?**
+
+    * *Menos de un año*
+    * *Entre 1 y 3 años*
+    * *Más de 3 años*.
+
+30. **¿De qué tipo de escuela te recibiste?** (lista desplegable):
+    *Bachillerato, Comercial, Técnico Profesional, Artística, Especial, Rural, de Jóvenes y Adultos, Intercultural Bilingüe, Domiciliaria/Hospitalaria, en Contexto de Encierro*.
+
+### Sección 10 – Sobre tus estudios de Nivel Superior
+
+31. **¿Realizaste otros estudios de Nivel Superior anteriormente?**
+
+    * *No*
+    * *Sí, en la UBA* ⇒ muestra Sección 11.
+    * *Sí, fuera de la UBA* ⇒ muestra Sección 13.
+
+### Sección 11 – Si ya estudiaste en la UBA
+
+32. **¿Qué carrera estudiaste?** (desplegable con todas las carreras, sin atender a la facultad, de facultades_carreras.json).
+33. **¿Terminaste el CBC de esa carrera?**
+
+    * *Sí*
+    * *No*.
+
+### Sección 12 – Si terminaste el CBC de otra carrera de la UBA
+
+34. **¿Te recibiste de esa carrera?**
+
+    * *Sí*
+    * *No*.
+
+### Sección 13 – Si hiciste estudios de Nivel Superior fuera de la UBA
+
+35. **¿En qué tipo de institución estudiaste?**
+
+    * *Universidad*
+    * *Instituto de Formación Técnica Superior*
+    * *Profesorado*
+    * *Otras* (campo de texto).
+
+36. **Indicanos el nombre de la carrera**: campo de texto.
+
+37. **¿Te recibiste de esa carrera?**
+
+    * *Sí*
+    * *No*.
+
+### Sección 14 – Sobre tu cursada del CBC
+
+38. **¿Hiciste UBA XXI?**
+
+    * *Sí*
+    * *No*.
+
+39. **¿Hace cuánto tiempo estás en el CBC?**
+(Texto aclaratorio) Sin contar el tiempo que hayas hecho UBA XXI, en caso de haber formado parte de ese programa.
+
+    * *Éste es mi primer cuatrimestre*
+    * *Éste es mi segundo cuatrimestre*
+    * *Entre 1 y 2 años* ⇒ muestra Sección 15
+    * *Más de 2 años*. ⇒ muestra Sección 15
+
+### Sección 15 – Si hace un año o más que empezaste el CBC
+
+40. **¿Tuviste que interrumpir tu cursada del CBC en algún momento?**
+
+    * *Sí, un cuatrimestre*
+    * *Sí, más de un cuatrimestre*
+    * *No*.
+
+41. **¿Ya habías cursado esta materia antes?**
+
+    * *Sí* ⇒ muestra Sección 16.
+    * *No*.
+
+### Sección 16 – Si ya habías cursado esta materia antes
+
+42. **¿Por qué no pudiste terminar la materia?** (única opción)
+
+    * *Dejé la materia por motivos personales*.
+    * *Dejé la materia por motivos laborales*.
+    * *Priorizé la aprobación de otras materias*.
+    * *Perdí la regularidad por ausencias*.
+    * *No alcancé el promedio necesario para rendir el examen final*.
+    * *No logré aprobar el examen final*.
+    * *Se me venció la materia*.
+    * *Otras* (campo de texto).
+
+### Sección 17 – Sobre tu cursada del CBC (continúa)
+
+43. **¿Cuántas materias del CBC tenés aprobadas?** Escala con radios de 0 a 5.
+
+### Sección 18 – Algunos acertijos de lógica
+
+(Texto aclaratorio) Tus respuestas nos sirven para saber cómo te llevás con el tipo de problemas con el que vamos a trabajar en una parte importante de la materia
+
+44. **Si María habla más bajo que Carmen y Lola habla más alto que Carmen, ¿María habla más alto o más bajo que Lola?**
+
+    * *Más alto*
+    * *Más bajo*.
+
+45. **Un padre y un hijo viajan en coche y tienen un accidente… la persona que tiene que operarlo dice: “Lo siento, no puedo operarlo. Es mi hijo.” ¿Por qué?**
+
+    * *No sé*
+    * *(campo de texto corto)*
+
+46. **En una hilera de cuatro casas la familia Rodríguez vive al lado de la familia Posada, pero no al lado de la familia Rivera. Si la familia Rivera no vive al lado de la familia Martínez, ¿qué familia es vecina inmediata de la familia Martínez?**
+
+    * *La familia Rodríguez*
+    * *La familia Rivera*
+    * *La familia Posada*.
+
+### Sección 19 – Un poco de polémica
+
+47. **El sitio Xataka Ciencia publicó un artículo con el siguiente título: “La risa no una expresión exclusivamente humana: ya se han logrado documentar risas en al menos 65 especies de animales diferentes” [link a https://www.xatakaciencia.com/sabias-que/risa-no-expresion-exclusivamente-humana-se-han-logrado-documentar-risas-al-65-especies-animales-diferentes]. ¿Lo creés o no?**
+
+    * *Lo creo*
+    * *No lo creo*.
+
+48. **En una oración ¿Qué es la ciencia?**
+    Campo de respuesta libre.
+
+---
+
+**Bifurcaciones importantes:**
+
+* En **Sección 2**, si se responde **“No”** a la pregunta 8, el formulario se termina y no se muestran más preguntas.
+* Si en la pregunta 13 se responde “No”, se muestran las preguntas de la **Sección 5** sobre mudanza.
+* En la pregunta 18, la elección **“Desde otra parte de la Argentina”** muestra la **Sección 6** (provincia de origen) y **“Desde fuera de la Argentina”** muestra la **Sección 7**.
+* La pregunta 31 deriva a secciones diferentes:
+
+  * *“Sí, en la UBA”* muestra la **Sección 11** y, dependiendo de si se terminó el CBC, pasa a la **Sección 12**.
+  * *“Sí, fuera de la UBA”* muestra la **Sección 13** con preguntas sobre institución y carrera.
+* En la Sección 14, si se indica que el CBC comenzó hace más de un año, se habilita la **Sección 15**; en ella, responder “Sí” a haber cursado la materia antes muestra la **Sección 16**.

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if modo == 'crear' %}Nueva comisión{% else %}Editar comisión{% endif %} · Panel docente{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="card">
+    <div class="breadcrumb">
+      <a href="{% url 'docentes:comisiones_list' %}">Panel docente</a>
+      &rsaquo; {% if modo == 'crear' %}Nueva comisión{% else %}Editar comisión{% endif %}
+    </div>
+    <h1 style="margin: 0.25rem 0 1.25rem;">
+      {% if modo == 'crear' %}Nueva comisión{% else %}Editar comisión{% endif %}
+    </h1>
+
+    <form method="post">
+      {% csrf_token %}
+
+      <!-- Nombre -->
+      <div style="margin-bottom:1rem;">
+        <label>{{ form.nombre.label }}</label>
+        {{ form.nombre }}
+        {% if form.nombre.errors %}
+          <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ form.nombre.errors|striptags }}</span>
+        {% endif %}
+      </div>
+
+      <!-- Tipo de encuesta de onboarding -->
+      <div style="margin-bottom:1rem;">
+        <label>{{ form.tipo_encuesta.label }}</label>
+        {{ form.tipo_encuesta }}
+        <p style="margin:0.25rem 0 0; font-size:0.82rem; color:#666;">{{ form.tipo_encuesta.help_text }}</p>
+        {% if form.tipo_encuesta.errors %}
+          <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ form.tipo_encuesta.errors|striptags }}</span>
+        {% endif %}
+      </div>
+
+      {% if modo == 'crear' and docentes_disponibles %}
+      <!-- Docentes adicionales (solo en creación; en detalle se gestionan con add/remove) -->
+      <div style="margin-bottom:1rem; padding:0.75rem 1rem; background:#f8f9fa; border-radius:6px; border:1px solid #e0e0e0;">
+        <label style="font-weight:500; display:block; margin-bottom:0.4rem;">
+          Agregar co-docentes <small style="font-weight:400; color:#666;">(opcional)</small>
+        </label>
+        <select name="docentes_adicionales" multiple
+                style="width:100%; min-height:6rem; padding:0.3rem;">
+          {% for docente in docentes_disponibles %}
+            <option value="{{ docente.pk }}">{{ docente }}</option>
+          {% endfor %}
+        </select>
+        <p style="margin:0.4rem 0 0; font-size:0.82rem; color:#666;">
+          Mantené Ctrl (o ⌘ en Mac) para seleccionar varios. Vos ya quedás asignado/a automáticamente.
+        </p>
+      </div>
+      {% endif %}
+
+      <div style="display:flex; gap:0.75rem; margin-top:1.25rem;">
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a class="btn btn-secondary" href="{% url 'docentes:comisiones_list' %}">Cancelar</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

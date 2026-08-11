@@ -1,0 +1,33 @@
+{% comment %}
+  Ya no hay selector acá: elegir cohorte es una acción global del panel
+  (afecta a todas las comisiones, no solo a esta), así que el `<select>` y el
+  botón "Nueva cohorte" viven en el home (docentes:comisiones_list, ver
+  _selector_cohorte_home.html). Esta comisión se ve con la cohorte que el
+  docente eligió ahí (persistida en sesión) o, si vino por querystring
+  explícito, con esa. Acá solo se indica cuál es, para que el docente no
+  tenga que volver al home para saberlo.
+
+  `cohorte_actual` como guarda: este parcial se incluye desde
+  comision_detail.html, que otras vistas re-renderizan sin ese contexto. Sin
+  la guarda, una variable ausente hace que `not es_cohorte_activa` dé True y
+  el aviso de abajo aparezca en una página cuya cohorte no está cerrada.
+
+  Va con {% templatetag openblock %} comment {% templatetag closeblock %} y no
+  con la sintaxis de una llave y almohadilla: esa última es de una sola línea,
+  y multilínea se renderiza como texto literal dentro del HTML.
+{% endcomment %}
+{% if cohorte_actual %}
+  <p style="margin:0.5rem 0; font-size:0.9rem; color:#555;">
+    <span class="badge badge-tipo" style="font-size:0.8rem;">
+      Cohorte: {{ cohorte_actual }}{% if es_cohorte_activa %} · en curso{% endif %}
+    </span>
+    <a href="{% url 'docentes:comisiones_list' %}" style="margin-left:0.4rem; font-size:0.82rem;">cambiar</a>
+  </p>
+{% endif %}
+
+{% if cohorte_actual and not es_cohorte_activa %}
+  <p style="margin:0.5rem 0; padding:0.5rem 0.75rem; background:#fff4e0; border-left:3px solid #c07000; font-size:0.9rem;">
+    Estás viendo una cohorte cerrada. No se pueden agregar estudiantes ni crear parciales.
+    Sí podés corregir intentos y cargar notas de parciales existentes.
+  </p>
+{% endif %}

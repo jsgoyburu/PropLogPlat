@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% load ui_i18n %}
+
+{% block title %}Instalar {{ config_sitio.nombre_sitio }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width:720px;">
+  <div class="card">
+    <h1 style="margin-top:0;">{% ui 'setup_title' %}</h1>
+    <p>
+      Esta pantalla crea la primera cuenta administradora y define la identidad
+      básica del sitio. Al finalizar se cerrará y no volverá a aceptar cambios.
+    </p>
+
+    {% if sin_token_produccion %}
+      <div class="alert alert-error">
+        Falta definir <code>SETUP_TOKEN</code> en el proveedor de alojamiento.
+        Agregá una clave privada, reiniciá el servicio y volvé a esta pantalla.
+      </div>
+    {% else %}
+      <form method="post">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="alert alert-error">{{ form.non_field_errors }}</div>
+        {% endif %}
+        {% for field in form %}
+          <div style="margin-bottom:1rem;">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div style="font-size:0.82rem;color:#666;">{{ field.help_text|safe }}</div>{% endif %}
+            {% for error in field.errors %}<div style="color:#b00020;font-size:0.85rem;">{{ error }}</div>{% endfor %}
+          </div>
+        {% endfor %}
+        <button class="btn btn-primary" type="submit">{% ui 'complete_setup' %}</button>
+      </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

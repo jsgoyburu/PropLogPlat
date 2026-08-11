@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+staticfiles/
+media/
+
+# Entorno
+.env
+.venv/
+venv/
+Lib/
+Scripts/
+pyvenv.cfg
+Include/
+
+# Sphinx build
+docs/_build/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# Misc
+test_files/
+backups/
+.claude/*
+!.claude/settings.json
+!.claude/commands/
+nul

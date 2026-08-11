@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/jsgoyburu/PropLogPlat/main/schemas/ipc-logica-package-v1.schema.json",
+  "title": "PropLogPlat portable content package v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "version", "kind", "license", "source_application", "exported_at", "content"],
+  "properties": {
+    "format": {"const": "ipc-logica-package"},
+    "version": {"const": 1},
+    "kind": {"enum": ["practice", "exercise"]},
+    "license": {"const": "CC-BY-SA-4.0"},
+    "source_application": {"const": "PropLogPlat"},
+    "exported_at": {"type": "string", "format": "date-time"},
+    "content": {"type": "object"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"kind": {"const": "practice"}}},
+      "then": {"properties": {"content": {"$ref": "#/$defs/practice"}}}
+    },
+    {
+      "if": {"properties": {"kind": {"const": "exercise"}}},
+      "then": {"properties": {"content": {"$ref": "#/$defs/exercise"}}}
+    }
+  ],
+  "$defs": {
+    "localizedText": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["es", "en", "fr", "de"],
+      "properties": {
+        "es": {"type": "string"},
+        "en": {"type": "string"},
+        "fr": {"type": "string"},
+        "de": {"type": "string"}
+      }
+    },
+    "exercise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enunciado", "tipo", "formula_solucion", "diccionario_solucion", "valores_verdad_solucion"],
+      "properties": {
+        "order": {"type": "integer", "minimum": 1},
+        "enunciado": {"$ref": "#/$defs/localizedText"},
+        "tipo": {"enum": ["tabla_verdad", "formalizacion", "determinacion_verdad"]},
+        "formula_solucion": {"type": "string", "minLength": 1, "maxLength": 500},
+        "diccionario_solucion": {"type": "object"},
+        "valores_verdad_solucion": {"type": ["object", "null"]}
+      }
+    },
+    "practice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "description", "exercises"],
+      "properties": {
+        "title": {"$ref": "#/$defs/localizedText"},
+        "description": {"$ref": "#/$defs/localizedText"},
+        "exercises": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 500,
+          "items": {"$ref": "#/$defs/exercise"}
+        }
+      }
+    }
+  }
+}

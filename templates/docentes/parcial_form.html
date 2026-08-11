@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}
+  {% if modo == 'crear' %}Nuevo parcial{% else %}Editar parcial{% endif %} · {{ comision.nombre }}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="card">
+    <div class="breadcrumb">
+      <a href="{% url 'docentes:comisiones_list' %}">Panel docente</a>
+      &rsaquo; <a href="{% url 'docentes:comision_detail' comision.id %}">{{ comision.nombre }}</a>
+      &rsaquo; {% if modo == 'crear' %}Nuevo parcial{% else %}Editar parcial{% endif %}
+    </div>
+
+    <h1 style="margin: 0.25rem 0 1rem;">
+      {% if modo == 'crear' %}Nuevo parcial{% else %}Editar parcial{% endif %}
+    </h1>
+
+    <form method="post">
+      {% csrf_token %}
+
+      <div style="display: grid; gap: 0.75rem; max-width: 28rem;">
+        <div>
+          <label style="font-weight: 500; display: block; margin-bottom: 0.25rem;">
+            {{ form.nombre.label }}
+          </label>
+          {{ form.nombre }}
+          {% if form.nombre.errors %}
+            <span class="alert alert-error" style="display: block; margin-top: 0.3rem; padding: 0.4rem 0.6rem;">
+              {{ form.nombre.errors|striptags }}
+            </span>
+          {% endif %}
+        </div>
+
+        <div>
+          <label style="font-weight: 500; display: block; margin-bottom: 0.25rem;">
+            {{ form.fecha.label }}
+          </label>
+          {{ form.fecha }}
+          {% if form.fecha.errors %}
+            <span class="alert alert-error" style="display: block; margin-top: 0.3rem; padding: 0.4rem 0.6rem;">
+              {{ form.fecha.errors|striptags }}
+            </span>
+          {% endif %}
+        </div>
+
+        <div>
+          <label style="font-weight: 500; display: block; margin-bottom: 0.25rem;">
+            {{ form.puntaje_total.label }}
+          </label>
+          {{ form.puntaje_total }}
+          {% if form.puntaje_total.errors %}
+            <span class="alert alert-error" style="display: block; margin-top: 0.3rem; padding: 0.4rem 0.6rem;">
+              {{ form.puntaje_total.errors|striptags }}
+            </span>
+          {% endif %}
+          <small style="color: #888; font-size: 0.82rem;">Máximo posible de la parte de lógica (puede ser decimal, ej: 3.50)</small>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.25rem; display: flex; gap: 0.6rem;">
+        <button type="submit" class="btn btn-primary">
+          {% if modo == 'crear' %}Crear parcial{% else %}Guardar cambios{% endif %}
+        </button>
+        <a class="btn btn-secondary" href="{% url 'docentes:comision_detail' comision.id %}">Cancelar</a>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

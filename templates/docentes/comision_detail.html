@@ -1,0 +1,1054 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ comision.nombre }} · Panel docente{% endblock %}
+
+{% block scripts %}
+<style>
+  /* ── Progreso expandible ─────────────────────────────────── */
+  .progreso-fila > summary { outline: none; }
+  .progreso-fila > summary::-webkit-details-marker { display: none; }
+  .progreso-fila > summary::marker { display: none; }
+  .progreso-fila > summary:hover { background: #fafafa; }
+  .progreso-fila[open] > summary .progreso-chevron { transform: rotate(90deg); }
+
+  /* ── Paneles colapsables (card-level) ────────────────────── */
+  .panel-card > summary { outline: none; list-style: none; border-radius: 6px; }
+  .panel-card > summary::-webkit-details-marker { display: none; }
+  .panel-card > summary::marker { display: none; }
+  .panel-card > summary:hover { background: #fafafa; }
+  .panel-card[open] > summary .panel-chevron { transform: rotate(90deg); }
+
+  @media (max-width: 640px) {
+    /* Alta de estudiantes: 3 cols → 1 col */
+    .form-alta-estudiante { grid-template-columns: 1fr !important; }
+    /* Select de importar práctica */
+    select[name="practica_origen"] { min-width: 0 !important; width: 100%; }
+    /* Botones de prácticas en el summary: apilar en mobile */
+    .practica-summary .practica-btns { flex-wrap: wrap; gap: 0.35rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-wide">
+
+  <!-- ── Encabezado ─────────────────────────────────────────── -->
+  <div class="card">
+    <div class="breadcrumb">
+      <a href="{% url 'docentes:comisiones_list' %}">Panel docente</a>
+      &rsaquo; {{ comision.nombre }}
+    </div>
+    <h1 style="margin: 0.25rem 0 0.5rem;">{{ comision.nombre }}</h1>
+    {% include 'docentes/_selector_cohorte.html' %}
+    <p style="margin: 0; color: #555; font-size: 0.9rem;">
+      <strong>Docentes:</strong> {{ docentes_display }}
+    </p>
+    <p style="margin: 0.5rem 0 0; color: #555; font-size: 0.9rem;">
+      <strong>Link de acceso para estudiantes:</strong>
+      <a href="{% url 'accounts:acceso_comision' comision.id %}">{% url 'accounts:acceso_comision' comision.id %}</a>
+    </p>
+  </div>
+
+  <!-- ── Gestión de docentes ────────────────────────────────── -->
+  <div class="card" style="margin-top:1rem;">
+    <h2 style="margin-top:0;">Docentes de la comisión</h2>
+
+    {% if docentes_actuales %}
+      <div class="stat-row stat-header" style="grid-template-columns: 1fr auto auto;">
+        <span>Docente</span>
+        <span>Email</span>
+        <span></span>
+      </div>
+      {% for docente in docentes_actuales %}
+        <div class="stat-row" style="grid-template-columns: 1fr auto auto;">
+          <span style="font-weight:500;">{{ docente.nombre_display }}</span>
+          <span style="color:#555; font-size:0.88rem;">{{ docente.email|default:"—" }}</span>
+          <span>
+            <button class="btn btn-danger"
+                    style="font-size:0.8rem; padding:0.2rem 0.7rem; white-space:nowrap;"
+                    onclick="document.getElementById('confirm-remove-docente-{{ docente.id }}').showModal()">
+              Quitar
+            </button>
+          </span>
+        </div>
+
+        <dialog id="confirm-remove-docente-{{ docente.id }}"
+                style="border-radius:8px; border:1px solid #ccc; padding:1.5rem; max-width:22rem;">
+          <p style="margin-top:0;">
+            ¿Quitar a <strong>{{ docente.nombre_display }}</strong> de la comisión?
+          </p>
+          <div style="display:flex; gap:0.6rem; justify-content:flex-end;">
+            <button class="btn btn-secondary"
+                    style="font-size:0.85rem; padding:0.3rem 0.9rem;"
+                    onclick="this.closest('dialog').close()">
+              Cancelar
+            </button>
+            <form method="post"
+                  action="{% url 'docentes:docente_remove' comision.id docente.id %}"
+                  style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger"
+                      style="font-size:0.85rem; padding:0.3rem 0.9rem;">
+                Sí, quitar
+              </button>
+            </form>
+          </div>
+        </dialog>
+
+      {% endfor %}
+    {% else %}
+      <p style="color:#666; margin:0 0 1rem;">Sin docentes asignados.</p>
+    {% endif %}
+
+    {% if docente_form.fields.docente.queryset.exists %}
+      <hr style="margin:1rem 0; border:none; border-top:1px solid #eee;">
+      <h3 style="font-size:0.95rem; margin:0 0 0.75rem;">Agregar docente</h3>
+      <form method="post" action="{% url 'docentes:docente_add' comision.id %}"
+            style="display:flex; gap:0.6rem; align-items:flex-end; flex-wrap:wrap;">
+        {% csrf_token %}
+        <div>
+          <label style="font-size:0.85rem; font-weight:500; display:block; margin-bottom:0.25rem;">
+            {{ docente_form.docente.label }}
+          </label>
+          {{ docente_form.docente }}
+          {% if docente_form.docente.errors %}
+            <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ docente_form.docente.errors|striptags }}</span>
+          {% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary"
+                style="font-size:0.85rem; padding:0.35rem 0.9rem;">
+          Agregar
+        </button>
+      </form>
+    {% endif %}
+  </div>
+
+  <!-- ── Prácticas ──────────────────────────────────────────── -->
+  <div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+      <h2 style="margin:0;">Prácticas</h2>
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <a class="btn btn-primary"
+           href="{% url 'docentes:practica_create' %}?comision={{ comision.id }}&next={% url 'docentes:comision_detail' comision.id %}"
+           style="font-size:0.85rem; padding:0.3rem 0.9rem;">+ Nueva práctica</a>
+      </div>
+    </div>
+
+    {% if practicas_con_form %}
+      {% for item in practicas_con_form %}
+        <details class="practica-accordion" style="border:1px solid #e0e0e0; border-radius:7px; margin-bottom:0.6rem; background:#fff;">
+          <summary style="padding:0.75rem 1rem; cursor:pointer; list-style:none; display:flex; align-items:center; justify-content:space-between; gap:0.75rem; font-weight:500;" class="practica-summary">
+            <span>
+              <span class="badge badge-bloqueado" style="font-size:0.75rem; margin-right:0.4rem;">#{{ item.pc.orden }}</span>
+              {{ item.practica.titulo }}
+              {% if item.practica.es_publica %}
+                <span class="badge badge-tipo" style="font-size:0.72rem; margin-left:0.3rem;">banco común</span>
+              {% endif %}
+              {% if item.pc.fecha_cierre %}
+                <span style="font-size:0.78rem; font-weight:400; color:#888; margin-left:0.5rem;">
+                  · cierra {{ item.pc.fecha_cierre|date:"j/n" }} {{ item.pc.fecha_cierre|time:"H:i" }}
+                </span>
+              {% endif %}
+              {% if item.practica.descripcion %}
+                <span style="display:block; margin-top:0.35rem; font-size:0.84rem; font-weight:400; color:#666;">
+                  {{ item.practica.descripcion|striptags|truncatechars:180 }}
+                </span>
+              {% endif %}
+            </span>
+            <span class="practica-btns" style="display:flex; gap:0.5rem; align-items:center; flex-shrink:0;">
+              <a class="btn btn-secondary" href="{% url 'docentes:practica_detail' item.practica.id %}"
+                 style="font-size:0.8rem; padding:0.2rem 0.7rem;" onclick="event.stopPropagation()">Ver ejercicios</a>
+              <a class="btn btn-secondary" href="{% url 'docentes:practica_edit' item.pc.id %}"
+                 style="font-size:0.8rem; padding:0.2rem 0.7rem;" onclick="event.stopPropagation()">Editar</a>
+              <button class="btn btn-danger"
+                      style="font-size:0.8rem; padding:0.2rem 0.7rem; white-space:nowrap;"
+                      onclick="event.stopPropagation(); document.getElementById('confirm-practica-{{ item.pc.id }}').showModal()">
+                Eliminar
+              </button>
+            </span>
+          </summary>
+
+          <!-- Agregar ejercicio existente -->
+          <div style="padding:0.75rem 1rem; border-top:1px solid #f0f0f0; background:#fafafa; border-radius:0 0 7px 7px;">
+            <p style="margin:0 0 0.5rem; font-size:0.85rem; font-weight:600; color:#444;">Asignar ejercicio existente</p>
+            <form method="post" action="{% url 'docentes:ejercicio_practica_add' item.practica.id %}"
+                  style="display:flex; gap:0.5rem; align-items:flex-end; flex-wrap:wrap;">
+              {% csrf_token %}
+              {{ item.add_form.practica }}
+              <div>
+                <label style="font-size:0.8rem; font-weight:500; display:block; margin-bottom:0.2rem;">Ejercicio</label>
+                {{ item.add_form.ejercicio }}
+              </div>
+              <div>
+                <label style="font-size:0.8rem; font-weight:500; display:block; margin-bottom:0.2rem;">Orden</label>
+                {{ item.add_form.orden }}
+              </div>
+              <button type="submit" class="btn btn-primary" style="font-size:0.82rem; padding:0.3rem 0.8rem;">Agregar</button>
+              <a class="btn btn-secondary" href="{% url 'docentes:ejercicio_create' %}?practica={{ item.practica.id }}&next={{ request.get_full_path|urlencode }}"
+                 style="font-size:0.82rem; padding:0.3rem 0.8rem;">+ Nuevo ejercicio</a>
+            </form>
+          </div>
+        </details>
+
+        <dialog id="confirm-practica-{{ item.pc.id }}"
+                style="border-radius:8px; border:1px solid #ccc; padding:1.5rem; max-width:24rem;">
+          <p style="margin-top:0;">
+            ¿Quitar la práctica <strong>{{ item.practica.titulo }}</strong> de esta comisión?
+            <br><small style="color:#666;">Se eliminará la asignación de esta práctica a la comisión. Si la práctica no tiene otras comisiones, también se eliminará. Esta acción no se puede deshacer.</small>
+          </p>
+          <div style="display:flex; gap:0.6rem; justify-content:flex-end;">
+            <button class="btn btn-secondary"
+                    style="font-size:0.85rem; padding:0.3rem 0.9rem;"
+                    onclick="this.closest('dialog').close()">
+              Cancelar
+            </button>
+            <form method="post" action="{% url 'docentes:practica_delete' item.pc.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger"
+                      style="font-size:0.85rem; padding:0.3rem 0.9rem;">
+                Sí, quitar
+              </button>
+            </form>
+          </div>
+        </dialog>
+
+      {% endfor %}
+    {% else %}
+      <p style="color:#666; margin:0;">Sin prácticas aún.</p>
+    {% endif %}
+
+    <!-- Importar práctica del banco -->
+    {% if practicas_disponibles %}
+    <hr style="margin:1.25rem 0; border:none; border-top:1px solid #eee;">
+    <details style="border:1px solid #d0e8ff; border-radius:7px; background:#f5faff;">
+      <summary style="padding:0.65rem 1rem; cursor:pointer; list-style:none; font-size:0.9rem; font-weight:600; color:#1a4f7a;" class="practica-summary">
+        📥 Importar práctica existente
+      </summary>
+      <div style="padding:0.75rem 1rem; border-top:1px solid #d0e8ff; background:#fff; border-radius:0 0 7px 7px;">
+        <p style="margin:0 0 0.75rem; font-size:0.85rem; color:#555;">
+          Agregá una copia de una práctica tuya o del banco común. Los ejercicios se reutilizan (no se duplican).
+        </p>
+        <form method="post" action="{% url 'docentes:practica_import' comision.id %}"
+              style="display:flex; gap:0.6rem; align-items:flex-end; flex-wrap:wrap;">
+          {% csrf_token %}
+          <div>
+            <label style="font-size:0.8rem; font-weight:500; display:block; margin-bottom:0.2rem;">Práctica a importar</label>
+            <select name="practica_origen" style="padding:0.45rem 0.6rem; border:1px solid #ccc; border-radius:5px; font-size:0.9rem; min-width:240px;">
+              <option value="">— elegir —</option>
+              {% for p in practicas_disponibles %}
+                <option value="{{ p.id }}">
+                  {{ p.titulo }}
+                  ({{ p.ejercicio_practicas.count }} ej.){% if p.es_publica %} 🌐{% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:0.8rem; font-weight:500; display:block; margin-bottom:0.2rem;">
+              Orden en esta comisión
+            </label>
+            <input type="number" name="orden_destino" min="1" value="{{ practicas_con_form|length|add:1 }}"
+                   style="width:5rem; padding:0.45rem 0.6rem; border:1px solid #ccc; border-radius:5px; font-size:0.9rem;">
+          </div>
+          <button type="submit" class="btn btn-primary" style="font-size:0.82rem; padding:0.38rem 0.9rem;">Importar</button>
+        </form>
+      </div>
+    </details>
+    {% endif %}
+  </div>
+
+  <!-- ── Parciales ─────────────────────────────────────────── -->
+  <details class="card panel-card">
+    <summary style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; list-style: none; margin-bottom: 0;">
+      <span style="display: flex; align-items: center; gap: 0.4rem;">
+        <span class="panel-chevron" style="font-size: 0.7rem; opacity: 0.5; transition: transform 0.15s;">▶</span>
+        <h2 style="margin: 0;">Parciales</h2>
+      </span>
+      <span style="font-size: 0.85rem; color: #888;">{{ parciales|length }} parcial{{ parciales|length|pluralize:"es" }}</span>
+    </summary>
+    <div style="margin-top: 1rem;">
+
+      {% if es_cohorte_activa %}
+      <div style="display: flex; justify-content: flex-end; margin-bottom: 0.75rem;">
+        <a class="btn btn-primary"
+           href="{% url 'docentes:parcial_create' comision.id %}"
+           style="font-size: 0.85rem; padding: 0.3rem 0.9rem;">
+          + Nuevo parcial
+        </a>
+      </div>
+      {% endif %}
+
+      {% if parciales %}
+        <div class="stat-row stat-header" style="grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr auto;">
+          <span>Nombre</span>
+          <span>Fecha</span>
+          <span>Puntaje máx.</span>
+          <span class="stat-num">Notas cargadas</span>
+          <span></span>
+        </div>
+        {% for p in parciales %}
+          <div class="stat-row" style="grid-template-columns: 1.5fr 0.8fr 0.8fr 1fr auto; align-items: center;">
+            <span style="font-weight: 500;">{{ p.nombre }}</span>
+            <span style="color: #555; font-size: 0.9rem;">{{ p.fecha|date:"j/n/Y" }}</span>
+            <span style="color: #555; font-size: 0.9rem;">{{ p.puntaje_total }}</span>
+            <span class="stat-num">
+              <span style="color: {% if p.notas_cargadas == p.total_notas and p.total_notas > 0 %}#2a7a2a{% else %}#c07000{% endif %}; font-weight: 600;">
+                {{ p.notas_cargadas }}/{{ p.total_notas }}
+              </span>
+            </span>
+            <span style="display: flex; gap: 0.4rem;">
+              <a class="btn btn-primary"
+                 href="{% url 'docentes:parcial_notas' p.id %}"
+                 style="font-size: 0.8rem; padding: 0.2rem 0.7rem; white-space: nowrap;">
+                Cargar notas
+              </a>
+              <a class="btn btn-secondary"
+                 href="{% url 'docentes:parcial_edit' p.id %}"
+                 style="font-size: 0.8rem; padding: 0.2rem 0.7rem;">
+                Editar
+              </a>
+              <button class="btn btn-danger"
+                      style="font-size: 0.8rem; padding: 0.2rem 0.7rem; white-space: nowrap;"
+                      onclick="document.getElementById('confirm-parcial-{{ p.id }}').showModal()">
+                Eliminar
+              </button>
+            </span>
+          </div>
+
+          <dialog id="confirm-parcial-{{ p.id }}"
+                  style="border-radius: 8px; border: 1px solid #ccc; padding: 1.5rem; max-width: 24rem;">
+            <p style="margin-top: 0;">
+              ¿Eliminar el parcial <strong>{{ p.nombre }}</strong>?
+              <br><small style="color: #666;">Se eliminarán también todas las notas cargadas. Esta acción no se puede deshacer.</small>
+            </p>
+            <div style="display: flex; gap: 0.6rem; justify-content: flex-end;">
+              <button class="btn btn-secondary"
+                      style="font-size: 0.85rem; padding: 0.3rem 0.9rem;"
+                      onclick="this.closest('dialog').close()">
+                Cancelar
+              </button>
+              <form method="post" action="{% url 'docentes:parcial_delete' p.id %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger"
+                        style="font-size: 0.85rem; padding: 0.3rem 0.9rem;">
+                  Sí, eliminar
+                </button>
+              </form>
+            </div>
+          </dialog>
+        {% endfor %}
+      {% else %}
+        <p style="color: #666; margin: 0;">Sin parciales registrados.</p>
+      {% endif %}
+
+    </div>
+  </details>
+
+  <!-- ── Progreso por estudiante ─────────────────────────────── -->
+  <details class="card panel-card">
+    <summary style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; list-style: none; margin-bottom: 0;">
+      <span style="display: flex; align-items: center; gap: 0.4rem;">
+        <span class="panel-chevron" style="font-size: 0.7rem; opacity: 0.5; transition: transform 0.15s;">▶</span>
+        <h2 style="margin: 0;">Progreso</h2>
+      </span>
+      <span style="font-size: 0.85rem; color: #888;">{{ progreso_estudiantes|length }} estudiantes</span>
+    </summary>
+    <div style="margin-top: 1rem;">
+    {% if progreso_estudiantes %}
+      <!-- Cabecera -->
+      <div class="stat-row stat-header" style="grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr;">
+        <span>Estudiante</span>
+        <span class="stat-num">Prácticas</span>
+        <span class="stat-num">Resuelto</span>
+        <span class="stat-num">Revisado</span>
+        <span class="stat-num">Detalle</span>
+      </div>
+      {% for fila in progreso_estudiantes %}
+        <details class="progreso-fila" style="border-bottom:1px solid #f0f0f0;">
+          <summary style="display:grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr; gap:1rem; align-items:center; padding:0.65rem 0; font-size:0.92rem; cursor:pointer; list-style:none;">
+            <span style="font-weight:500; display:flex; align-items:center; gap:0.4rem;">
+              <span class="progreso-chevron" style="font-size:0.7rem; opacity:0.5; transition:transform 0.15s;">▶</span>
+              {{ fila.estudiante.nombre_display }}
+            </span>
+            <span class="stat-num">{{ fila.practicas_completadas }}/{{ fila.practicas_totales }}</span>
+            <span class="stat-num">
+              {% if fila.porcentaje_resuelto is not None %}
+                {{ fila.porcentaje_resuelto }}%
+              {% else %}
+                —
+              {% endif %}
+            </span>
+            <span class="stat-num">
+              {% if fila.porcentaje_global is not None %}
+                {{ fila.porcentaje_global }}%
+              {% else %}
+                —
+              {% endif %}
+            </span>
+            <span class="stat-num">
+              <a href="{% url 'docentes:estudiante_detail' fila.estudiante.id %}"
+                 style="font-size:0.85rem;"
+                 onclick="event.stopPropagation()">Ver intentos</a>
+            </span>
+          </summary>
+          <!-- Detalle por práctica -->
+          {% for detalle in fila.practicas_detalle %}
+            <div style="display:grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr; gap:1rem; padding:0.2rem 0 0.2rem 1.5rem; font-size:0.82rem; color:#666; border-top:1px solid #f8f8f8;">
+              <span style="color:#888;">{{ detalle.practica.titulo }}</span>
+              <span></span>
+              <span class="stat-num">{{ detalle.resueltos_count }}/{{ detalle.total_ejercicios }}</span>
+              <span></span>
+              <span style="text-align:right;">
+                {% if detalle.completada %}
+                  <span class="badge badge-ok">completa</span>
+                {% elif detalle.total_ejercicios == 0 %}
+                  <span class="badge badge-bloqueado">sin ejercicios</span>
+                {% elif detalle.ejercicio_actual and detalle.desbloqueo_secuencial %}
+                  Ej. {{ detalle.ejercicio_actual.orden }}
+                {% endif %}
+                {# Práctica libre, o secuencial ya terminada pero sin revisar: la
+                   celda queda vacía y el avance lo informa la columna Resuelto. #}
+              </span>
+            </div>
+          {% endfor %}
+          <div style="height:0.4rem;"></div>
+        </details>
+      {% endfor %}
+    {% else %}
+      <p style="color:#666; margin:0;">Sin estudiantes inscriptos aún.</p>
+    {% endif %}
+    </div>
+  </details>
+
+  <!-- ── Adaptaciones / CUD ─────────────────────────────────── -->
+  <details class="card panel-card">
+    <summary style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; list-style: none; margin-bottom: 0;">
+      <span style="display: flex; align-items: center; gap: 0.4rem;">
+        <span class="panel-chevron" style="font-size: 0.7rem; opacity: 0.5; transition: transform 0.15s;">▶</span>
+        <h2 style="margin: 0;">Adaptaciones / CUD</h2>
+      </span>
+      <span style="font-size: 0.85rem; color: #888;">{{ estudiantes_adaptaciones|length }} estudiante{{ estudiantes_adaptaciones|length|pluralize }}</span>
+    </summary>
+    <div style="margin-top: 1rem;">
+      <div style="background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; padding: 0.7rem 0.9rem; margin-bottom: 1rem; font-size: 0.83rem; color: #5d4037;">
+        <strong>Datos personales:</strong> esta sección muestra información identificable.
+        El uso de estos datos está sujeto a los consentimientos informados registrados en cada perfil de estudiante.
+      </div>
+      {% if estudiantes_adaptaciones %}
+        <div class="stat-row stat-header" style="grid-template-columns: 1.5fr 0.7fr 0.7fr 1.5fr 1fr;">
+          <span>Estudiante</span>
+          <span>CUD</span>
+          <span>Adecuación</span>
+          <span>Email</span>
+          <span>WhatsApp</span>
+        </div>
+        {% for estudiante in estudiantes_adaptaciones %}
+          <div class="stat-row" style="grid-template-columns: 1.5fr 0.7fr 0.7fr 1.5fr 1fr;">
+            <span style="font-weight: 500;">{{ estudiante.nombre_display }}</span>
+            <span>
+              {% if estudiante.encuesta.tiene_cud %}<span class="badge badge-ok">Sí</span>{% else %}—{% endif %}
+            </span>
+            <span>
+              {% if estudiante.encuesta.necesita_adecuacion %}<span class="badge badge-ok">Sí</span>{% else %}—{% endif %}
+            </span>
+            <span style="color: #555; font-size: 0.88rem;">{{ estudiante.email|default:"—" }}</span>
+            <span style="font-size: 0.88rem;">
+              {% if estudiante.encuesta.whatsapp %}{{ estudiante.encuesta.whatsapp }}{% else %}—{% endif %}
+            </span>
+          </div>
+        {% endfor %}
+      {% else %}
+        <p style="color: #666; margin: 0;">Sin estudiantes con adaptaciones o CUD.</p>
+      {% endif %}
+    </div>
+  </details>
+
+  <!-- ── Lista de estudiantes ────────────────────────────────── -->
+  <details class="card panel-card">
+    <summary style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; list-style: none; margin-bottom: 0;">
+      <span style="display: flex; align-items: center; gap: 0.4rem;">
+        <span class="panel-chevron" style="font-size: 0.7rem; opacity: 0.5; transition: transform 0.15s;">▶</span>
+        <h2 style="margin: 0;">Estudiantes</h2>
+      </span>
+      <span style="font-size: 0.85rem; color: #888;">{{ estudiantes|length }} inscriptos</span>
+    </summary>
+    <div style="margin-top: 1rem;">
+    <div style="display:flex; justify-content:flex-end; margin-bottom:0.75rem;">
+      <a class="btn btn-secondary"
+         href="{% url 'docentes:estudiantes_exportar' comision.id %}{% if cohorte_actual %}?cohorte={{ cohorte_actual.pk }}{% endif %}"
+         style="font-size:0.85rem; padding:0.35rem 0.8rem;">
+        Exportar Excel (DNI, Apellido, Nombre, Email)
+      </a>
+    </div>
+    <div style="background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; padding: 0.7rem 0.9rem; margin-bottom: 1rem; font-size: 0.83rem; color: #5d4037;">
+      <strong>Datos personales:</strong> esta sección muestra información identificable.
+      El uso de estos datos está sujeto a los consentimientos informados registrados en cada perfil de estudiante.
+    </div>
+    {% if estudiantes %}
+      <!-- Cabecera -->
+      <div class="stat-row stat-header" style="grid-template-columns: 1fr 1.5fr auto auto;">
+        <span>Usuario</span>
+        <span>Email</span>
+        <span></span>
+        <span></span>
+      </div>
+      {% for estudiante in estudiantes %}
+        <div class="stat-row" style="grid-template-columns: 1fr 1.5fr auto auto;">
+          <span style="font-weight:500;">{{ estudiante.nombre_display }}</span>
+          <span style="color:#555; font-size:0.88rem;">{{ estudiante.email|default:"—" }}</span>
+          <span>
+            <a class="btn btn-secondary"
+               href="{% url 'docentes:estudiante_edit' comision.id estudiante.id %}"
+               style="font-size:0.8rem; padding:0.2rem 0.7rem; white-space:nowrap;">
+              Editar
+            </a>
+          </span>
+          <span>
+            <button class="btn btn-danger"
+                    style="font-size:0.8rem; padding:0.2rem 0.7rem; white-space:nowrap;"
+                    onclick="document.getElementById('confirm-remove-{{ estudiante.id }}').showModal()">
+              Quitar
+            </button>
+          </span>
+        </div>
+
+        <dialog id="confirm-remove-{{ estudiante.id }}"
+                style="border-radius:8px; border:1px solid #ccc; padding:1.5rem; max-width:22rem;">
+          <p style="margin-top:0;">
+            ¿Quitar a <strong>{{ estudiante.nombre_display }}</strong> de la comisión?
+            <br><small style="color:#666;">Se elimina la inscripción, no la cuenta del estudiante.</small>
+          </p>
+          <div style="display:flex; gap:0.6rem; justify-content:flex-end;">
+            <button class="btn btn-secondary"
+                    style="font-size:0.85rem; padding:0.3rem 0.9rem;"
+                    onclick="this.closest('dialog').close()">
+              Cancelar
+            </button>
+            <form method="post"
+                  action="{% url 'docentes:estudiante_remove' comision.id estudiante.id %}{% if cohorte_actual %}?cohorte={{ cohorte_actual.pk }}{% endif %}"
+                  style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger"
+                      style="font-size:0.85rem; padding:0.3rem 0.9rem;">
+                Sí, quitar
+              </button>
+            </form>
+          </div>
+        </dialog>
+
+      {% endfor %}
+    {% else %}
+      <p style="color:#666; margin:0;">Sin estudiantes inscriptos aún.</p>
+    {% endif %}
+    </div>
+  </details>
+
+  <!-- ── Alta de estudiantes ─────────────────────────────────── -->
+  {% if es_cohorte_activa %}
+  <div class="card">
+    <h2 style="margin-top:0;">Agregar estudiante</h2>
+
+    <h3 style="font-size:0.95rem; margin-bottom:0.75rem;">Alta individual</h3>
+    <form method="post" action="{% url 'docentes:estudiante_create' comision.id %}">
+      {% csrf_token %}
+      <div class="form-alta-estudiante" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.75rem; align-items:start;">
+        <div>
+          <label>Usuario</label>
+          {{ estudiante_form.username }}
+          {% if estudiante_form.username.errors %}
+            <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ estudiante_form.username.errors|striptags }}</span>
+          {% endif %}
+        </div>
+        <div>
+          <label>Email</label>
+          {{ estudiante_form.email }}
+          {% if estudiante_form.email.errors %}
+            <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ estudiante_form.email.errors|striptags }}</span>
+          {% endif %}
+        </div>
+        <div>
+          <label>Contraseña inicial</label>
+          {{ estudiante_form.password }}
+          {% if estudiante_form.password.errors %}
+            <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ estudiante_form.password.errors|striptags }}</span>
+          {% endif %}
+        </div>
+      </div>
+      <p style="margin-top:0.9rem; margin-bottom:0;">
+        <button type="submit" class="btn btn-primary">Crear estudiante</button>
+      </p>
+    </form>
+
+    <hr style="margin:1.5rem 0; border:none; border-top:1px solid #eee;">
+
+    <h3 style="font-size:0.95rem; margin-bottom:0.75rem;">Importación masiva (.xlsx)</h3>
+    <form method="post" action="{% url 'docentes:estudiantes_importar' comision.id %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <p style="margin:0 0 0.5rem; font-size:0.85rem; color:#666;">
+        Columnas obligatorias: <code>username</code>, <code>email</code>, <code>password</code>.
+        Opcionales: <code>first_name</code>, <code>last_name</code>.
+      </p>
+      <div style="display:flex; gap:0.75rem; align-items:flex-end; flex-wrap:wrap;">
+        <div>
+          {{ importar_form.archivo }}
+          {% if importar_form.archivo.errors %}
+            <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ importar_form.archivo.errors|striptags }}</span>
+          {% endif %}
+        </div>
+        <button type="submit" class="btn btn-secondary">Importar</button>
+      </div>
+    </form>
+
+    {% if reporte_importacion %}
+      <div class="alert alert-info" style="margin-top:1rem;">
+        <strong>Reporte:</strong>
+        procesadas={{ reporte_importacion.procesadas }},
+        importadas={{ reporte_importacion.importadas }},
+        fallidas={{ reporte_importacion.fallidas }}.
+      </div>
+      {% if reporte_importacion.errores %}
+        <ul style="font-size:0.88rem; color:#721c24; padding-left:1.2rem; margin-top:0.5rem;">
+          {% for error in reporte_importacion.errores %}
+            <li>Fila {{ error.fila }}: {{ error.motivo }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endif %}
+
+    <hr style="margin:1.5rem 0; border:none; border-top:1px solid #eee;">
+
+    <h3 style="font-size:0.95rem; margin-bottom:0.25rem;">Re-inscribir cuenta existente (recursante)</h3>
+    <p style="margin:0 0 0.75rem; font-size:0.85rem; color:#666;">
+      No crea una cuenta nueva: inscribe una cuenta ya existente en la cohorte que estás viendo.
+      Para alguien que ya cursó esta comisión antes, o que viene con una cuenta de otra comisión.
+    </p>
+
+    {% if recursantes_disponibles %}
+      <h4 style="font-size:0.88rem; margin-bottom:0.5rem;">Ya cursó esta comisión antes</h4>
+      <form method="post"
+            action="{% url 'docentes:estudiante_reinscribir_recursante' comision.id %}{% if cohorte_actual %}?cohorte={{ cohorte_actual.pk }}{% endif %}"
+            onsubmit="var sel = this.elements['estudiante_id']; var texto = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : ''; return confirm('¿Re-inscribir a ' + texto + ' en {{ cohorte_actual }}?');"
+            style="display:flex; gap:0.6rem; align-items:flex-end; flex-wrap:wrap; margin-bottom:1.25rem;">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <div>
+          <label style="font-size:0.85rem; font-weight:500; display:block; margin-bottom:0.25rem;">Recursante</label>
+          <select name="estudiante_id" required style="padding:0.3rem 0.5rem; border-radius:4px; border:1px solid #ccc;">
+            <option value="">— seleccioná —</option>
+            {% for r in recursantes_disponibles %}
+              <option value="{{ r.pk }}">{{ r.nombre_display }} ({{ r.username }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary" style="font-size:0.85rem; padding:0.35rem 0.9rem;">
+          Re-inscribir
+        </button>
+      </form>
+    {% endif %}
+
+    <h4 style="font-size:0.88rem; margin-bottom:0.5rem;">Viene de otra comisión (usuario o email exacto)</h4>
+    <form method="post"
+          action="{% url 'docentes:estudiante_reinscribir_pase' comision.id %}{% if cohorte_actual %}?cohorte={{ cohorte_actual.pk }}{% endif %}"
+          style="display:flex; gap:0.6rem; align-items:flex-end; flex-wrap:wrap;">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <div>
+        <label style="font-size:0.85rem; font-weight:500; display:block; margin-bottom:0.25rem;">Usuario o email</label>
+        <input type="text" name="identificador" required
+               style="padding:0.3rem 0.5rem; border-radius:4px; border:1px solid #ccc;">
+      </div>
+      <button type="submit" class="btn btn-secondary" style="font-size:0.85rem; padding:0.35rem 0.9rem;">
+        Buscar
+      </button>
+    </form>
+
+    {% if pase_pendiente %}
+      <div class="alert alert-info" style="margin-top:1rem;">
+        <p style="margin:0 0 0.6rem;">
+          Se encontró la cuenta <strong>{{ pase_pendiente.nombre_display }}</strong> ({{ pase_pendiente.username }}).
+          ¿Confirmás re-inscribirla en {{ cohorte_actual }}?
+        </p>
+        <form method="post"
+              action="{% url 'docentes:estudiante_reinscribir_pase' comision.id %}{% if cohorte_actual %}?cohorte={{ cohorte_actual.pk }}{% endif %}"
+              style="display:inline;">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <input type="hidden" name="confirmar" value="1">
+          <input type="hidden" name="estudiante_id" value="{{ pase_pendiente.pk }}">
+          <button type="submit" class="btn btn-primary" style="font-size:0.85rem; padding:0.35rem 0.9rem;">
+            Sí, re-inscribir
+          </button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# ── Ejercicios más difíciles ── #}
+  <div class="card" style="margin-top: 2rem;">
+    <h3 style="margin: 0 0 0.75rem;">🔴 Ejercicios más difíciles</h3>
+    <p style="font-size: 0.85rem; color: #666; margin: 0 0 0.75rem;">
+      Ranking por tasa de error.
+      Solo se muestran ejercicios con ≥ {{ cfg_umbral_min_intentos }} intentos totales (umbral configurable en el admin).
+    </p>
+    {% if ejercicios_dificiles %}
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+            <th style="padding: 0.4rem 0.6rem;">Ejercicio</th>
+            <th style="padding: 0.4rem 0.6rem;">Práctica</th>
+            <th style="padding: 0.4rem 0.6rem;">Tipo</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Intentos</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">% Error</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ej in ejercicios_dificiles %}
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 0.4rem 0.6rem; color: #333;">{{ ej.enunciado_corto }}{% if ej.enunciado_corto|length >= 69 %}…{% endif %}</td>
+            <td style="padding: 0.4rem 0.6rem; color: #555;">{{ ej.practica_titulo }}</td>
+            <td style="padding: 0.4rem 0.6rem;">
+              <span style="font-size: 0.75rem; background: {% if ej.tipo == 'tabla_verdad' %}#e0f0ff{% else %}#f0f0f0{% endif %}; padding: 0.1rem 0.4rem; border-radius: 3px;">
+                {{ ej.tipo|cut:"_"|capfirst }}
+              </span>
+            </td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right; color: #555;">{{ ej.total }}</td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right; font-weight: 600;
+                       color: {% if ej.error_rate >= 70 %}#b00020{% elif ej.error_rate >= 40 %}#c07000{% else %}#2a7a2a{% endif %};">
+              {{ ej.error_rate }}&thinsp;%
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Sin datos suficientes (se necesitan ≥ {{ cfg_umbral_min_intentos }} intentos por ejercicio).</p>
+    {% endif %}
+  </div>
+
+  {# ── Señales de alerta ── #}
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3 style="margin: 0 0 0.75rem;">⚠️ Señales de alerta — estudiantes que podrían necesitar acompañamiento</h3>
+    <p style="font-size: 0.85rem; color: #666; margin: 0 0 0.75rem;">
+      Estudiantes con ≥ {{ cfg_umbral_riesgo }} intentos incorrectos consecutivos en algún ejercicio sin haberlo resuelto aún.
+      Una racha prolongada puede ser una oportunidad para una intervención pedagógica.
+      <em style="color: #999;">(Umbral configurable en el admin.)</em>
+    </p>
+    {% if en_riesgo %}
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+            <th style="padding: 0.4rem 0.6rem;">Estudiante</th>
+            <th style="padding: 0.4rem 0.6rem;">Ejercicio</th>
+            <th style="padding: 0.4rem 0.6rem;">Práctica</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Intentos incorrectos seguidos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for est in en_riesgo %}
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 0.4rem 0.6rem;">
+              <span style="font-weight: 500;">{{ est.nombre }}</span>
+              {% if est.nombre != est.username %}
+              <br><span style="font-size: 0.8rem; color: #888;">@{{ est.username }}</span>
+              {% endif %}
+            </td>
+            <td style="padding: 0.4rem 0.6rem; color: #333;">{{ est.enunciado_corto }}…</td>
+            <td style="padding: 0.4rem 0.6rem; color: #555;">{{ est.practica_titulo }}</td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right; font-weight: 700; color: #b00020;">
+              {{ est.racha }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Ninguna señal de alerta activa. ✓</p>
+    {% endif %}
+  </div>
+
+  {# ── Distribución de intentos ── #}
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3 style="margin: 0 0 0.75rem;">📊 Distribución de intentos hasta resolver</h3>
+    <p style="font-size: 0.85rem; color: #666; margin: 0 0 0.75rem;">
+      Solo estudiantes que resolvieron el ejercicio. Estadísticas agregadas por ejercicio. Hacé clic en ▼ para ver el desglose por práctica.
+    </p>
+    {% if distribucion_intentos %}
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+            <th style="padding: 0.4rem 0.6rem;">Ejercicio</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Resolvieron</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Promedio</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;" title="1 intento">1</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;" title="2–3 intentos">2–3</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;" title="4–6 intentos">4–6</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;" title="7 o más intentos">7+</th>
+            <th style="padding: 0.4rem 0.6rem; width: 2rem;"></th>
+          </tr>
+        </thead>
+        {% for d in distribucion_intentos %}
+        <tbody x-data="{ abierto: false }">
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 0.4rem 0.6rem; color: #333;">{{ d.enunciado_corto }}{% if d.enunciado_corto|length >= 69 %}…{% endif %}</td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ d.resolvieron }}</td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right; font-weight: 600;
+                       color: {% if d.promedio <= 2 %}#2a7a2a{% elif d.promedio <= 4 %}#c07000{% else %}#b00020{% endif %};">
+              {{ d.promedio }}
+            </td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right; color: #555;">{{ d.bucket_1 }}</td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right; color: #555;">{{ d.bucket_2_3 }}</td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right; color: #555;">{{ d.bucket_4_6 }}</td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right; color: {% if d.bucket_7plus > 0 %}#b00020{% else %}#555{% endif %};">{{ d.bucket_7plus }}</td>
+            <td style="padding: 0.4rem 0.3rem; text-align: right;">
+              {% if d.detalle|length > 1 %}
+              <button type="button" @click="abierto = !abierto"
+                      style="background:none; border:1px solid #ccc; border-radius:3px; cursor:pointer; font-size:0.75rem; color:#666; padding:0.1rem 0.35rem; line-height:1;"
+                      :title="abierto ? 'Ocultar desglose' : 'Ver por práctica'">
+                <span x-show="!abierto">▼</span><span x-show="abierto">▲</span>
+              </button>
+              {% endif %}
+            </td>
+          </tr>
+          {% if d.detalle|length > 1 %}
+          <tr x-show="abierto" x-cloak>
+            <td colspan="8" style="padding: 0; border-bottom: 2px solid #ddd;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.83rem; background: #f8f9fa;">
+                <thead>
+                  <tr style="color: #888; border-bottom: 1px solid #ddd;">
+                    <th style="padding: 0.3rem 0.6rem 0.3rem 1.5rem; font-weight: normal; text-align: left;">Práctica</th>
+                    <th style="padding: 0.3rem 0.6rem; text-align: right; font-weight: normal;">Resolvieron</th>
+                    <th style="padding: 0.3rem 0.6rem; text-align: right; font-weight: normal;">Promedio</th>
+                    <th style="padding: 0.3rem 0.6rem; text-align: right; font-weight: normal;">1</th>
+                    <th style="padding: 0.3rem 0.6rem; text-align: right; font-weight: normal;">2–3</th>
+                    <th style="padding: 0.3rem 0.6rem; text-align: right; font-weight: normal;">4–6</th>
+                    <th style="padding: 0.3rem 0.6rem; text-align: right; font-weight: normal;">7+</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for det in d.detalle %}
+                  <tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 0.3rem 0.6rem 0.3rem 1.5rem; color: #555;">{{ det.practica_titulo }}</td>
+                    <td style="padding: 0.3rem 0.6rem; text-align: right;">{{ det.resolvieron }}</td>
+                    <td style="padding: 0.3rem 0.6rem; text-align: right; font-weight: 600;
+                               color: {% if det.promedio <= 2 %}#2a7a2a{% elif det.promedio <= 4 %}#c07000{% else %}#b00020{% endif %};">{{ det.promedio }}</td>
+                    <td style="padding: 0.3rem 0.6rem; text-align: right; color: #555;">{{ det.bucket_1 }}</td>
+                    <td style="padding: 0.3rem 0.6rem; text-align: right; color: #555;">{{ det.bucket_2_3 }}</td>
+                    <td style="padding: 0.3rem 0.6rem; text-align: right; color: #555;">{{ det.bucket_4_6 }}</td>
+                    <td style="padding: 0.3rem 0.6rem; text-align: right; color: {% if det.bucket_7plus > 0 %}#b00020{% else %}#555{% endif %};">{{ det.bucket_7plus }}</td>
+                    <td></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+        {% endfor %}
+      </table>
+    </div>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Sin datos suficientes (ningún ejercicio resuelto todavía).</p>
+    {% endif %}
+  </div>
+
+  {# ── Evolución temporal ── #}
+  <div class="card" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+    <h3 style="margin: 0 0 0.75rem;">📅 Evolución temporal (últimas 8 semanas)</h3>
+    {% if evolucion_temporal %}
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+            <th style="padding: 0.4rem 0.6rem;">Semana</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Intentos</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Correctos</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Estudiantes únicos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sem in evolucion_temporal %}
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 0.4rem 0.6rem; font-weight: 500;">{{ sem.semana_label }}</td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ sem.total }}</td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right; color: #2a7a2a;">{{ sem.correctos }}</td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ sem.estudiantes_unicos }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Sin actividad en las últimas 8 semanas.</p>
+    {% endif %}
+  </div>
+
+  {# ── Errores sistemáticos ── #}
+  <div class="card" style="margin-top: 1.5rem;">
+    <h3 style="margin: 0 0 0.4rem;">🔁 Errores compartidos</h3>
+    <p style="color: #888; font-size: 0.85rem; margin: 0 0 1rem;">
+      Misma respuesta incorrecta dada por ≥ {{ cfg_error_consenso_min }} estudiantes distintos en el mismo ejercicio.
+      Puede indicar una concepción errónea compartida.
+      <em style="color: #999;">(Umbral configurable en el admin.)</em>
+    </p>
+    {% if errores_sistematicos %}
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+            <th style="padding: 0.4rem 0.6rem;">Ejercicio</th>
+            <th style="padding: 0.4rem 0.6rem;">Práctica</th>
+            <th style="padding: 0.4rem 0.6rem;">Respuesta compartida</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Estudiantes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in errores_sistematicos %}
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 0.4rem 0.6rem; max-width: 22rem;">
+              <span style="font-size: 0.82rem; color: #555;">{{ e.enunciado|striptags|truncatechars:100 }}</span>
+            </td>
+            <td style="padding: 0.4rem 0.6rem; white-space: nowrap;">{{ e.practica_titulo }}</td>
+            <td style="padding: 0.4rem 0.6rem;">
+              <code style="background: #f5f5f5; padding: 0.15rem 0.35rem; border-radius: 3px; font-size: 0.85rem;">{{ e.respuesta_display }}</code>
+            </td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right; font-weight: bold;">{{ e.n_estudiantes }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Sin errores compartidos detectados.</p>
+    {% endif %}
+  </div>
+
+  {# ── Silencio temprano ── #}
+  <details class="card panel-card" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+    <summary style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; list-style: none; margin-bottom: 0;">
+      <span style="display: flex; align-items: center; gap: 0.4rem;">
+        <span class="panel-chevron" style="font-size: 0.7rem; opacity: 0.5; transition: transform 0.15s;">▶</span>
+        <h3 style="margin: 0;">🔕 Actividad reciente por estudiante</h3>
+      </span>
+      <span style="font-size: 0.85rem; color: #888;">
+        {{ silencio_resumen.total }} inscriptos
+        {% if silencio_resumen.nunca %}&nbsp;·&nbsp;<span style="color: #c62828;">{{ silencio_resumen.nunca }} nunca</span>{% endif %}
+        {% if silencio_resumen.alertas %}&nbsp;·&nbsp;<span style="color: #f57f17;">{{ silencio_resumen.alertas }} &ge;{{ cfg_umbral_silencio_dias }}d</span>{% endif %}
+      </span>
+    </summary>
+    <div style="margin-top: 1rem;">
+    {% if silencio %}
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+            <th style="padding: 0.4rem 0.6rem;">Estudiante</th>
+            <th style="padding: 0.4rem 0.6rem;">Último intento</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Días sin actividad</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Total intentos</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in silencio %}
+          <tr style="border-bottom: 1px solid #eee;{% if s.nunca %} background: #fdecea;{% elif s.dias_silencio >= cfg_umbral_silencio_dias %} background: #fff8e1;{% endif %}">
+            <td style="padding: 0.4rem 0.6rem;">
+              {{ s.nombre }}
+              {% if s.nombre != s.username %}<span style="color: #999; font-size: 0.82rem;">({{ s.username }})</span>{% endif %}
+            </td>
+            <td style="padding: 0.4rem 0.6rem;">
+              {% if s.nunca %}<em style="color: #c62828;">Nunca</em>{% else %}{{ s.ultimo_intento|date:"d/m/Y" }}{% endif %}
+            </td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right;">
+              {% if s.nunca %}—{% else %}{{ s.dias_silencio }}{% endif %}
+            </td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ s.total_intentos }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Sin estudiantes inscriptos.</p>
+    {% endif %}
+    </div>
+  </details>
+
+  {# ── Práctica concentrada ── #}
+  <div class="card" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+    <h3 style="margin: 0 0 0.4rem;">⚡ Práctica concentrada (posible maratón)</h3>
+    <p style="color: #888; font-size: 0.85rem; margin: 0 0 1rem;">
+      Ratio intentos/días activos ≥ {{ cfg_umbral_maraton }}. Puede indicar práctica de última hora.
+      <em style="color: #999;">(Umbral configurable en el admin.)</em>
+    </p>
+    {% if concentracion %}
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+            <th style="padding: 0.4rem 0.6rem;">Estudiante</th>
+            <th style="padding: 0.4rem 0.6rem;">Práctica</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Intentos</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Días activos</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Ratio</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in concentracion %}
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 0.4rem 0.6rem;">{{ c.nombre }}</td>
+            <td style="padding: 0.4rem 0.6rem;">{{ c.practica_titulo }}</td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ c.total }}</td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ c.dias_unicos }}</td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right;"><strong>{{ c.ratio }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Ningún estudiante supera el umbral de concentración.</p>
+    {% endif %}
+  </div>
+
+  {# ── Arranque tardío ── #}
+  <div class="card" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+    <h3 style="margin: 0 0 0.4rem;">🐢 Arranque tardío</h3>
+    <p style="color: #888; font-size: 0.85rem; margin: 0 0 1rem;">
+      Estudiantes que no realizaron ningún intento en los primeros {{ cfg_umbral_arranque_dias }} días desde la apertura de la práctica.
+      <em style="color: #999;">(Umbral configurable en el admin.)</em>
+    </p>
+    {% if velocidad %}
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+          <tr style="border-bottom: 2px solid #ddd; text-align: left;">
+            <th style="padding: 0.4rem 0.6rem;">Estudiante</th>
+            <th style="padding: 0.4rem 0.6rem;">Práctica</th>
+            <th style="padding: 0.4rem 0.6rem; text-align: right;">Intentos totales</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in velocidad %}
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 0.4rem 0.6rem;">{{ v.nombre }}</td>
+            <td style="padding: 0.4rem 0.6rem;">{{ v.practica_titulo }}</td>
+            <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ v.intentos_total }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color: #888; font-size: 0.9rem; margin: 0;">Sin arranques tardíos detectados.</p>
+    {% endif %}
+  </div>
+
+</div><!-- /container-wide -->
+{% endblock %}

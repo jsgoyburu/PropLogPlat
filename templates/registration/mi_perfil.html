@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Mi perfil — {{ config_sitio.nombre_sitio }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 520px;">
+
+  {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags|default:'info' }}" style="margin-bottom: 1rem;">
+      {{ message }}
+    </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- ── Datos personales ───────────────────────────────────── -->
+  <div class="card">
+    <h2 style="margin-top: 0;">Mi perfil</h2>
+    <p style="margin: -0.5rem 0 1.25rem; color: #555; font-size: 0.9rem;">
+      Usuario: <strong>{{ user.username }}</strong>
+      &nbsp;·&nbsp;
+      Rol: <strong>{% if user.is_staff %}Admin{% elif user.es_docente %}Docente{% else %}Estudiante{% endif %}</strong>
+    </p>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="accion" value="perfil">
+
+      {% for field in perfil_form %}
+      <div style="margin-bottom: 1rem;">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}
+          {% for error in field.errors %}
+          <p style="color: #dc3545; font-size: 0.85rem; margin: 0.25rem 0 0;">{{ error }}</p>
+          {% endfor %}
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <button type="submit" class="btn btn-primary">Guardar datos</button>
+    </form>
+  </div>
+
+  <!-- ── Encuesta de inicio ───────────────────────────────────── -->
+  {% if not user.es_docente and not user.is_staff and user.encuesta_completada and user.consentimiento_pedagogico %}
+  <div class="card">
+    <h2 style="margin-top: 0;">Encuesta de inicio</h2>
+    <p style="font-size: 0.9rem; color: #555; margin-bottom: 1rem;">
+      Podés revisar y actualizar tus respuestas a la encuesta de onboarding.
+      Las preguntas de lógica, el artículo de Xataka y la pregunta sobre qué es la ciencia no son editables.
+    </p>
+    <a href="{% url 'accounts:editar_encuesta' %}" class="btn btn-primary">Actualizar encuesta</a>
+  </div>
+  {% endif %}
+
+  <!-- ── Consentimientos informados ───────────────────────────── -->
+  <div class="card">
+    <h2 style="margin-top: 0;">Consentimientos informados</h2>
+    {% if user.fecha_consentimiento %}
+    <p style="margin: -0.5rem 0 1.25rem; color: #555; font-size: 0.9rem;">
+      Respondiste los consentimientos el <strong>{{ user.fecha_consentimiento|date:"d/m/Y" }}</strong>.
+    </p>
+    {% endif %}
+
+    <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 0.85rem 1rem; margin-bottom: 0.75rem; font-size: 0.88rem;">
+      <strong>Uso pedagógico de tus datos</strong>
+      <span style="margin-left: 0.75rem;
+        {% if user.consentimiento_pedagogico %}color: #2d7a2d;{% elif user.consentimiento_pedagogico == False %}color: #b00020;{% else %}color: #888;{% endif %}">
+        {% if user.consentimiento_pedagogico %}
+          ✓ Aceptado
+        {% elif user.consentimiento_pedagogico == False %}
+          ✗ No aceptado
+        {% else %}
+          Sin respuesta
+        {% endif %}
+      </span>
+    </div>
+
+    <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 0.85rem 1rem; margin-bottom: 1rem; font-size: 0.88rem;">
+      <strong>Uso académico y de investigación (datos anonimizados)</strong>
+      <span style="margin-left: 0.75rem;
+        {% if user.consentimiento_investigacion %}color: #2d7a2d;{% elif user.consentimiento_investigacion == False %}color: #b00020;{% else %}color: #888;{% endif %}">
+        {% if user.consentimiento_investigacion %}
+          ✓ Aceptado
+        {% elif user.consentimiento_investigacion == False %}
+          ✗ No aceptado
+        {% else %}
+          Sin respuesta
+        {% endif %}
+      </span>
+    </div>
+
+    <p style="font-size: 0.82rem; color: #777; margin: 0;">
+      Para revisar o modificar tus respuestas, contactá a tu docente.
+    </p>
+  </div>
+
+  <!-- ── Cambiar contraseña ─────────────────────────────────── -->
+  <div class="card">
+    <h2 style="margin-top: 0;">Cambiar contraseña</h2>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="accion" value="password">
+
+      {% for field in password_form %}
+      <div style="margin-bottom: 1rem;">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}
+          {% for error in field.errors %}
+          <p style="color: #dc3545; font-size: 0.85rem; margin: 0.25rem 0 0;">{{ error }}</p>
+          {% endfor %}
+        {% endif %}
+        {% if field.help_text %}
+          <p style="color: #888; font-size: 0.82rem; margin: 0.25rem 0 0;">{{ field.help_text }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

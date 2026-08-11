@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load ui_i18n %}
+
+{% block title %}{{ practica.titulo_localizado }} — {% ui 'not_available_yet' %}{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="breadcrumb">
+    <a href="{% url 'ejercicios:home' %}">{% ui 'home' %}</a>
+    &rsaquo; {{ pc.comision.nombre }}
+    &rsaquo; {{ practica.titulo_localizado }}
+  </div>
+
+  <div class="card" style="text-align:center; padding:2.5rem 1.5rem;">
+    {% if motivo == 'no_iniciada' %}
+      <div style="font-size:2.5rem; margin-bottom:0.75rem;">🔒</div>
+      <h2 style="margin:0 0 0.5rem;">{% ui 'practice_unavailable' %}</h2>
+      <p style="color:#666; margin:0 0 1.25rem;">
+        Esta práctica abre el
+        <strong>{{ fecha_apertura|date:"j \d\e N \d\e Y" }}</strong>
+        a las <strong>{{ fecha_apertura|time:"H:i" }}</strong>.
+      </p>
+    {% elif motivo == 'cerrada' %}
+      <div style="font-size:2.5rem; margin-bottom:0.75rem;">🔒</div>
+      <h2 style="margin:0 0 0.5rem;">{% ui 'practice_closed' %}</h2>
+      <p style="color:#666; margin:0 0 1.25rem;">
+        Esta práctica cerró el
+        <strong>{{ fecha_cierre|date:"j \d\e N \d\e Y" }}</strong>
+        a las <strong>{{ fecha_cierre|time:"H:i" }}</strong>.
+      </p>
+    {% endif %}
+    <a href="{% url 'ejercicios:home' %}" class="btn btn-secondary">{% ui 'back_home' %}</a>
+  </div>
+</div>
+{% endblock %}

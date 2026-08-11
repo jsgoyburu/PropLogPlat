@@ -1,0 +1,833 @@
+{% extends "base.html" %}
+
+{% block title %}Resumen de encuesta inicial — {{ config_sitio.nombre_sitio }}{% endblock %}
+
+{% block scripts %}
+<style>
+  .inv-section { margin-bottom: 2rem; }
+  .inv-section h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: #1a1a2e; border-bottom: 2px solid #e0e0e0; padding-bottom: 0.3rem; }
+  .inv-section h4 { font-size: 0.9rem; font-weight: 600; margin: 1rem 0 0.4rem; color: #333; }
+  .inv-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.5rem; }
+  .inv-table th { background: #f5f5f5; text-align: left; padding: 0.4rem 0.6rem; font-weight: 600; border-bottom: 2px solid #ddd; white-space: nowrap; }
+  .inv-table td { padding: 0.35rem 0.6rem; border-bottom: 1px solid #eee; vertical-align: top; }
+  .inv-table tr:last-child td { border-bottom: none; }
+  .num { text-align: right; }
+  .pct { text-align: right; color: #555; }
+  .empty-msg { color: #888; font-size: 0.88rem; padding: 0.5rem 0; }
+  .table-toggle { display: flex; align-items: center; gap: 0.4rem; cursor: pointer;
+    font-size: 0.83rem; color: #666; padding: 0.45rem 0.7rem; border-radius: 4px;
+    border: 1px solid #ddd; background: #fafafa; user-select: none; width: fit-content; margin-top: 0.6rem; }
+  .table-toggle:hover { background: #f0f0f0; }
+  .table-toggle .panel-chevron { font-size: 0.65rem; opacity: 0.5; transition: transform 0.15s; }
+  details.tbl-collapse[open] .table-toggle .panel-chevron { transform: rotate(90deg); }
+  details.tbl-collapse > div { margin-top: 0.5rem; }
+  .stat-pill { display: inline-block; border-radius: 20px; padding: 0.2rem 0.75rem; font-size: 0.85rem; font-weight: 600; }
+  .pill-blue  { background: #e3f2fd; color: #0d47a1; }
+  .pill-grey  { background: #eeeeee; color: #555; }
+  .pill-green { background: #e8f5e9; color: #1b5e20; }
+  .pill-red   { background: #ffcdd2; color: #b71c1c; }
+  .stat-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.75rem; align-items: center; }
+  .nse-formula { font-size: 0.82rem; color: #555; background: #fafafa; border: 1px solid #e0e0e0;
+    border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; }
+  .nse-formula table { border-collapse: collapse; width: 100%; }
+  .nse-formula td { padding: 0.2rem 0.5rem; }
+  .nse-formula td:first-child { font-style: italic; }
+  .nse-formula .pos { color: #2e7d32; font-weight: 700; }
+  .nse-formula .neg { color: #c62828; font-weight: 700; }
+  .correct-badge { display: inline-block; font-size: 0.7rem; background: #e8f5e9; color: #1b5e20;
+    border: 1px solid #a5d6a7; border-radius: 10px; padding: 0.1rem 0.4rem; margin-left: 0.3rem; vertical-align: middle; }
+  .chart-pair { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; margin-bottom: 1rem; }
+  .chart-pair .chart-box { flex-shrink: 0; }
+  .chart-pair .table-side { flex: 1; min-width: 200px; }
+  .disp-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 0.5rem; }
+  .disp-table th { background: #f5f5f5; padding: 0.35rem 0.5rem; font-weight: 600; border-bottom: 2px solid #ddd; text-align: left; }
+  .disp-table td { padding: 0.3rem 0.5rem; border-bottom: 1px solid #eee; }
+  .disp-table td.num { text-align: right; }
+  .disp-table tr:last-child td { border-bottom: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+{# ── Serialización de datos ── #}
+{% if nse %}{{ nse|json_script:"data-nse" }}{% endif %}
+{% if logicas %}{{ logicas|json_script:"data-logicas" }}{% endif %}
+{% if pandemia %}{{ pandemia|json_script:"data-pandemia" }}{% endif %}
+{% if facultades %}{{ facultades|json_script:"data-facultades" }}{% endif %}
+{% if carreras %}{{ carreras|json_script:"data-carreras" }}{% endif %}
+{% if cohortes %}{{ cohortes|json_script:"data-cohortes" }}{% endif %}
+{% if detalle.con_quien_vive %}{{ detalle.con_quien_vive|json_script:"data-con-quien-vive" }}{% endif %}
+{% if detalle.tiempo_viaje_puan %}{{ detalle.tiempo_viaje_puan|json_script:"data-viaje" }}{% endif %}
+{% if detalle.situacion_laboral %}{{ detalle.situacion_laboral|json_script:"data-situacion-laboral" }}{% endif %}
+{% if detalle.dias_trabaja %}{{ detalle.dias_trabaja|json_script:"data-dias-trabaja" }}{% endif %}
+{% if detalle.acceso_internet %}{{ detalle.acceso_internet|json_script:"data-internet" }}{% endif %}
+{% if detalle.tipo_escuela %}{{ detalle.tipo_escuela|json_script:"data-tipo-escuela" }}{% endif %}
+{% if detalle.tiempo_desde_secundaria %}{{ detalle.tiempo_desde_secundaria|json_script:"data-tiempo-secundaria" }}{% endif %}
+{% if detalle.estudios_superiores %}{{ detalle.estudios_superiores|json_script:"data-estudios-sup" }}{% endif %}
+{% if detalle.tiempo_en_cbc %}{{ detalle.tiempo_en_cbc|json_script:"data-tiempo-cbc" }}{% endif %}
+{% if detalle.interrupcion_cbc %}{{ detalle.interrupcion_cbc|json_script:"data-interrupcion-cbc" }}{% endif %}
+{% if detalle.materias_aprobadas %}{{ detalle.materias_aprobadas|json_script:"data-materias" }}{% endif %}
+{% if detalle.acertijo_silogismo %}{{ detalle.acertijo_silogismo|json_script:"data-silogismo" }}{% endif %}
+{% if detalle.acertijo_hilera %}{{ detalle.acertijo_hilera|json_script:"data-hilera" }}{% endif %}
+
+<div class="container-wide">
+  <div style="display:flex; align-items:baseline; gap:1rem; margin-bottom:1rem; flex-wrap:wrap;">
+    <h2 style="margin:0;">Resumen de encuesta inicial</h2>
+    <a href="{% url 'analiticas:dashboard' %}" style="font-size:0.85rem; color:#1976d2;">← Dashboard operativo</a>
+    <a href="{% url 'analiticas:investigacion' %}" style="font-size:0.85rem; color:#1976d2;">Analíticas de investigación →</a>
+  </div>
+
+  <div style="background:#fff8e1; border:1px solid #ffe082; border-radius:6px; padding:0.75rem 1rem; margin-bottom:1.5rem; font-size:0.85rem; color:#5d4037;">
+    Los datos mostrados corresponden a todos los estudiantes que completaron la encuesta
+    (consentimiento pedagógico). No se requiere consentimiento de investigación para esta vista.
+  </div>
+
+  {# ── S1. Participación ── #}
+  <div class="inv-section">
+    <h3>S1. Participación</h3>
+    <div class="stat-row">
+      <span class="stat-pill pill-blue">{{ con_encuesta }} con encuesta</span>
+      {% if sin_encuesta %}<span class="stat-pill pill-grey">{{ sin_encuesta }} sin encuesta</span>{% endif %}
+      <span style="color:#555; font-size:0.85rem;">de {{ total_est }} estudiante{{ total_est|pluralize }} en tus comisiones</span>
+    </div>
+
+    {% if cohortes %}
+    <details class="tbl-collapse">
+      <summary class="table-toggle"><span class="panel-chevron">▶</span> Ver por cohorte</summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead><tr><th>Año</th><th>Cuatrimestre</th><th class="num">Estudiantes</th></tr></thead>
+          <tbody>
+            {% for r in cohortes %}
+            <tr><td>{{ r.anio }}</td><td>C{{ r.cuatri }}</td><td class="num">{{ r.count }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% endif %}
+  </div>
+
+  {# ── S2. NSE ── #}
+  <div class="inv-section">
+    <h3>S2. Nivel Socioeconómico (NSE)</h3>
+
+    <div class="nse-formula">
+      <strong>Índice NSE</strong> — construido en la Memoria Profesional a partir de indicadores de acceso a recursos materiales, autonomía habitacional y carga laboral/académica.
+      <table style="margin-top:0.5rem;">
+        <tr><td>Vive solo/a</td>                                      <td class="pos">+1</td></tr>
+        <tr><td>En residencia universitaria</td>                       <td class="neg">−1</td></tr>
+        <tr><td>PC de escritorio individual</td>                       <td class="pos">+1</td></tr>
+        <tr><td>Notebook/laptop individual</td>                        <td class="pos">+1</td></tr>
+        <tr><td>Tablet individual</td>                                  <td class="pos">+1</td></tr>
+        <tr><td>Celular compartido o sin celular propio</td>           <td class="neg">−1</td></tr>
+        <tr><td>Completó estudios superiores previos</td>              <td class="pos">+1</td></tr>
+        <tr><td>Hizo UBA XXI</td>                                      <td class="pos">+1</td></tr>
+        <tr><td>≥ 2 materias aprobadas en el CBC (no primer cuatr.)</td><td class="pos">+1</td></tr>
+        <tr><td>Viaje a Puán &lt; 30 min</td>                         <td class="pos">+1</td></tr>
+        <tr><td>Viaje a Puán &gt; 90 min</td>                         <td class="neg">−1</td></tr>
+        <tr><td>No trabaja y no busca trabajo</td>                     <td class="pos">+1</td></tr>
+        <tr><td>Busca trabajo</td>                                     <td class="neg">−1</td></tr>
+        <tr><td>Trabaja poco (&lt;5 días, hasta 4 h/día)</td>         <td class="pos">+0,5</td></tr>
+        <tr><td>Trabaja mucho (&gt;5 días, 6+ h/día)</td>             <td class="neg">−1</td></tr>
+        <tr><td>Se mudó para trabajar/estudiar</td>                    <td class="neg">−1</td></tr>
+        <tr><td>Tiene CUD</td>                                         <td class="neg">−1</td></tr>
+      </table>
+      <div style="margin-top:0.5rem; color:#777;">
+        Categorías: <strong>Muy bajo</strong> (&lt;−2,5) · <strong>Bajo</strong> (−2,5 a −1) ·
+        <strong>Medio bajo</strong> (−1 a 1) · <strong>Medio alto</strong> (1 a 2,5) · <strong>Alto</strong> (≥ 2,5)
+      </div>
+    </div>
+
+    {% if nse %}
+    <div class="chart-pair">
+      <div class="chart-box" style="position:relative; width:220px; height:220px;">
+        <canvas id="chart-nse"></canvas>
+      </div>
+      <div class="table-side">
+        <table class="inv-table">
+          <thead>
+            <tr><th>Categoría</th><th class="num">N</th><th class="num">%</th><th class="num">Puntaje prom.</th></tr>
+          </thead>
+          <tbody>
+            {% for r in nse %}
+            <tr>
+              <td>{{ r.categoria_nse }}</td>
+              <td class="num">{{ r.count }}</td>
+              <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:1 }}%{% else %}—{% endif %}</td>
+              <td class="num">{% if r.puntaje_promedio is not None %}{{ r.puntaje_promedio|floatformat:2 }}{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <p class="empty-msg">Sin datos de NSE.</p>
+    {% endif %}
+  </div>
+
+  {# ── S3. Acertijos lógicos ── #}
+  <div class="inv-section">
+    <h3>S3. Acertijos lógicos</h3>
+
+    <h4>Puntaje total (0–3)</h4>
+    {% if logicas %}
+    <div class="chart-pair">
+      <div class="chart-box" style="position:relative; height:180px; width:260px;">
+        <canvas id="chart-logicas"></canvas>
+      </div>
+      <div class="table-side">
+        <table class="inv-table">
+          <thead><tr><th>Puntaje</th><th class="num">N</th><th class="num">%</th></tr></thead>
+          <tbody>
+            {% for r in logicas %}
+            <tr><td>{{ r.puntaje_logicas }}</td><td class="num">{{ r.count }}</td>
+              <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:1 }}%{% else %}—{% endif %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <h4>Acertijo: silogismo <span style="font-weight:400; color:#777;">(correcto: "Más bajo")</span></h4>
+    {% if detalle.acertijo_silogismo %}
+    <div class="chart-pair">
+      <div class="chart-box" style="position:relative; width:220px; height:180px;">
+        <canvas id="chart-silogismo"></canvas>
+      </div>
+      <div class="table-side">
+        <table class="inv-table">
+          <thead><tr><th>Respuesta</th><th class="num">N</th><th class="num">%</th></tr></thead>
+          <tbody>
+            {% for r in detalle.acertijo_silogismo %}
+            <tr>
+              <td>{{ r.label }}{% if r.label == "Más bajo" %}<span class="correct-badge">✓ correcto</span>{% endif %}</td>
+              <td class="num">{{ r.count }}</td>
+              <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:1 }}%{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <h4>Acertijo: hilera <span style="font-weight:400; color:#777;">(correcto: "Rodríguez")</span></h4>
+    {% if detalle.acertijo_hilera %}
+    <div class="chart-pair">
+      <div class="chart-box" style="position:relative; width:220px; height:180px;">
+        <canvas id="chart-hilera"></canvas>
+      </div>
+      <div class="table-side">
+        <table class="inv-table">
+          <thead><tr><th>Respuesta</th><th class="num">N</th><th class="num">%</th></tr></thead>
+          <tbody>
+            {% for r in detalle.acertijo_hilera %}
+            <tr>
+              <td>{{ r.label }}{% if r.label == "Rodríguez" %}<span class="correct-badge">✓ correcto</span>{% endif %}</td>
+              <td class="num">{{ r.count }}</td>
+              <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:1 }}%{% else %}—{% endif %}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <h4>Artículo de la risa (¿lo creyó?)</h4>
+    <div class="stat-row">
+      {% for r in detalle.articulo_risa %}
+        <span class="stat-pill {% if r.label == 'Sí' %}pill-red{% elif r.label == 'No' %}pill-green{% else %}pill-grey{% endif %}">
+          {{ r.label }}: {{ r.count }}{% if r.porcentaje is not None %} ({{ r.porcentaje|floatformat:1 }}%){% endif %}
+        </span>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── S4. Facultad y Carrera ── #}
+  <div class="inv-section">
+    <h3>S4. Facultad y carrera</h3>
+
+    <h4>Facultad</h4>
+    {% if facultades %}
+    <div id="cont-facultades" style="position:relative; height:200px; margin-bottom:1rem;">
+      <canvas id="chart-facultades"></canvas>
+    </div>
+    <details class="tbl-collapse">
+      <summary class="table-toggle"><span class="panel-chevron">▶</span> Ver tabla</summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead><tr><th>Facultad</th><th class="num">N</th><th class="num">%</th></tr></thead>
+          <tbody>
+            {% for r in facultades %}
+            <tr><td>{{ r.facultad }}</td><td class="num">{{ r.count }}</td>
+              <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:1 }}%{% else %}—{% endif %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% else %}
+    <p class="empty-msg">Sin datos.</p>
+    {% endif %}
+
+    <h4>Carrera</h4>
+    {% if carreras %}
+    <div id="cont-carreras" style="position:relative; height:200px; margin-bottom:1rem;">
+      <canvas id="chart-carreras"></canvas>
+    </div>
+    <details class="tbl-collapse">
+      <summary class="table-toggle"><span class="panel-chevron">▶</span> Ver tabla</summary>
+      <div style="overflow-x:auto;">
+        <table class="inv-table">
+          <thead><tr><th>Carrera</th><th class="num">N</th><th class="num">%</th></tr></thead>
+          <tbody>
+            {% for r in carreras %}
+            <tr><td>{{ r.carrera }}</td><td class="num">{{ r.count }}</td>
+              <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:1 }}%{% else %}—{% endif %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </details>
+    {% else %}
+    <p class="empty-msg">Sin datos.</p>
+    {% endif %}
+  </div>
+
+  {# ── S5. Pandemia ── #}
+  <div class="inv-section">
+    <h3>S5. Secundaria durante pandemia</h3>
+    <p style="font-size:0.83rem; color:#666; margin:0 0 0.75rem;">
+      Clasificación según año de nacimiento estimado vs. años de pandemia (2020–2021).
+      <em>PREVIO</em>: terminó secundaria antes de 2020.
+      <em>SÍ</em>: cursó algún año de secundaria durante pandemia.
+      <em>NO</em>: empezó secundaria después de 2021.
+    </p>
+    {% if pandemia %}
+    <div class="chart-pair">
+      <div class="chart-box" style="position:relative; width:220px; height:220px;">
+        <canvas id="chart-pandemia"></canvas>
+      </div>
+      <div class="table-side">
+        <table class="inv-table">
+          <thead><tr><th>Clasificación</th><th class="num">N</th><th class="num">%</th></tr></thead>
+          <tbody>
+            {% for r in pandemia %}
+            <tr><td>{{ r.pandemia }}</td><td class="num">{{ r.count }}</td>
+              <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:1 }}%{% else %}—{% endif %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <p class="empty-msg">Sin datos.</p>
+    {% endif %}
+  </div>
+
+  {# ── S6. Situación personal ── #}
+  <div class="inv-section">
+    <h3>S6. Situación personal</h3>
+
+    <h4>Origen (¿CABA o GBA?)</h4>
+    <div class="stat-row">
+      {% for r in detalle.origen_caba_gba %}
+        <span class="stat-pill pill-blue">{{ r.label }}: {{ r.count }}{% if r.porcentaje is not None %} ({{ r.porcentaje|floatformat:1 }}%){% endif %}</span>
+      {% empty %}
+        <span class="empty-msg">Sin datos.</span>
+      {% endfor %}
+    </div>
+
+    <h4>¿Con quién vive?</h4>
+    {% if detalle.con_quien_vive %}
+    <div class="chart-pair">
+      <div class="chart-box" style="position:relative; width:220px; height:220px;">
+        <canvas id="chart-con-quien-vive"></canvas>
+      </div>
+      <div class="table-side">
+        <table class="inv-table">
+          <thead><tr><th>Situación</th><th class="num">N</th><th class="num">%</th></tr></thead>
+          <tbody>
+            {% for r in detalle.con_quien_vive %}
+            <tr><td>{{ r.label }}</td><td class="num">{{ r.count }}</td>
+              <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:1 }}%{% else %}—{% endif %}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    <p class="empty-msg">Sin datos.</p>
+    {% endif %}
+
+    <h4>Tiempo de viaje a Puán</h4>
+    {% if detalle.tiempo_viaje_puan %}
+    <div style="position:relative; height:160px; margin-bottom:1rem;" id="cont-viaje">
+      <canvas id="chart-viaje"></canvas>
+    </div>
+    {% endif %}
+
+    <h4>Situación laboral</h4>
+    {% if detalle.situacion_laboral %}
+    <div style="position:relative; margin-bottom:1rem;" id="cont-laboral">
+      <canvas id="chart-laboral"></canvas>
+    </div>
+    {% endif %}
+
+    <h4>Días que trabaja</h4>
+    {% if detalle.dias_trabaja %}
+    <div style="position:relative; margin-bottom:1rem;" id="cont-dias-trabaja">
+      <canvas id="chart-dias-trabaja"></canvas>
+    </div>
+    {% endif %}
+
+    <h4>Acceso a internet <span style="font-weight:400; color:#777; font-size:0.8rem;">(opción múltiple — % sobre total de respondentes)</span></h4>
+    {% if detalle.acceso_internet %}
+    <div style="position:relative; margin-bottom:1rem;" id="cont-internet">
+      <canvas id="chart-internet"></canvas>
+    </div>
+    {% else %}
+    <p class="empty-msg">Sin datos.</p>
+    {% endif %}
+
+    <h4>Dispositivos</h4>
+    {% if detalle.dispositivos %}
+    <div style="overflow-x:auto; margin-bottom:1rem;">
+      <table class="disp-table">
+        <thead>
+          <tr><th>Dispositivo</th><th>Tenencia</th><th class="num">N</th><th class="num">%</th></tr>
+        </thead>
+        <tbody>
+          {% for r in detalle.dispositivos %}
+          <tr>
+            <td>{{ r.dispositivo }}</td>
+            <td>{{ r.uso }}</td>
+            <td class="num">{{ r.count }}</td>
+            <td class="num">{% if r.porcentaje is not None %}{{ r.porcentaje|floatformat:1 }}%{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="empty-msg">Sin datos.</p>
+    {% endif %}
+
+    <h4>Necesita adecuación de cursada</h4>
+    <div class="stat-row">
+      {% for r in detalle.necesita_adecuacion %}
+        <span class="stat-pill {% if r.label == 'Sí' %}pill-blue{% elif r.label == 'No' %}pill-grey{% else %}pill-grey{% endif %}">
+          {{ r.label }}: {{ r.count }}{% if r.porcentaje is not None %} ({{ r.porcentaje|floatformat:1 }}%){% endif %}
+        </span>
+      {% empty %}
+        <span class="empty-msg">Sin datos.</span>
+      {% endfor %}
+    </div>
+
+    <h4>Tiene CUD</h4>
+    <div class="stat-row">
+      {% for r in detalle.tiene_cud %}
+        <span class="stat-pill {% if r.label == 'Sí' %}pill-blue{% elif r.label == 'No' %}pill-grey{% else %}pill-grey{% endif %}">
+          {{ r.label }}: {{ r.count }}{% if r.porcentaje is not None %} ({{ r.porcentaje|floatformat:1 }}%){% endif %}
+        </span>
+      {% empty %}
+        <span class="empty-msg">Sin datos.</span>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── S7. Educación secundaria ── #}
+  <div class="inv-section">
+    <h3>S7. Educación secundaria</h3>
+
+    <h4>Tipo de escuela secundaria</h4>
+    {% if detalle.tipo_escuela %}
+    <div style="position:relative; margin-bottom:1rem;" id="cont-tipo-escuela">
+      <canvas id="chart-tipo-escuela"></canvas>
+    </div>
+    {% else %}
+    <p class="empty-msg">Sin datos.</p>
+    {% endif %}
+
+    <h4>Tiempo transcurrido desde la secundaria</h4>
+    {% if detalle.tiempo_desde_secundaria %}
+    <div style="position:relative; height:160px; margin-bottom:1rem;">
+      <canvas id="chart-tiempo-secundaria"></canvas>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ── S8. Trayectoria universitaria ── #}
+  <div class="inv-section">
+    <h3>S8. Trayectoria universitaria</h3>
+
+    <h4>Estudios superiores previos</h4>
+    {% if detalle.estudios_superiores %}
+    <div style="position:relative; margin-bottom:1rem;" id="cont-estudios-sup">
+      <canvas id="chart-estudios-sup"></canvas>
+    </div>
+    {% else %}
+    <p class="empty-msg">Sin datos.</p>
+    {% endif %}
+
+    <h4>Hizo UBA XXI</h4>
+    <div class="stat-row">
+      {% for r in detalle.hizo_uba_xxi %}
+        <span class="stat-pill {% if r.label == 'Sí' %}pill-green{% elif r.label == 'No' %}pill-grey{% else %}pill-grey{% endif %}">
+          {{ r.label }}: {{ r.count }}{% if r.porcentaje is not None %} ({{ r.porcentaje|floatformat:1 }}%){% endif %}
+        </span>
+      {% empty %}
+        <span class="empty-msg">Sin datos.</span>
+      {% endfor %}
+    </div>
+
+    <h4>Tiempo en el CBC</h4>
+    {% if detalle.tiempo_en_cbc %}
+    <div style="position:relative; margin-bottom:1rem;" id="cont-tiempo-cbc">
+      <canvas id="chart-tiempo-cbc"></canvas>
+    </div>
+    {% else %}
+    <p class="empty-msg">Sin datos.</p>
+    {% endif %}
+
+    <h4>Interrupción en el CBC</h4>
+    {% if detalle.interrupcion_cbc %}
+    <div style="position:relative; height:160px; margin-bottom:1rem;">
+      <canvas id="chart-interrupcion-cbc"></canvas>
+    </div>
+    {% else %}
+    <p class="empty-msg">Sin datos.</p>
+    {% endif %}
+
+    <h4>Ya cursó IPC anteriormente</h4>
+    <div class="stat-row">
+      {% for r in detalle.ya_curso_ipc %}
+        <span class="stat-pill {% if r.label == 'Sí' %}pill-blue{% elif r.label == 'No' %}pill-grey{% else %}pill-grey{% endif %}">
+          {{ r.label }}: {{ r.count }}{% if r.porcentaje is not None %} ({{ r.porcentaje|floatformat:1 }}%){% endif %}
+        </span>
+      {% empty %}
+        <span class="empty-msg">Sin datos.</span>
+      {% endfor %}
+    </div>
+
+    <h4>Materias aprobadas en el CBC</h4>
+    {% if detalle.materias_aprobadas %}
+    <div style="position:relative; height:180px; margin-bottom:1rem;">
+      <canvas id="chart-materias"></canvas>
+    </div>
+    {% else %}
+    <p class="empty-msg">Sin datos.</p>
+    {% endif %}
+  </div>
+
+</div>{# /container-wide #}
+
+<script>
+(function() {
+  const C = {
+    verde:   'rgba(42,122,42,0.75)',
+    rojo:    'rgba(176,0,32,0.75)',
+    azul:    'rgba(25,118,210,0.75)',
+    naranja: 'rgba(230,81,0,0.75)',
+    gris:    'rgba(120,120,120,0.55)',
+    lila:    'rgba(106,27,154,0.75)',
+    cian:    'rgba(0,131,143,0.75)',
+    rosa:    'rgba(194,24,91,0.75)',
+  };
+  const PALETTE = [C.azul, C.verde, C.naranja, C.rojo, C.lila, C.cian, C.rosa, C.gris];
+
+  function parseData(id) {
+    const el = document.getElementById(id);
+    return el ? JSON.parse(el.textContent) : null;
+  }
+
+  function trunc(s, n) {
+    return s && s.length > n ? s.slice(0, n) + '…' : (s || '');
+  }
+
+  function noData(canvas, msg) {
+    const p = document.createElement('p');
+    p.style.cssText = 'color:#888;font-size:0.9rem;text-align:center;padding:1.5rem 0;margin:0;';
+    p.textContent = msg || 'Sin datos';
+    canvas.replaceWith(p);
+  }
+
+  function hBar(canvasId, data, labelKey, valueKey, opts) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    const contId = opts && opts.contId;
+    if (contId) {
+      const cont = document.getElementById(contId);
+      if (cont) cont.style.height = Math.min(Math.max(data.length * 42, 100), 500) + 'px';
+    }
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => trunc(d[labelKey], 40)),
+        datasets: [{ label: 'Estudiantes', data: data.map(d => d[valueKey]), backgroundColor: C.azul }],
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
+  }
+
+  function vBar(canvasId, data, labelKey, valueKey) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => trunc(d[labelKey], 30)),
+        datasets: [{ label: 'Estudiantes', data: data.map(d => d[valueKey]), backgroundColor: C.azul }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
+  }
+
+  function donut(canvasId, data, labelKey, valueKey, colors) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    if (!data || !data.length) { noData(canvas); return; }
+    new Chart(canvas, {
+      type: 'doughnut',
+      data: {
+        labels: data.map(d => d[labelKey]),
+        datasets: [{ data: data.map(d => d[valueKey]), backgroundColor: colors || PALETTE.slice(0, data.length) }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+      },
+    });
+  }
+
+  // ── S2. NSE ──
+  donut('chart-nse', parseData('data-nse'), 'categoria_nse', 'count');
+
+  // ── S3. Lógicas ──
+  vBar('chart-logicas', parseData('data-logicas'), 'puntaje_logicas', 'count');
+
+  // ── S3. Silogismo ──
+  (function() {
+    const data = parseData('data-silogismo');
+    const canvas = document.getElementById('chart-silogismo');
+    if (!canvas || !data || !data.length) { if(canvas) noData(canvas); return; }
+    const colors = data.map(d => d.label === 'Más bajo' ? C.verde : C.gris);
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => d.label),
+        datasets: [{ data: data.map(d => d.count), backgroundColor: colors }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
+  })();
+
+  // ── S3. Hilera ──
+  (function() {
+    const data = parseData('data-hilera');
+    const canvas = document.getElementById('chart-hilera');
+    if (!canvas || !data || !data.length) { if(canvas) noData(canvas); return; }
+    const colors = data.map(d => d.label === 'Rodríguez' ? C.verde : C.gris);
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => d.label),
+        datasets: [{ data: data.map(d => d.count), backgroundColor: colors }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
+  })();
+
+  // ── S4. Facultades / Carreras ──
+  hBar('chart-facultades', parseData('data-facultades'), 'facultad', 'count', { contId: 'cont-facultades' });
+  hBar('chart-carreras',   parseData('data-carreras'),   'carrera',  'count', { contId: 'cont-carreras' });
+
+  // ── S5. Pandemia ──
+  donut('chart-pandemia', parseData('data-pandemia'), 'pandemia', 'count', [C.azul, C.naranja, C.rojo]);
+
+  // ── S6. Con quién vive ──
+  donut('chart-con-quien-vive', parseData('data-con-quien-vive'), 'label', 'count');
+
+  // ── S6. Viaje ──
+  hBar('chart-viaje', parseData('data-viaje'), 'label', 'count', {});
+
+  // ── S6. Situación laboral ──
+  (function() {
+    const data = parseData('data-situacion-laboral');
+    const canvas = document.getElementById('chart-laboral');
+    const cont   = document.getElementById('cont-laboral');
+    if (!canvas || !data || !data.length) { if(canvas) noData(canvas); return; }
+    cont.style.height = Math.min(Math.max(data.length * 42, 100), 300) + 'px';
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => trunc(d.label, 40)),
+        datasets: [{ label: 'Estudiantes', data: data.map(d => d.count), backgroundColor: C.azul }],
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
+  })();
+
+  // ── S6. Días que trabaja ──
+  (function() {
+    const data = parseData('data-dias-trabaja');
+    const canvas = document.getElementById('chart-dias-trabaja');
+    const cont   = document.getElementById('cont-dias-trabaja');
+    if (!canvas || !data || !data.length) { if(canvas) noData(canvas); return; }
+    cont.style.height = Math.min(Math.max(data.length * 42, 100), 300) + 'px';
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => trunc(d.label, 40)),
+        datasets: [{ label: 'Estudiantes', data: data.map(d => d.count), backgroundColor: C.azul }],
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
+  })();
+
+  // ── S6. Internet ──
+  (function() {
+    const data = parseData('data-internet');
+    const canvas = document.getElementById('chart-internet');
+    const cont   = document.getElementById('cont-internet');
+    if (!canvas || !data || !data.length) { if(canvas) noData(canvas); return; }
+    cont.style.height = Math.min(Math.max(data.length * 42, 100), 400) + 'px';
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => trunc(d.opcion, 40)),
+        datasets: [{ label: '% estudiantes', data: data.map(d => d.porcentaje || 0), backgroundColor: C.cian }],
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, max: 100, title: { display: true, text: '%' } } },
+      },
+    });
+  })();
+
+  // ── S7. Tipo de escuela ──
+  (function() {
+    const data = parseData('data-tipo-escuela');
+    const canvas = document.getElementById('chart-tipo-escuela');
+    const cont   = document.getElementById('cont-tipo-escuela');
+    if (!canvas || !data || !data.length) { if(canvas) noData(canvas); return; }
+    cont.style.height = Math.min(Math.max(data.length * 42, 100), 500) + 'px';
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => trunc(d.label, 40)),
+        datasets: [{ label: 'Estudiantes', data: data.map(d => d.count), backgroundColor: C.azul }],
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
+  })();
+
+  // ── S7. Tiempo desde secundaria ──
+  vBar('chart-tiempo-secundaria', parseData('data-tiempo-secundaria'), 'label', 'count');
+
+  // ── S8. Estudios superiores ──
+  (function() {
+    const data = parseData('data-estudios-sup');
+    const canvas = document.getElementById('chart-estudios-sup');
+    const cont   = document.getElementById('cont-estudios-sup');
+    if (!canvas || !data || !data.length) { if(canvas) noData(canvas); return; }
+    cont.style.height = Math.min(Math.max(data.length * 42, 100), 300) + 'px';
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => trunc(d.label, 45)),
+        datasets: [{ label: 'Estudiantes', data: data.map(d => d.count), backgroundColor: C.azul }],
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
+  })();
+
+  // ── S8. Tiempo en el CBC ──
+  (function() {
+    const data = parseData('data-tiempo-cbc');
+    const canvas = document.getElementById('chart-tiempo-cbc');
+    const cont   = document.getElementById('cont-tiempo-cbc');
+    if (!canvas || !data || !data.length) { if(canvas) noData(canvas); return; }
+    cont.style.height = Math.min(Math.max(data.length * 42, 100), 300) + 'px';
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => trunc(d.label, 40)),
+        datasets: [{ label: 'Estudiantes', data: data.map(d => d.count), backgroundColor: C.azul }],
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+      },
+    });
+  })();
+
+  // ── S8. Interrupción CBC ──
+  vBar('chart-interrupcion-cbc', parseData('data-interrupcion-cbc'), 'label', 'count');
+
+  // ── S8. Materias aprobadas ──
+  (function() {
+    const data = parseData('data-materias');
+    const canvas = document.getElementById('chart-materias');
+    if (!canvas || !data || !data.length) { if(canvas) noData(canvas); return; }
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => d.valor),
+        datasets: [{ label: 'Estudiantes', data: data.map(d => d.count), backgroundColor: C.azul }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { title: { display: true, text: 'Materias aprobadas' } },
+          y: { beginAtZero: true, ticks: { stepSize: 1 } },
+        },
+      },
+    });
+  })();
+
+})();
+</script>
+{% endblock %}

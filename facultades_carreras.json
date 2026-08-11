@@ -1,0 +1,218 @@
+{
+  "facultades": [
+    {
+      "nombre": "Facultad de Agronomía",
+      "carreras": {
+        "grado": [
+          "Agronomía",
+          "Licenciatura en Ciencias Ambientales",
+          "Licenciatura en Economía y Administración Agrarias",
+          "Licenciatura en Gestión de Agroalimentos",
+          "Licenciatura en Planificación y Diseño del Paisaje",
+          "Profesorado de Enseñanza Secundaria y Superior en Ciencias Ambientales",
+          "Licenciatura en Biotecnología"
+        ],
+        "pregrado": [
+          "Tecnicatura Universitaria en Producción Florihortícola",
+          "Tecnicatura Universitaria en Jardinería",
+          "Tecnicatura Universitaria en Producción Vegetal Orgánica",
+          "Tecnicatura Universitaria en Turismo Rural",
+          "Martillero y Corredor Público Rural"
+        ]
+      }
+    },
+    {
+      "nombre": "Facultad de Arquitectura, Diseño y Urbanismo",
+      "carreras": {
+        "grado": [
+          "Arquitectura",
+          "Diseño Gráfico",
+          "Diseño de Imagen y Sonido",
+          "Diseño de Indumentaria",
+          "Diseño Industrial",
+          "Diseño Textil",
+          "Licenciatura en Planificación y Diseño del Paisaje"
+        ]
+      }
+    },
+    {
+      "nombre": "Facultad de Ciencias Económicas",
+      "carreras": {
+        "grado": [
+          "Actuario",
+          "Contador Público",
+          "Licenciatura en Administración",
+          "Licenciatura en Economía",
+          "Licenciatura en Sistemas de Información de las Organizaciones",
+          "Licenciatura en Gestión Universitaria (Ciclo de Complementación Curricular)"
+        ],
+        "pregrado": [
+          "Tecnicatura Universitaria en Gestión y Análisis de Datos en Organizaciones"
+        ]
+      }
+    },
+    {
+      "nombre": "Facultad de Ciencias Exactas y Naturales",
+      "carreras": {
+        "grado": [
+          "Licenciatura en Biotecnología",
+          "Licenciatura en Ciencias Biológicas",
+          "Licenciatura en Ciencias de Datos",
+          "Licenciatura en Ciencias de la Atmósfera",
+          "Licenciatura en Ciencias de la Computación",
+          "Licenciatura en Ciencias Físicas",
+          "Licenciatura en Ciencias Geológicas",
+          "Licenciatura en Ciencias Matemáticas",
+          "Licenciatura en Ciencias Químicas",
+          "Licenciatura en Ciencia y Tecnología de Alimentos",
+          "Licenciatura en Ciencias Oceanográficas",
+          "Licenciatura en Paleontología",
+          "Profesorado de Enseñanza Media y Superior en Ciencias de la Atmósfera",
+          "Profesorado de Enseñanza Media y Superior en la Especialidad Biología",
+          "Profesorado de Enseñanza Media y Superior en Ciencias de la Computación",
+          "Profesorado de Enseñanza Media y Superior en Geología",
+          "Profesorado de Enseñanza Media y Superior en Física",
+          "Profesorado de Enseñanza Media y Superior en Matemáticas",
+          "Profesorado de Enseñanza Media y Superior en Química"
+        ]
+      }
+    },
+    {
+      "nombre": "Facultad de Ciencias Sociales",
+      "carreras": {
+        "grado": [
+          "Ciencias de la Comunicación",
+          "Ciencia Política",
+          "Relaciones del Trabajo",
+          "Trabajo Social",
+          "Sociología"
+        ]
+      }
+    },
+    {
+      "nombre": "Facultad de Ciencias Veterinarias",
+      "carreras": {
+        "grado": [
+          "Veterinaria",
+          "Licenciatura en Gestión de Agroalimentos",
+          "Licenciatura en Biotecnología"
+        ],
+        "pregrado": [
+          "Tecnicatura Universitaria en Gestión Integral de Bioterios"
+        ]
+      }
+    },
+    {
+      "nombre": "Facultad de Derecho",
+      "carreras": {
+        "grado": [
+          "Abogacía",
+          "Traductorado Público",
+          "Calígrafo Público",
+          "Profesorado para la Enseñanza Media y Superior en Ciencias Jurídicas"
+        ]
+      }
+    },
+    {
+      "nombre": "Facultad de Farmacia y Bioquímica",
+      "carreras": {
+        "grado": [
+          "Bioquímica",
+          "Farmacia",
+          "Licenciatura en Biotecnología",
+          "Licenciatura en Ciencia y Tecnología de Alimentos"
+        ],
+        "pregrado": [
+          "Tecnicatura Universitaria en Medicina Nuclear",
+          "Tecnicatura Universitaria en Óptica y Contactología",
+          "Tecnicatura Universitaria en Gestión Integral de Bioterios"
+        ]
+      }
+    },
+    {
+      "nombre": "Facultad de Filosofía y Letras",
+      "carreras": {
+        "grado": [
+          "Artes",
+          "Ciencias Antropológicas",
+          "Ciencias de la Educación",
+          "Bibliotecología y Ciencias de la Información",
+          "Filosofía",
+          "Geografía",
+          "Historia",
+          "Letras",
+          "Edición"
+        ],
+        "pregrado": [
+          "Tecnicatura Universitaria en Producción y Gestión de las Artes"
+        ]
+      }
+    },
+    {
+      "nombre": "Facultad de Ingeniería",
+      "carreras": {
+        "grado": [
+          "Bioingeniería",
+          "Ingeniería Civil",
+          "Ingeniería Electrónica",
+          "Ingeniería en Agrimensura",
+          "Ingeniería en Alimentos",
+          "Ingeniería en Energía Eléctrica",
+          "Ingeniería en Informática",
+          "Ingeniería en Petróleo",
+          "Ingeniería Industrial",
+          "Ingeniería Mecánica",
+          "Ingeniería Naval",
+          "Ingeniería Química",
+          "Licenciatura en Análisis de Sistemas"
+        ]
+      }
+    },
+    {
+      "nombre": "Facultad de Ciencias Médicas",
+      "carreras": {
+        "grado": [
+          "Medicina",
+          "Licenciatura en Fonoaudiología",
+          "Licenciatura en Kinesiología y Fisiatría",
+          "Licenciatura en Nutrición",
+          "Licenciatura en Obstetricia",
+          "Licenciatura en Producción de Bioimágenes",
+          "Licenciatura en Enfermería (Ciclo de Complementación Curricular)",
+          "Licenciatura en Podología (Ciclo de Complementación Curricular)",
+          "Licenciatura en Producción de Bioimágenes (Ciclo de Complementación Curricular)"
+        ],
+        "pregrado": [
+          "Tecnicatura Universitaria en Anestesia",
+          "Tecnicatura Universitaria en Cosmetología Facial y Corporal",
+          "Tecnicatura Universitaria en Hemoterapia e Inmunohematología",
+          "Tecnicatura Universitaria en Instrumentación Quirúrgica",
+          "Tecnicatura Universitaria en Podología",
+          "Tecnicatura Universitaria en Prácticas Cardiológicas"
+        ],
+        "indeterminado": [
+          "Enfermería"
+        ]
+      }
+    },
+    {
+      "nombre": "Facultad de Odontología",
+      "carreras": {
+        "grado": [
+          "Odontología"
+        ]
+      }
+    },
+    {
+      "nombre": "Facultad de Psicología",
+      "carreras": {
+        "grado": [
+          "Licenciatura en Psicología",
+          "Licenciatura en Musicoterapia",
+          "Terapia Ocupacional",
+          "Profesorado de Enseñanza Media y Superior en Psicología"
+        ]
+      }
+    }
+  ]
+}

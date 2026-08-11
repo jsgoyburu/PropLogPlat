@@ -1,0 +1,409 @@
+{% extends 'base.html' %}
+
+{% block title %}Correcciones pendientes · Panel docente{% endblock %}
+
+{% block content %}
+<div class="container-wide">
+
+  <!-- ── Encabezado ─────────────────────────────────────────── -->
+  <div class="card">
+    <div class="breadcrumb">
+      <a href="{% url 'docentes:comisiones_list' %}">Panel docente</a>
+      &rsaquo; Correcciones pendientes
+    </div>
+    <h1 style="margin: 0.25rem 0 0.5rem;">Correcciones pendientes</h1>
+
+    <!-- Selectores de filtro -->
+    <form method="get" style="margin-bottom:0.75rem; display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+      <div>
+        <label for="filtro-select" style="font-size:0.9rem; font-weight:600; margin-right:0.3rem;">Ver:</label>
+        <select id="filtro-select" name="filtro" onchange="this.form.submit()"
+                style="font-size:0.9rem; padding:0.3rem 0.5rem; border:1px solid #ccc; border-radius:4px; background:#fff;">
+          <option value="auto_correctas" {% if filtro == 'auto_correctas' %}selected{% endif %}>
+            Corrección automática correcta (sin revisar)
+          </option>
+          <option value="auto_correctas_revisar" {% if filtro == 'auto_correctas_revisar' %}selected{% endif %}>
+            Diccionario a revisar (marcado por IA)
+          </option>
+          <option value="mas_fallidos" {% if filtro == 'mas_fallidos' %}selected{% endif %}>
+            Más intentos fallidos
+          </option>
+          <option value="ultimos" {% if filtro == 'ultimos' %}selected{% endif %}>
+            Últimos intentos incorrectos
+          </option>
+          <option value="aprobadas" {% if filtro == 'aprobadas' %}selected{% endif %}>
+            Ya aprobadas
+          </option>
+        </select>
+      </div>
+      {% if mis_comisiones|length > 1 %}
+      <div>
+        <label for="comision-select" style="font-size:0.9rem; font-weight:600; margin-right:0.3rem;">Comisión:</label>
+        <select id="comision-select" name="comision_id" onchange="this.form.submit()"
+                style="font-size:0.9rem; padding:0.3rem 0.5rem; border:1px solid #ccc; border-radius:4px; background:#fff;">
+          <option value="">Todas</option>
+          {% for c in mis_comisiones %}
+            <option value="{{ c.id }}" {% if comision_filtro.id == c.id %}selected{% endif %}>{{ c.nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      {% comment %}
+        Default: la activa (ver docstring de correccion_pendiente en
+        docentes/views.py). "Todas las camadas" tiene que quedar visible acá
+        mismo, sin scroll ni click extra: es la opción que hace falta para
+        corregirle a quien rinde un final de una camada anterior, el caso de
+        uso que motivó tener esta pantalla cruzando cohortes desde el vamos.
+      {% endcomment %}
+      {% if cohortes_filtro_options|length > 1 %}
+      <div>
+        <label for="cohorte-select" style="font-size:0.9rem; font-weight:600; margin-right:0.3rem;">Cohorte:</label>
+        <select id="cohorte-select" name="cohorte_id" onchange="this.form.submit()"
+                style="font-size:0.9rem; padding:0.3rem 0.5rem; border:1px solid #ccc; border-radius:4px; background:#fff;">
+          <option value="todas" {% if not cohorte_filtro %}selected{% endif %}>Todas las camadas</option>
+          {% for c in cohortes_filtro_options %}
+            <option value="{{ c.pk }}" {% if cohorte_filtro.pk == c.pk %}selected{% endif %}>
+              {{ c }}{% if c.activa %} · en curso{% endif %}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      {% if practicas_filtro_options %}
+      <div>
+        <label for="practica-select" style="font-size:0.9rem; font-weight:600; margin-right:0.3rem;">Práctica:</label>
+        <select id="practica-select" name="practica_id" onchange="this.form.submit()"
+                style="font-size:0.9rem; padding:0.3rem 0.5rem; border:1px solid #ccc; border-radius:4px; background:#fff;">
+          <option value="">Todas</option>
+          {% for p in practicas_filtro_options %}
+            <option value="{{ p.id }}" {% if practica_filtro.id == p.id %}selected{% endif %}>{{ p.titulo }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      {% if ejercicio_practicas_filtro_options %}
+      <div>
+        <label for="ejercicio-select" style="font-size:0.9rem; font-weight:600; margin-right:0.3rem;">Ejercicio:</label>
+        <select id="ejercicio-select" name="ejercicio_practica_id" onchange="this.form.submit()"
+                style="font-size:0.9rem; padding:0.3rem 0.5rem; border:1px solid #ccc; border-radius:4px; background:#fff;">
+          <option value="">Todos</option>
+          {% for ep in ejercicio_practicas_filtro_options %}
+            <option value="{{ ep.id }}" {% if ejercicio_practica_filtro.id == ep.id %}selected{% endif %}>
+              Ej. {{ ep.orden }} — {{ ep.ejercicio.enunciado|striptags|truncatechars:60 }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div>
+        <label for="estudiante-q" style="font-size:0.9rem; font-weight:600; margin-right:0.3rem;">Estudiante:</label>
+        <input id="estudiante-q" type="search" name="estudiante_q" value="{{ estudiante_q }}"
+               placeholder="nombre, apellido o usuarix…"
+               style="font-size:0.9rem; padding:0.3rem 0.5rem; border:1px solid #ccc; border-radius:4px; width:16rem;">
+      </div>
+      <button type="submit" style="font-size:0.9rem; padding:0.3rem 0.75rem; border:1px solid #ccc; border-radius:4px; background:#f8f9fa; cursor:pointer;">Buscar</button>
+    </form>
+
+    <!-- Descripción según filtro activo -->
+    <p style="margin: 0; color:#555; font-size:0.9rem;">
+      {% if filtro == 'auto_correctas' %}
+        Intentos con corrección automática correcta que todavía no revisaste.
+      {% elif filtro == 'auto_correctas_revisar' %}
+        Intentos correctos cuyo diccionario fue marcado por la IA para revisión docente. No se aprueban en bloque.
+      {% elif filtro == 'mas_fallidos' %}
+        Último intento incorrecto por estudiante y ejercicio, ordenado por cantidad de intentos fallidos.
+        Estos son les estudiantes que más necesitan ayuda.
+      {% elif filtro == 'ultimos' %}
+        Intentos incorrectos más recientes. Útil para ver quién acaba de intentarlo sin éxito.
+      {% elif filtro == 'aprobadas' %}
+        Intentos que ya aprobaste. Podés rechazar o volver a pendiente para corregir un error de corrección.
+      {% endif %}
+      {% if total %}
+        <strong>{{ total }}</strong> resultado{{ total|pluralize:"s" }}.
+      {% else %}
+        No hay ninguno por ahora. 🎉
+      {% endif %}
+    </p>
+
+    {% if filtro == 'auto_correctas' and comisiones_con_pendientes %}
+    <form method="post" action="{% url 'docentes:intentos_bulk_aprobar' %}"
+          style="margin-top:0.75rem; display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;"
+          onsubmit="return confirm('¿Aprobar en lote los intentos pendientes de la comisión seleccionada? Esta acción no se puede deshacer.');">
+      {% csrf_token %}
+      <select name="comision_id"
+              style="font-size:0.9rem; padding:0.35rem 0.5rem; border:1px solid #ccc; border-radius:4px; background:#fff;">
+        <option value="">Todas mis comisiones</option>
+        {% for c in comisiones_con_pendientes %}
+          <option value="{{ c.id }}" {% if comision_filtro.id == c.id %}selected{% endif %}>{{ c.nombre }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit"
+              style="background:#28a745; color:#fff; border:none; padding:0.45rem 1.3rem; border-radius:4px; cursor:pointer; font-size:0.9rem; font-weight:600;">
+        ✓ Aprobar en lote
+      </button>
+    </form>
+    {% endif %}
+  </div>
+
+  {% if page_obj %}
+    {% for intento in page_obj %}
+      <div class="card" style="margin-top:1rem;">
+
+        <!-- Encabezado: estudiante + ejercicio -->
+        <div style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.5rem;">
+          <div>
+            <h3 style="margin:0 0 0.15rem;">
+              <a href="{% url 'docentes:estudiante_detail' intento.estudiante.id %}">{{ intento.estudiante.nombre_display }}</a>
+              {% if filtro == 'mas_fallidos' and intento.cant_fallidos %}
+                <span style="font-size:0.75rem; font-weight:600; background:#fff3cd; color:#856404; border:1px solid #ffc107; border-radius:4px; padding:0.15rem 0.45rem; margin-left:0.5rem; vertical-align:middle;">
+                  {{ intento.cant_fallidos }} intento{{ intento.cant_fallidos|pluralize:"s" }} fallido{{ intento.cant_fallidos|pluralize:"s" }}
+                </span>
+              {% endif %}
+            </h3>
+            <p style="margin:0; color:#666; font-size:0.88rem;">
+              {{ intento.practica_comision.comision.nombre }}
+              <span style="font-size:0.75rem; background:#eef2f7; color:#445; padding:0.1rem 0.4rem; border-radius:3px; margin-left:0.2rem;">{{ intento.cohorte }}</span>
+              &rsaquo; {{ intento.ejercicio_practica.practica.titulo }}
+              &rsaquo; Ejercicio {{ intento.ejercicio_practica.orden }}
+              · <span class="badge badge-tipo" style="font-size:0.75rem;">{{ intento.ejercicio_practica.ejercicio.get_tipo_display }}</span>
+              {% if filtro != 'auto_correctas' %}
+                · <span style="font-size:0.75rem; color:{% if intento.es_correcto %}#28a745{% else %}#dc3545{% endif %}; font-weight:600;">
+                  {% if intento.es_correcto %}✓ Correcto{% else %}✗ Incorrecto{% endif %}
+                </span>
+              {% endif %}
+            </p>
+          </div>
+          <span style="font-size:0.82rem; color:#888; white-space:nowrap;">{{ intento.timestamp|date:'d/m/Y H:i' }}</span>
+        </div>
+
+        <!-- Enunciado -->
+        <div style="font-size:0.93rem; margin-bottom:0.75rem; padding:0.5rem 0.75rem; background:#f8f9fa; border-left:3px solid #ccc; border-radius:3px;">
+          {{ intento.ejercicio_practica.ejercicio.enunciado|safe }}
+        </div>
+
+        <!-- Respuesta del estudiante -->
+        <div style="margin-bottom:0.75rem;">
+          <strong style="font-size:0.9rem;">Respuesta:</strong>
+
+          {% if intento.enunciados_parsed %}
+            <!-- Tabla de verdad (argumento) -->
+            <ul style="margin:0.3rem 0 0; padding-left:1.4rem;">
+              {% for e in intento.enunciados_parsed %}
+                <li style="margin-bottom:0.2rem;">
+                  <span class="badge" style="background:#e8e8e8; color:#333; font-weight:normal; margin-right:0.25rem; font-size:0.82rem;">{{ e.tipo }}</span>
+                  <code style="font-size:0.9rem;">{{ e.formula }}</code>
+                </li>
+              {% endfor %}
+            </ul>
+            <!-- Juicio de validez del estudiante -->
+            <div style="margin-top:0.45rem; font-size:0.88rem;">
+              <strong>Juicio del estudiante:</strong>
+              {% if intento.juicio_estudiante == True %}
+                <span style="color:#1a7a1a; font-weight:bold; margin-left:0.3rem; padding:0.1rem 0.45rem; background:#d4edda; border-radius:4px;">Válido</span>
+              {% elif intento.juicio_estudiante == False %}
+                <span style="color:#c00; font-weight:bold; margin-left:0.3rem; padding:0.1rem 0.45rem; background:#f8d7da; border-radius:4px;">Inválido</span>
+              {% else %}
+                <span style="color:#aaa; font-style:italic; margin-left:0.3rem;">no indicado</span>
+              {% endif %}
+            </div>
+            <!-- Diccionario (si existe) -->
+            {% if intento.diccionario %}
+              <div style="margin-top:0.4rem; font-size:0.88rem; color:#555;">
+                <strong>Diccionario:</strong>
+                {% for letra, frase in intento.diccionario.items %}
+                  <code>{{ letra }}</code>: {{ frase }}{% if not forloop.last %} · {% endif %}
+                {% endfor %}
+              </div>
+            {% endif %}
+
+          {% elif intento.diccionario_con_valores %}
+            <!-- Determinación de valor de verdad -->
+            <div style="margin-top:0.4rem; padding:0.6rem 0.75rem; background:#f8f9fa; border-radius:4px; border:1px solid #e9ecef;">
+
+              <!-- Diccionario con valores de verdad -->
+              <table style="border-collapse:collapse; font-size:0.88rem; margin-bottom:0.5rem; width:100%;">
+                <thead>
+                  <tr style="border-bottom:1px solid #dee2e6;">
+                    <th style="text-align:left; padding:0.2rem 0.5rem; width:3rem; color:#555;">Letra</th>
+                    <th style="text-align:left; padding:0.2rem 0.5rem; color:#555;">Proposición simple</th>
+                    <th style="text-align:center; padding:0.2rem 0.5rem; width:4.5rem; color:#555;">Valor</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for entrada in intento.diccionario_con_valores %}
+                    <tr>
+                      <td style="padding:0.2rem 0.5rem; font-weight:bold; font-family:monospace;">{{ entrada.letra }}</td>
+                      <td style="padding:0.2rem 0.5rem;">{{ entrada.frase }}</td>
+                      <td style="padding:0.2rem 0.5rem; text-align:center; font-weight:bold;">
+                        {% if entrada.valor == True %}
+                          <span style="color:#1a7a1a;">V</span>
+                        {% elif entrada.valor == False %}
+                          <span style="color:#c00;">F</span>
+                        {% else %}
+                          <span style="color:#aaa;">—</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+
+              <!-- Fórmula y valor asignado -->
+              <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+                <span style="font-size:0.88rem; color:#555; font-weight:600;">Fórmula:</span>
+                <code style="font-size:0.95rem;">{{ intento.respuesta_raw }}</code>
+                <span style="font-size:0.88rem; color:#555; font-weight:600; margin-left:0.5rem;">Valor asignado:</span>
+                {% if intento.valor_verdad_estudiante == True %}
+                  <span style="font-size:1.05rem; font-weight:bold; color:#1a7a1a; padding:0.1rem 0.5rem; background:#d4edda; border-radius:4px;">V — Verdadero</span>
+                {% elif intento.valor_verdad_estudiante == False %}
+                  <span style="font-size:1.05rem; font-weight:bold; color:#c00; padding:0.1rem 0.5rem; background:#f8d7da; border-radius:4px;">F — Falso</span>
+                {% else %}
+                  <span style="color:#aaa; font-style:italic;">no indicado</span>
+                {% endif %}
+              </div>
+            </div>
+
+          {% else %}
+            <!-- Formalización (fórmula simple) -->
+            <code style="font-size:0.92rem; margin-left:0.4rem;">{{ intento.respuesta_raw }}</code>
+            {% if intento.diccionario %}
+              <div style="margin-top:0.5rem; font-size:0.88rem; color:#555;">
+                <strong>Diccionario:</strong>
+                {% for letra, frase in intento.diccionario.items %}
+                  <code>{{ letra }}</code>: {{ frase }}{% if not forloop.last %} · {% endif %}
+                {% endfor %}
+              </div>
+            {% endif %}
+          {% endif %}
+
+          {% if intento.tabla_json %}
+            <div style="overflow-x:auto; margin-top:0.5rem;">
+              <table class="truth-table" style="min-width:max-content; font-size:0.88rem;">
+                <thead>
+                  <tr>
+                    {% for col in intento.tabla_json.0.keys %}
+                      <th>{{ col }}</th>
+                    {% endfor %}
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for fila in intento.tabla_json %}
+                    <tr>
+                      {% for col, val in fila.items %}
+                        <td style="text-align:center;">{% if val %}V{% else %}F{% endif %}</td>
+                      {% endfor %}
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Formulario de corrección -->
+        <form method="post" action="{% url 'docentes:intento_aprobacion_update' intento.id %}"
+              style="border-top:1px solid #eee; padding-top:0.75rem; margin-top:0.25rem;">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+          <label for="comentario_{{ intento.id }}" style="font-size:0.88rem; font-weight:600;">
+            Devolución docente
+              <span style="font-weight:400; color:#888;">(obligatoria al rechazar)</span>
+          </label>
+          <textarea id="comentario_{{ intento.id }}" name="comentario_docente" rows="2"
+                    placeholder="Devolución…"
+                    style="width:100%; margin-top:0.25rem; margin-bottom:0.5rem; box-sizing:border-box;">{{ intento.comentario_docente }}</textarea>
+          <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+            {% if filtro == 'auto_correctas' %}
+              <button class="btn" type="submit" name="accion" value="aprobar"
+                      style="background:#28a745; color:#fff; border:none; padding:0.4rem 1.1rem; border-radius:4px; cursor:pointer; font-size:0.9rem;">
+                ✓ Aprobar
+              </button>
+              <button class="btn" type="submit" name="accion" value="rechazar"
+                      style="background:#dc3545; color:#fff; border:none; padding:0.4rem 1.1rem; border-radius:4px; cursor:pointer; font-size:0.9rem;"
+                      onclick="var ta=document.getElementById('comentario_{{ intento.id }}');if(!ta.value.trim()){alert('Escribí una devolución antes de rechazar.');ta.focus();return false;}">
+                ✗ Rechazar
+              </button>
+            {% elif filtro == 'aprobadas' %}
+              <button class="btn" type="submit" name="accion" value="rechazar"
+                      style="background:#dc3545; color:#fff; border:none; padding:0.4rem 1.1rem; border-radius:4px; cursor:pointer; font-size:0.9rem;"
+                      onclick="var ta=document.getElementById('comentario_{{ intento.id }}');if(!ta.value.trim()){alert('Escribí una devolución antes de rechazar.');ta.focus();return false;}">
+                ✗ Rechazar
+              </button>
+              <button class="btn" type="submit" name="accion" value="pendiente"
+                      style="background:#6c757d; color:#fff; border:none; padding:0.4rem 1.1rem; border-radius:4px; cursor:pointer; font-size:0.9rem;">
+                ↩ Volver a pendiente
+              </button>
+            {% else %}
+              <button class="btn" type="submit" name="accion" value="aprobar"
+                      style="background:#28a745; color:#fff; border:none; padding:0.4rem 1.1rem; border-radius:4px; cursor:pointer; font-size:0.9rem;">
+                ✓ Aprobar
+              </button>
+              <button class="btn" type="submit" name="accion" value="rechazar"
+                      style="background:#dc3545; color:#fff; border:none; padding:0.4rem 1.1rem; border-radius:4px; cursor:pointer; font-size:0.9rem;"
+                      onclick="var ta=document.getElementById('comentario_{{ intento.id }}');if(!ta.value.trim()){alert('Escribí una devolución antes de rechazar.');ta.focus();return false;}">
+                ✗ Rechazar
+              </button>
+            {% endif %}
+          </div>
+        </form>
+
+      </div>
+    {% endfor %}
+
+    {% if paginator.num_pages > 1 %}
+      <div class="paginacion-ctrl" style="margin-top:1.5rem;">
+        {% if page_obj.has_previous %}
+          <a class="btn btn-secondary" href="?{{ filtros_query }}&pagina={{ page_obj.previous_page_number }}">← Anterior</a>
+        {% else %}
+          <button class="btn btn-secondary" disabled>← Anterior</button>
+        {% endif %}
+        <span>{{ page_obj.number }} / {{ paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a class="btn btn-secondary" href="?{{ filtros_query }}&pagina={{ page_obj.next_page_number }}">Siguiente →</a>
+        {% else %}
+          <button class="btn btn-secondary" disabled>Siguiente →</button>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  {% else %}
+    <div class="card" style="margin-top:1rem;">
+      <p style="color:#666; margin:0;">No hay resultados para este filtro. 🎉</p>
+    </div>
+  {% endif %}
+
+</div><!-- /container-wide -->
+{% endblock %}
+
+{% block scripts %}
+<style>
+  .paginacion-ctrl {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    font-size: 0.88rem;
+    color: #555;
+  }
+</style>
+<script>
+  // Restaurar posición de scroll tras aprobar/rechazar un intento
+  (function () {
+    var SCROLL_KEY = 'correcciones_scroll';
+
+    // Al cargar la página, restaurar si hay posición guardada
+    var savedScroll = sessionStorage.getItem(SCROLL_KEY);
+    if (savedScroll !== null) {
+      window.scrollTo(0, parseInt(savedScroll, 10));
+      sessionStorage.removeItem(SCROLL_KEY);
+    }
+
+    // Antes de enviar cualquier formulario de corrección, guardar la posición
+    document.querySelectorAll('form[action*="aprobacion"]').forEach(function (form) {
+      form.addEventListener('submit', function () {
+        sessionStorage.setItem(SCROLL_KEY, window.scrollY);
+      });
+    });
+  })();
+</script>
+{% endblock %}

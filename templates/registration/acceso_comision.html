@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Acceso a comisión — {{ config_sitio.nombre_sitio }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 560px;">
+  <div class="card" style="margin-top: 2.5rem;">
+    <h2 style="margin-top:0; margin-bottom:0.6rem;">{{ comision.nombre }}</h2>
+    <p style="color:#555; margin-top:0;">
+      Si ya tenés cuenta, podés iniciar sesión. Si no, registrate para comenzar el onboarding y quedar inscripto/a en esta comisión.
+    </p>
+
+    <div style="display:flex; gap:0.6rem; flex-wrap:wrap; margin-bottom:1.1rem;">
+      <a class="btn btn-secondary" href="{{ login_url }}">Ya tengo cuenta · Iniciar sesión</a>
+    </div>
+
+    <h3 style="font-size:1rem; margin-bottom:0.9rem;">Registrarme como estudiante</h3>
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% for field in form %}
+      <div style="margin-bottom:0.9rem;">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}
+          {% for error in field.errors %}
+          <p style="color:#dc3545; font-size:0.85rem; margin:0.25rem 0 0;">{{ error }}</p>
+          {% endfor %}
+        {% endif %}
+        {% if field.help_text %}
+          <p style="color:#666; font-size:0.82rem; margin:0.25rem 0 0;">{{ field.help_text|safe }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-primary" style="width:100%;">Crear cuenta y continuar</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

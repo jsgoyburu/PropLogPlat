@@ -1,0 +1,30 @@
+# Versiones fijadas al último build verde en Railway (2026-07-07, deploy 5b75c9e9).
+#
+# Antes este archivo usaba sólo cotas inferiores (>=). El 2026-08-07 el primer
+# rebuild en un mes resolvió dos majors nuevos y tiró abajo los dos servicios:
+#   - django 6.1 quitó `cc_delim_re` de django.utils.cache, que DRF todavía
+#     importa → el servicio web no levanta el URLconf.
+#   - mcp 2.0 renombró FastMCP a MCPServer y movió mcp.server.fastmcp.* →
+#     el servidor MCP crashea al importar.
+#
+# Al subir cualquiera de estas versiones, moverla sola y verificar el deploy.
+#
+# django: no subir a 6.1 hasta que DRF publique un release con soporte. El
+# parche está en su rama main (usa split_header_value) pero no salió todavía;
+# 3.17.2 declara compatibilidad hasta Django 6.0.
+django==6.0.6
+djangorestframework==3.17.1
+dj-database-url==3.1.2
+psycopg2-binary==2.9.12
+sympy==1.14.0
+gunicorn==26.0.0
+whitenoise==6.12.0
+openpyxl==3.1.5
+sphinx==9.1.0
+sphinx-rtd-theme==3.1.0
+sphinx-autodoc-typehints==3.12.1
+django-ckeditor-5==0.2.20
+redis==8.0.1
+# mcp: migración pendiente a 2.x (ver docs/superpowers/specs/, PR aparte).
+mcp==1.28.1
+uvicorn==0.50.2

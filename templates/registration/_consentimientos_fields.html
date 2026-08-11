@@ -1,0 +1,46 @@
+{# Partial: campos del formulario de consentimientos informados.
+   Requiere que `consent_form` esté disponible en el contexto. #}
+
+{# ── Consentimiento 1: pedagógico ── #}
+<div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 1rem; margin-bottom: 1.25rem;">
+  <p style="font-size: 0.88rem; margin: 0 0 0.75rem;">
+    <strong>Uso pedagógico de tus datos</strong><br>
+    Tus datos de actividad en la plataforma (resolución de ejercicios, respuestas, tiempos) podrán ser utilizados por tus docentes,
+    con información identificable, con fines pedagógicos: para fortalecer tu desempeño académico e informar el proceso de evaluación.
+    La resolución de ejercicios podrá informar tu calificación <strong>solo para mejorarla</strong>, nunca para perjudicarla.
+  </p>
+  <div>
+    {% for radio in consent_form.consentimiento_pedagogico %}
+    <label style="display: inline-flex; align-items: center; gap: 0.4rem; margin-right: 1.5rem; font-size: 0.9rem; cursor: pointer;">
+      {{ radio.tag }} {{ radio.choice_label }}
+    </label>
+    {% endfor %}
+  </div>
+  {% if consent_form.consentimiento_pedagogico.errors %}
+    {% for error in consent_form.consentimiento_pedagogico.errors %}
+    <p style="color: #dc3545; font-size: 0.85rem; margin: 0.5rem 0 0;">{{ error }}</p>
+    {% endfor %}
+  {% endif %}
+</div>
+
+{# ── Consentimiento 2: investigación ── #}
+<div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; padding: 1rem; margin-bottom: 1.25rem;">
+  <p style="font-size: 0.88rem; margin: 0 0 0.75rem;">
+    <strong>Uso académico y de investigación de tus datos anonimizados</strong><br>
+    Tus datos, debidamente <strong>anonimizados</strong>, podrán ser utilizados con fines académicos y de investigación
+    por tus docentes, docentes de la cátedra y aquellas personas con quienes se decida compartirlos.
+    Este uso <strong>nunca será comercial</strong>.
+  </p>
+  <div>
+    {% for radio in consent_form.consentimiento_investigacion %}
+    <label style="display: inline-flex; align-items: center; gap: 0.4rem; margin-right: 1.5rem; font-size: 0.9rem; cursor: pointer;">
+      {{ radio.tag }} {{ radio.choice_label }}
+    </label>
+    {% endfor %}
+  </div>
+  {% if consent_form.consentimiento_investigacion.errors %}
+    {% for error in consent_form.consentimiento_investigacion.errors %}
+    <p style="color: #dc3545; font-size: 0.85rem; margin: 0.5rem 0 0;">{{ error }}</p>
+    {% endfor %}
+  {% endif %}
+</div>

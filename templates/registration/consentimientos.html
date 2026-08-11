@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Consentimientos informados — {{ config_sitio.nombre_sitio }}{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 620px;">
+  <div class="card" style="margin-top: 3rem;">
+    <h2 style="margin-top: 0;">Consentimientos informados</h2>
+    <div style="background:#f8f9fa;border:1px solid #dee2e6;border-radius:6px;padding:1rem;margin-bottom:1rem;font-size:.9rem;">
+      <p>La información relevada en las preguntas siguientes de esta encuesta podrá ser utilizada con fines pedagógicos vinculados a la cursada y, en caso de que prestes tu consentimiento específico, también con fines de investigación educativa sobre la cursada de Introducción al Pensamiento Científico. Tus respuestas podrán ser vinculadas con registros académicos de la materia (por ejemplo, desempeño en evaluaciones) y, eventualmente, si prestás tu consentimiento específico, con una encuesta posterior de seguimiento, con el único fin de analizar trayectorias estudiantiles y mejorar las prácticas de enseñanza. La participación es voluntaria y no afectará en ningún caso tu cursada, calificaciones, ni vínculo con el equipo docente. Los datos personales serán resguardados de manera confidencial y, para su análisis y eventual presentación académica, serán disociados y/o presentados de forma agregada. Podés dejar sin responder las preguntas no obligatorias y ejercer tus derechos de acceso, rectificación o supresión de tus datos mediante contacto con {% if config_sitio.contacto_privacidad %}<a href="mailto:{{ config_sitio.contacto_privacidad }}">{{ config_sitio.contacto_privacidad }}</a>{% else %}el equipo docente responsable de esta instalación{% endif %}.</p>
+      <p>El responsable del tratamiento de los datos es Juan Sebastián Goyburu, con domicilio a estos efectos en Sede Prof. Alberto Fernández (Sede 7), Ramos Mejía 841, CABA. El consentimiento puede ser revocado en cualquier momento, sin efectos retroactivos, mediante comunicación al contacto indicado.</p>
+      <p>Si no prestás tu consentimiento de uso de datos para fines pedagógicos, el formulario finalizará en este punto, no se utilizarán tus datos para ningún fin, y esto no afectará de ningún modo tu cursada, calificaciones ni vínculo con el equipo docente.</p>
+      <p>Si no prestás tu consentimiento de uso de datos para fines de investigación, el formulario continuará, pero tus datos no serán utilizados en ninguna investigación futura. Esto tampoco afectará de ningún modo tu cursada, calificaciones ni vínculo con el equipo docente.</p>
+      <p style="margin-bottom:0;">Si decidís no contestar la encuesta y necesitás comunicar alguna situación particular vinculada con tu cursada o requerís adecuaciones, podés escribirle a lx profesorx de tu comisión.</p>
+    </div>
+
+    <form method="post">{% csrf_token %}
+      <p><strong>8.</strong> ¿Prestás tu consentimiento libre e informado para que las respuestas de esta encuesta sean utilizadas con fines pedagógicos vinculados a la cursada, por ejemplo para seguimiento, acompañamiento y, si correspondiera, contacto del equipo docente?</p>
+      {% for radio in consent_form.consentimiento_pedagogico %}<label style="margin-right:1rem;">{{ radio.tag }} {{ radio.choice_label }}</label>{% endfor %}
+
+      {% if tipo == 'completa' %}
+      <div id="bloque-q9-q10">
+        <p><strong>9.</strong> Además, ¿prestás tu consentimiento libre e informado para que las respuestas de esta encuesta sean utilizadas con fines de investigación educativa, pudiendo ser vinculadas con tus registros académicos de la materia y analizadas luego de manera disociada y/o presentada de forma agregada?</p>
+        {% for radio in consent_form.consentimiento_investigacion %}<label style="margin-right:1rem;">{{ radio.tag }} {{ radio.choice_label }}</label>{% endfor %}
+        <p><strong>10.</strong> ¿Aceptás que podamos contactarte más adelante por correo o WhatsApp para invitarte, de manera totalmente voluntaria, a una encuesta de seguimiento sobre tu trayectoria académica?</p>
+        {% for radio in consent_form.consentimiento_contacto_seguimiento %}<label style="margin-right:1rem;">{{ radio.tag }} {{ radio.choice_label }}</label>{% endfor %}
+      </div>
+      {% endif %}
+
+      <div id="msg-no-consentimiento" style="display:none;background:#fff3cd;border:1px solid #ffc107;padding:.75rem;border-radius:6px;margin-top:.75rem;">
+        Si elegís “No, no presto mi consentimiento” en la pregunta 8, el formulario finaliza.
+      </div>
+
+      <button class="btn btn-primary" style="margin-top:1rem;width:100%;" type="submit">Confirmar y continuar</button>
+    </form>
+  </div>
+</div>
+<script>
+(function(){
+  function update(){
+    var v=(document.querySelector('[name="consentimiento_pedagogico"]:checked')||{}).value;
+    var b=document.getElementById('bloque-q9-q10'); if(b) b.style.display=v==='true'?'':'none';
+    var m=document.getElementById('msg-no-consentimiento'); if(m) m.style.display=v==='false'?'':'none';
+  }
+  document.querySelectorAll('[name="consentimiento_pedagogico"]').forEach(function(el){el.addEventListener('change',update)});
+  update();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,10 @@
+# Archivos conservados en el repositorio docente privado pero omitidos de las
+# distribuciones públicas generadas con `git archive`.
+/.claude/** export-ignore
+/.codex/** export-ignore
+"/docs/Enseñanza lógica/**" export-ignore
+/data_utf8.json export-ignore
+/check_err.txt export-ignore
+/check_out.txt export-ignore
+/share/** export-ignore
+/mario.png export-ignore

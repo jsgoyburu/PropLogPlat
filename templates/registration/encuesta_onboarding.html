@@ -1,0 +1,640 @@
+{% extends "base.html" %}
+
+{% block title %}Encuesta de inicio — {{ config_sitio.nombre_sitio }}{% endblock %}
+
+{% block content %}
+<style>
+  select, textarea, input[type="date"], input[type="number"] {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.95rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-top: 0.25rem;
+    font-family: system-ui, sans-serif;
+    background: #fff;
+  }
+  select:focus, textarea:focus, input[type="date"]:focus, input[type="number"]:focus {
+    outline: 2px solid var(--color-acento);
+    border-color: transparent;
+  }
+  textarea { resize: vertical; }
+  .campo { margin-bottom: 1rem; }
+  .campo label { display: block; font-weight: 500; font-size: 0.9rem; }
+  .campo-pregunta { font-size: 0.9rem; font-weight: 500; margin: 0 0 0.4rem; }
+  .campo-radios { display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; }
+  .campo-radios label {
+    display: inline-flex; align-items: center;
+    gap: 0.4rem; font-size: 0.9rem; cursor: pointer; font-weight: 400;
+  }
+  .campo-checks label {
+    display: flex; align-items: center;
+    gap: 0.4rem; font-size: 0.9rem; cursor: pointer; font-weight: 400; margin-bottom: 0.3rem;
+  }
+  .error-msg { color: #dc3545; font-size: 0.85rem; margin: 0.25rem 0 0; }
+  .seccion-titulo {
+    font-size: 1rem; margin-top: 1.75rem; margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem; border-bottom: 1px solid #e0e0e0;
+  }
+  .bloque {
+    background: #f8f9fa; border: 1px solid #dee2e6;
+    border-radius: 6px; padding: 1rem; margin-bottom: 1rem;
+  }
+  .dispositivos-tabla { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 0.5rem; }
+  .dispositivos-tabla th { text-align: center; padding: 0.35rem 0.5rem; font-weight: 600; color: #444; }
+  .dispositivos-tabla th:first-child { text-align: left; }
+  .dispositivos-tabla td { text-align: center; padding: 0.35rem 0.5rem; border-top: 1px solid #e0e0e0; }
+  .dispositivos-tabla td:first-child { text-align: left; font-weight: 500; }
+</style>
+
+<div class="container" style="max-width: 700px;">
+  <div class="card" style="margin-top: 2rem; margin-bottom: 3rem;">
+    <h2 style="margin-top: 0; margin-bottom: 0.5rem;">
+      {% if modo_edicion %}Actualizar encuesta{% else %}Encuesta de inicio de cursada{% endif %}
+    </h2>
+    <p style="color: #555; font-size: 0.95rem; margin-top: 0; margin-bottom: 1.5rem;">
+      {% if modo_edicion %}
+        Podés corregir tus respuestas. Las preguntas de lógica, el artículo de Xataka y la pregunta sobre qué es la ciencia no son editables.
+      {% else %}
+        Completá la encuesta de onboarding.
+      {% endif %}
+    </p>
+
+    {% if form.errors %}
+    <div class="alert alert-error" style="margin-bottom: 1rem;">
+      Revisá los errores indicados abajo.
+    </div>
+    {% endif %}
+
+    <form method="post" novalidate>
+      {% csrf_token %}
+
+      {# ══ Sección 1: Datos básicos ══ #}
+      <h3 class="seccion-titulo" style="margin-top: 0;">Sección 1 – Datos básicos</h3>
+
+      <div class="campo">
+        <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+        {{ form.last_name }}
+        {% for e in form.last_name.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+      <div class="campo">
+        <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+        {{ form.first_name }}
+        {% for e in form.first_name.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+      <div class="campo">
+        <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+        {{ form.email }}
+        {% for e in form.email.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+      <div class="campo">
+        <label for="{{ form.dni.id_for_label }}">{{ form.dni.label }}</label>
+        {{ form.dni }}
+        {% for e in form.dni.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+      <div class="campo">
+        <label for="{{ form.whatsapp.id_for_label }}">{{ form.whatsapp.label }}</label>
+        {{ form.whatsapp }}
+        {% for e in form.whatsapp.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+      <div class="campo">
+        <label for="{{ form.fecha_nacimiento.id_for_label }}">{{ form.fecha_nacimiento.label }}</label>
+        {{ form.fecha_nacimiento }}
+        {% for e in form.fecha_nacimiento.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {% if tipo == 'completa' %}
+
+      {# ══ Sección 2: Consentimiento informado ya respondido en paso previo #}
+      <h3 class="seccion-titulo">Sección 3 – Sobre tu Facultad y Carrera elegidas</h3><p>Indicanos a qué facultad y en qué carrera te inscribiste.</p>
+
+      <div class="campo">
+        <label for="{{ form.facultad.id_for_label }}">{{ form.facultad.label }}</label>
+        {{ form.facultad }}
+        {% for e in form.facultad.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+      <div class="campo">
+        <label for="{{ form.carrera.id_for_label }}">{{ form.carrera.label }}</label>
+        {{ form.carrera }}
+        {% for e in form.carrera.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# ══ Sección 3: Origen y residencia ══ #}
+      <h3 class="seccion-titulo">Sección 4 – Sobre tu situación personal</h3><p>Vamos a hacerte algunas preguntas personales para poder tener una mejor idea de tus tiempos y recursos para el estudio. Aunque, para resguardar tu privacidad, estas preguntas no son obligatorias, nos servirían mucho para poder planificar los medios y ritmos de trabajo.</p>
+
+      {# Q13: ¿Tu lugar de origen es la Ciudad de Buenos Aires o el Gran Buenos Aires? #}
+      <div class="campo">
+        <p class="campo-pregunta">¿Tu lugar de origen es la Ciudad de Buenos Aires o el Gran Buenos Aires?</p>
+        <div class="campo-radios">
+          {% for radio in form.origen_caba_gba %}
+          <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+          {% endfor %}
+        </div>
+        {% for e in form.origen_caba_gba.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# Q14: Zona dentro de CABA/GBA (visible si Q13=Sí) #}
+      <div id="geo-vive-en" class="campo" style="display:none;">
+        <p class="campo-pregunta">{{ form.vive_en.label }}</p>
+        <div class="campo-radios">
+          {% for radio in form.vive_en %}
+          <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+          {% endfor %}
+        </div>
+        {% for e in form.vive_en.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# Q15-Q18+: Datos de mudanza (visible si Q13=No) #}
+      <div id="geo-movida" style="display:none;">
+        <div class="campo">
+          <p class="campo-pregunta">{{ form.mudado_con_familia.label }}</p>
+          <div class="campo-radios">
+            {% for radio in form.mudado_con_familia %}
+            <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="campo">
+          <p class="campo-pregunta">{{ form.mudado_para_trabajar_estudiar.label }}</p>
+          <div class="campo-radios">
+            {% for radio in form.mudado_para_trabajar_estudiar %}
+            <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="campo">
+          <label for="{{ form.tiempo_mudado.id_for_label }}">{{ form.tiempo_mudado.label }}</label>
+          {{ form.tiempo_mudado }}
+        </div>
+        <div class="campo">
+          <p class="campo-pregunta">{{ form.desde_donde.label }}</p>
+          <div class="campo-radios">
+            {% for radio in form.desde_donde %}
+            <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+            {% endfor %}
+          </div>
+        </div>
+
+        {# Q19: Provincia (visible si desde_donde=argentina) #}
+        <div id="geo-provincia" class="campo" style="display:none;">
+          <label for="{{ form.provincia_origen.id_for_label }}">{{ form.provincia_origen.label }}</label>
+          {{ form.provincia_origen }}
+        </div>
+
+        {# Q20: País (visible si desde_donde=fuera_argentina) #}
+        <div id="geo-pais" class="campo" style="display:none;">
+          <label for="{{ form.pais_origen.id_for_label }}">{{ form.pais_origen.label }}</label>
+          {{ form.pais_origen }}
+        </div>
+      </div>
+
+      {# ══ Sección 4: Situación personal ══ #}
+      <h3 class="seccion-titulo">Sección 8 – Sobre tu situación personal</h3>
+
+      <div class="campo">
+        <p class="campo-pregunta">{{ form.necesita_adecuacion.label }}</p><p style="font-size:0.82rem;color:#555;">El equipo docente podrá comunicarse con vos para conversarlo de manera confidencial.</p><p style="font-size:0.82rem;"><strong>LA RESPUESTA A ESTA PREGUNTA ES ESTRICTAMENTE OPCIONAL.</strong></p>
+        <div class="campo-radios">
+          {% for radio in form.necesita_adecuacion %}
+          <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+          {% endfor %}
+        </div>
+        {% for e in form.necesita_adecuacion.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+      <div class="campo">
+        <p class="campo-pregunta">{{ form.tiene_cud.label }}</p><p style="font-size:0.82rem;color:#555;">El equipo docente podrá comunicarse con vos para conversar sobre tu situación de manera confidencial. Además, te recomendamos comunicarte con la/s persona/s responsable/s del <strong>Área de Discapacidad del CBC</strong>. Podés preguntar por ellas en el Departamento de Alumnos.</p><p style="font-size:0.82rem;"><strong>LA RESPUESTA A ESTA PREGUNTA ES ESTRICTAMENTE OPCIONAL.</strong></p>
+        <div class="campo-radios">
+          {% for radio in form.tiene_cud %}
+          <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="campo">
+        <label for="{{ form.con_quien_vive.id_for_label }}">{{ form.con_quien_vive.label }}</label>
+        {{ form.con_quien_vive }}
+        {% for e in form.con_quien_vive.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+      <div class="campo">
+        <label for="{{ form.tiempo_viaje_puan.id_for_label }}">{{ form.tiempo_viaje_puan.label }}</label>
+        {{ form.tiempo_viaje_puan }}
+        {% for e in form.tiempo_viaje_puan.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+      <div class="campo">
+        <label for="{{ form.situacion_laboral.id_for_label }}">{{ form.situacion_laboral.label }}</label>
+        {{ form.situacion_laboral }}
+        {% for e in form.situacion_laboral.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# Q27: Días que trabaja (visible si situacion_laboral ≠ no_trabajo) #}
+      <div id="dias-trabaja-block" class="campo" style="display:none;">
+        <label for="{{ form.dias_trabaja.id_for_label }}">{{ form.dias_trabaja.label }}</label>
+        {{ form.dias_trabaja }}
+        {% for e in form.dias_trabaja.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# Q28: Acceso a internet #}
+      <div class="campo">
+        <p class="campo-pregunta">{{ form.acceso_internet.label }}</p>
+        <div class="campo-checks">
+          {% for cb in form.acceso_internet %}
+          <label>{{ cb.tag }} {{ cb.choice_label }}</label>
+          {% endfor %}
+        </div>
+        {% for e in form.acceso_internet.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# Q28b: Dispositivos #}
+      <div class="campo">
+        <p class="campo-pregunta">¿Con qué dispositivos accedés a internet?</p>
+        <table class="dispositivos-tabla">
+          <thead>
+            <tr>
+              <th>Dispositivo</th>
+              <th>Sí, tengo uno propio</th>
+              <th>Sí, lo comparto</th>
+              <th>No tengo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{ form.dispositivo_celular.label }}</td>
+              {% for radio in form.dispositivo_celular %}<td>{{ radio.tag }}</td>{% endfor %}
+            </tr>
+            <tr>
+              <td>{{ form.dispositivo_tablet.label }}</td>
+              {% for radio in form.dispositivo_tablet %}<td>{{ radio.tag }}</td>{% endfor %}
+            </tr>
+            <tr>
+              <td>{{ form.dispositivo_pc.label }}</td>
+              {% for radio in form.dispositivo_pc %}<td>{{ radio.tag }}</td>{% endfor %}
+            </tr>
+            <tr>
+              <td>{{ form.dispositivo_laptop.label }}</td>
+              {% for radio in form.dispositivo_laptop %}<td>{{ radio.tag }}</td>{% endfor %}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {# ══ Sección 5: Secundaria ══ #}
+      <h3 class="seccion-titulo">Sección 9 – Sobre tu secundaria</h3>
+
+      <div class="campo">
+        <label for="{{ form.tiempo_desde_secundaria.id_for_label }}">{{ form.tiempo_desde_secundaria.label }}</label>
+        {{ form.tiempo_desde_secundaria }}
+        {% for e in form.tiempo_desde_secundaria.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+      <div class="campo">
+        <label for="{{ form.tipo_escuela.id_for_label }}">{{ form.tipo_escuela.label }}</label>
+        {{ form.tipo_escuela }}
+        {% for e in form.tipo_escuela.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# ══ Sección 6: Estudios superiores ══ #}
+      <h3 class="seccion-titulo">Sección 10 – Sobre tus estudios de Nivel Superior</h3>
+
+      <div class="campo">
+        <label for="{{ form.estudios_superiores.id_for_label }}">{{ form.estudios_superiores.label }}</label>
+        {{ form.estudios_superiores }}
+        {% for e in form.estudios_superiores.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# Si estudios en UBA #}
+      <div id="sup-uba" style="display:none;">
+        <div class="campo">
+          <label for="{{ form.carrera_uba_anterior.id_for_label }}">{{ form.carrera_uba_anterior.label }}</label>
+          {{ form.carrera_uba_anterior }}
+          <p style="margin:0.35rem 0 0; font-size:0.82rem; color:#555;">
+            Esta lista incluye todas las carreras de la UBA, independientemente de la facultad seleccionada arriba.
+          </p>
+        </div>
+        <div class="campo">
+          <p class="campo-pregunta">{{ form.termino_cbc_anterior.label }}</p>
+          <div class="campo-radios">
+            {% for radio in form.termino_cbc_anterior %}
+            <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="campo" id="sup-uba-recibio" style="display:none;">
+          <p class="campo-pregunta">{{ form.se_recibio_uba.label }}</p>
+          <div class="campo-radios">
+            {% for radio in form.se_recibio_uba %}
+            <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      {# Si estudios fuera de UBA #}
+      <div id="sup-fuera" style="display:none;">
+        <div class="campo">
+          <label for="{{ form.tipo_inst_fuera_uba.id_for_label }}">{{ form.tipo_inst_fuera_uba.label }}</label>
+          {{ form.tipo_inst_fuera_uba }}
+        </div>
+        <div id="sup-fuera-otras" class="campo" style="display:none;">
+          <label for="{{ form.tipo_inst_fuera_uba_otras.id_for_label }}">{{ form.tipo_inst_fuera_uba_otras.label }}</label>
+          {{ form.tipo_inst_fuera_uba_otras }}
+        </div>
+        <div class="campo">
+          <label for="{{ form.carrera_fuera_uba.id_for_label }}">{{ form.carrera_fuera_uba.label }}</label>
+          {{ form.carrera_fuera_uba }}
+        </div>
+        <div class="campo">
+          <p class="campo-pregunta">{{ form.se_recibio_fuera_uba.label }}</p>
+          <div class="campo-radios">
+            {% for radio in form.se_recibio_fuera_uba %}
+            <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      {# ══ Sección 7: CBC ══ #}
+      <h3 class="seccion-titulo">Sección 14 – Sobre tu cursada del CBC</h3>
+
+      <div class="campo">
+        <p class="campo-pregunta">{{ form.hizo_uba_xxi.label }}</p>
+        <div class="campo-radios">
+          {% for radio in form.hizo_uba_xxi %}
+          <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="campo">
+        <label for="{{ form.tiempo_en_cbc.id_for_label }}">{{ form.tiempo_en_cbc.label }}</label>
+        {{ form.tiempo_en_cbc }}
+        {% for e in form.tiempo_en_cbc.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# Historial en CBC: visible si tiempo_en_cbc ≥ 1-2 años #}
+      <div id="cbc-historial" style="display:none;">
+        <div class="campo">
+          <label for="{{ form.interrupcion_cbc.id_for_label }}">{{ form.interrupcion_cbc.label }}</label>
+          {{ form.interrupcion_cbc }}
+        </div>
+        <div class="campo">
+          <p class="campo-pregunta">{{ form.ya_curso_ipc.label }}</p>
+          <div class="campo-radios">
+            {% for radio in form.ya_curso_ipc %}
+            <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+            {% endfor %}
+          </div>
+        </div>
+
+        {# Motivo por el que no terminó IPC: visible si ya_curso_ipc=Sí #}
+        <div id="ipc-anterior" class="campo" style="display:none;">
+          <label for="{{ form.motivo_no_termino_ipc.id_for_label }}">{{ form.motivo_no_termino_ipc.label }}</label>
+          {{ form.motivo_no_termino_ipc }}
+        </div>
+        <div id="ipc-anterior-otras" class="campo" style="display:none;">
+          <label for="{{ form.motivo_no_termino_ipc_otras.id_for_label }}">{{ form.motivo_no_termino_ipc_otras.label }}</label>
+          {{ form.motivo_no_termino_ipc_otras }}
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="{{ form.materias_aprobadas.id_for_label }}">{{ form.materias_aprobadas.label }}</label>
+        {{ form.materias_aprobadas }}
+        {% for e in form.materias_aprobadas.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# ══ Sección 8: Lógica y polémica ══ #}
+      <h3 class="seccion-titulo">Sección 18 – Algunos acertijos de lógica</h3>
+
+      <p style="font-size:0.88rem; color:#555; margin-top:0; margin-bottom:1rem;">
+        Las siguientes preguntas son solo de reflexión: no afectan tu nota ni tu cursada.
+        Respondé con total libertad.
+      </p>
+
+      {# Q44: Silogismo #}
+      <div class="bloque">
+        <p style="font-size:0.88rem; margin:0 0 0.6rem;">
+          Si María habla más bajo que Carmen y Lola habla más alto que Carmen, ¿María habla más alto o más bajo que Lola?
+        </p>
+        <div class="campo-radios">
+          {% for radio in form.acertijo_silogismo %}
+          <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+          {% endfor %}
+        </div>
+        {% for e in form.acertijo_silogismo.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# Q45: Cirugía #}
+      <div class="bloque">
+        <p style="font-size:0.88rem; margin:0 0 0.6rem;">
+          Un padre y un hijo viajan en coche y tienen un accidente… la persona que tiene que operarlo dice: “Lo siento, no puedo operarlo. Es mi hijo.” ¿Por qué?
+        </p>
+        <div class="campo-radios">{% for radio in form.acertijo_cirugia_no_se %}<label>{{ radio.tag }} {{ radio.choice_label }}</label>{% endfor %}</div><div class="campo">{{ form.acertijo_cirugia }}</div>
+        {% for e in form.acertijo_cirugia.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# Q46: Hilera #}
+      <div class="bloque">
+        <p style="font-size:0.88rem; margin:0 0 0.6rem;">
+          En una hilera de cuatro casas la familia Rodríguez vive al lado de la familia Posada, pero no al lado de la familia Rivera. Si la familia Rivera no vive al lado de la familia Martínez, ¿qué familia es vecina inmediata de la familia Martínez?
+        </p>
+        <div class="campo-radios">
+          {% for radio in form.acertijo_hilera %}
+          <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+          {% endfor %}
+        </div>
+        {% for e in form.acertijo_hilera.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      <h3 class="seccion-titulo">Sección 19 – Un poco de polémica</h3>
+      {# Q47: Artículo #}
+      <div class="bloque">
+        <p style="font-size:0.88rem; margin:0 0 0.6rem;">
+          El sitio Xataka Ciencia publicó un artículo con el siguiente título: “La risa no una expresión exclusivamente humana: ya se han logrado documentar risas en al menos 65 especies de animales diferentes” [<a href="https://www.xatakaciencia.com/sabias-que/risa-no-expresion-exclusivamente-humana-se-han-logrado-documentar-risas-al-65-especies-animales-diferentes" target="_blank" rel="noopener noreferrer">link</a>]. ¿Lo creés o no?
+        </p>
+        <div class="campo-radios">
+          {% for radio in form.articulo_risa %}
+          <label>{{ radio.tag }} {{ radio.choice_label }}</label>
+          {% endfor %}
+        </div>
+        {% for e in form.articulo_risa.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# Q48: ¿Qué es la ciencia? #}
+      <div class="campo">
+        <label for="{{ form.que_es_ciencia.id_for_label }}">{{ form.que_es_ciencia.label }}</label>
+        {{ form.que_es_ciencia }}
+        {% for e in form.que_es_ciencia.errors %}<p class="error-msg">{{ e }}</p>{% endfor %}
+      </div>
+
+      {% endif %}{# /tipo == 'completa' #}
+
+      <button type="submit" class="btn btn-primary" style="width:100%; margin-top:0.5rem;">
+        {% if modo_edicion %}Guardar cambios{% else %}Enviar y continuar{% endif %}
+      </button>
+      {% if modo_edicion %}
+      <a href="{% url 'accounts:mi_perfil' %}" style="display:block; text-align:center; margin-top:0.75rem; font-size:0.9rem; color:#555;">
+        Volver a Mi Perfil sin guardar
+      </a>
+      {% endif %}
+    </form>
+  </div>
+</div>
+
+{{ facultades_carreras_map|json_script:"facultades-carreras-data" }}
+
+<script>
+(function () {
+  function show(id) { var el = document.getElementById(id); if (el) el.style.display = ''; }
+  function hide(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; }
+
+  function radioVal(name) {
+    var el = document.querySelector('[name="' + name + '"]:checked');
+    return el ? el.value : '';
+  }
+  function selVal(name) {
+    var el = document.querySelector('select[name="' + name + '"]');
+    return el ? el.value : '';
+  }
+
+  function actualizarCarrerasPorFacultad() {
+    var facultadSelect = document.querySelector('select[name="facultad"]');
+    var carreraSelect = document.getElementById('{{ form.carrera.id_for_label }}');
+    var dataEl = document.getElementById('facultades-carreras-data');
+    if (!facultadSelect || !carreraSelect || !dataEl) return;
+
+    var mapa = {};
+    try {
+      mapa = JSON.parse(dataEl.textContent || '{}');
+    } catch (e) {
+      mapa = {};
+    }
+
+    var placeholder = '— Seleccioná tu carrera —';
+    var actual = carreraSelect.value;
+    var carreras = mapa[facultadSelect.value] || [];
+    var todas = carreraSelect.dataset.allCarreras ? JSON.parse(carreraSelect.dataset.allCarreras) : [];
+    var labels = {};
+    todas.forEach(function (par) { labels[par[0]] = par[1]; });
+
+    carreraSelect.innerHTML = '';
+    carreraSelect.appendChild(new Option(placeholder, ''));
+
+    carreras.forEach(function (carrera) {
+      carreraSelect.appendChild(new Option(labels[carrera] || carrera, carrera));
+    });
+
+    carreraSelect.value = carreras.indexOf(actual) >= 0 ? actual : '';
+  }
+
+  /* Q13: ¿Sos de CABA/GBA? */
+  function actualizarGeo() {
+    var v = radioVal('origen_caba_gba');
+    if (v === 'true')  { show('geo-vive-en'); hide('geo-movida'); }
+    else if (v === 'false') { hide('geo-vive-en'); show('geo-movida'); actualizarDesde(); }
+    else               { hide('geo-vive-en'); hide('geo-movida'); }
+  }
+
+  /* Q18: desde_donde */
+  function actualizarDesde() {
+    var v = radioVal('desde_donde');
+    if (v === 'argentina')       { show('geo-provincia'); hide('geo-pais'); }
+    else if (v === 'fuera_argentina') { hide('geo-provincia'); show('geo-pais'); }
+    else                         { hide('geo-provincia'); hide('geo-pais'); }
+  }
+
+  /* Q26: situacion_laboral */
+  function actualizarLaboral() {
+    var v = selVal('situacion_laboral');
+    if (v && v !== 'no_trabajo') { show('dias-trabaja-block'); }
+    else                         { hide('dias-trabaja-block'); }
+  }
+
+  /* Q31: estudios_superiores */
+  function actualizarSuperiores() {
+    var v = selVal('estudios_superiores');
+    if (v === 'si_uba')       { show('sup-uba'); hide('sup-fuera'); }
+    else if (v === 'si_fuera_uba') { hide('sup-uba'); show('sup-fuera'); }
+    else                      { hide('sup-uba'); hide('sup-fuera'); }
+    actualizarRecibioUBA();
+  }
+
+  function actualizarRecibioUBA() {
+    var v = radioVal('termino_cbc_anterior');
+    if (v === 'true') { show('sup-uba-recibio'); }
+    else { hide('sup-uba-recibio'); }
+  }
+
+
+  function actualizarSupFueraOtras() {
+    var v = selVal('tipo_inst_fuera_uba');
+    if (v === 'otras') { show('sup-fuera-otras'); }
+    else { hide('sup-fuera-otras'); }
+  }
+
+  function actualizarMotivoOtras() {
+    var v = selVal('motivo_no_termino_ipc');
+    if (v === 'otra') { show('ipc-anterior-otras'); }
+    else { hide('ipc-anterior-otras'); }
+  }
+  /* Q39: tiempo_en_cbc */
+  function actualizarCBC() {
+    var v = selVal('tiempo_en_cbc');
+    if (v === '1_2_anios' || v === 'mas_2_anios') {
+      show('cbc-historial');
+      actualizarIPC();
+    } else {
+      hide('cbc-historial');
+    }
+  }
+
+  /* Q41: ya_curso_ipc */
+  function actualizarIPC() {
+    var v = radioVal('ya_curso_ipc');
+    if (v === 'true') { show('ipc-anterior'); }
+    else              { hide('ipc-anterior'); }
+  }
+
+  /* Registrar listeners */
+  document.querySelectorAll('[name="origen_caba_gba"]').forEach(function (r) {
+    r.addEventListener('change', actualizarGeo);
+  });
+  document.querySelectorAll('[name="desde_donde"]').forEach(function (r) {
+    r.addEventListener('change', actualizarDesde);
+  });
+  var carreraSelect = document.getElementById('{{ form.carrera.id_for_label }}');
+  if (carreraSelect) {
+    carreraSelect.dataset.allCarreras = JSON.stringify(Array.from(carreraSelect.options).slice(1).map(function (opt) {
+      return [opt.value, opt.text];
+    }));
+  }
+
+  var facultadSelect = document.querySelector('select[name="facultad"]');
+  if (facultadSelect) facultadSelect.addEventListener('change', actualizarCarrerasPorFacultad);
+
+  var elLaboral = document.querySelector('select[name="situacion_laboral"]');
+  if (elLaboral) elLaboral.addEventListener('change', actualizarLaboral);
+  var elSup = document.querySelector('select[name="estudios_superiores"]');
+  if (elSup) elSup.addEventListener('change', actualizarSuperiores);
+  var elTipoInst = document.querySelector('select[name="tipo_inst_fuera_uba"]');
+  if (elTipoInst) elTipoInst.addEventListener('change', actualizarSupFueraOtras);
+  var elCBC = document.querySelector('select[name="tiempo_en_cbc"]');
+  if (elCBC) elCBC.addEventListener('change', actualizarCBC);
+  document.querySelectorAll('[name="ya_curso_ipc"]').forEach(function (r) {
+    r.addEventListener('change', actualizarIPC);
+  });
+  document.querySelectorAll('[name="termino_cbc_anterior"]').forEach(function (r) {
+    r.addEventListener('change', actualizarRecibioUBA);
+  });
+  var elMotivo = document.querySelector('select[name="motivo_no_termino_ipc"]');
+  if (elMotivo) elMotivo.addEventListener('change', actualizarMotivoOtras);
+
+  /* Inicializar (para re-display tras error de validación) */
+  actualizarCarrerasPorFacultad();
+  actualizarGeo();
+  actualizarDesde();
+  actualizarLaboral();
+  actualizarSuperiores();
+  actualizarRecibioUBA();
+  actualizarSupFueraOtras();
+  actualizarCBC();
+  actualizarIPC();
+  actualizarMotivoOtras();
+})();
+</script>
+{% endblock %}

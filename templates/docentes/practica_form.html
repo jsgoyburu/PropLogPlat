@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if modo == 'crear' %}Nueva práctica{% else %}Editar práctica{% endif %} · Panel docente{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="card">
+    <div class="breadcrumb">
+      <a href="{% url 'docentes:comisiones_list' %}">Panel docente</a>
+      &rsaquo; {% if modo == 'crear' %}Nueva práctica{% else %}<a href="{% url 'docentes:practica_detail' practica.id %}">{{ practica.titulo }}</a> &rsaquo; Editar{% endif %}
+    </div>
+    <h1 style="margin: 0.25rem 0 1.25rem;">
+      {% if modo == 'crear' %}Nueva práctica{% else %}Editar práctica{% endif %}
+    </h1>
+
+    {{ form.media }}
+
+    <form method="post">
+      {% csrf_token %}
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; align-items:start;">
+        <!-- Título (ancho completo) -->
+        <div style="grid-column: 1 / -1;">
+          <label>{{ form.titulo.label }}</label>
+          {{ form.titulo }}
+          {% if form.titulo.errors %}
+            <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ form.titulo.errors|striptags }}</span>
+          {% endif %}
+        </div>
+
+        <!-- Descripción (ancho completo) -->
+        <div style="grid-column: 1 / -1;">
+          <label>{{ form.descripcion.label }}</label>
+          {{ form.descripcion }}
+          {% if form.descripcion.help_text %}
+            <p style="margin:0.35rem 0 0; font-size:0.82rem; color:#666;">{{ form.descripcion.help_text }}</p>
+          {% endif %}
+          {% if form.descripcion.errors %}
+            <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ form.descripcion.errors|striptags }}</span>
+          {% endif %}
+        </div>
+
+        <!-- Comisión -->
+        <div>
+          <label>{{ pc_form.comision.label }}</label>
+          {{ pc_form.comision }}
+          {% if pc_form.comision.errors %}
+            <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ pc_form.comision.errors|striptags }}</span>
+          {% endif %}
+        </div>
+
+        <!-- Orden -->
+        <div>
+          <label>{{ pc_form.orden.label }}</label>
+          {{ pc_form.orden }}
+          {% if pc_form.orden.errors %}
+            <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ pc_form.orden.errors|striptags }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Período de disponibilidad -->
+      <div style="margin-top:1rem; padding:0.75rem 1rem; background:#f8f9fa; border-radius:6px; border:1px solid #e0e0e0;">
+        <p style="margin:0 0 0.6rem; font-weight:500; font-size:0.9rem;">Período de disponibilidad <span style="font-weight:400; color:#888;">(opcional)</span></p>
+        <p style="margin:0 0 0.75rem; font-size:0.82rem; color:#666;">
+          Si completás alguna de estas fechas, los estudiantes solo podrán acceder a la práctica dentro del período indicado.
+        </p>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
+          <div>
+            <label style="font-size:0.85rem; font-weight:500; display:block; margin-bottom:0.2rem;">{{ pc_form.fecha_apertura.label }}</label>
+            {{ pc_form.fecha_apertura }}
+            {% if pc_form.fecha_apertura.errors %}
+              <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ pc_form.fecha_apertura.errors|striptags }}</span>
+            {% endif %}
+          </div>
+          <div>
+            <label style="font-size:0.85rem; font-weight:500; display:block; margin-bottom:0.2rem;">{{ pc_form.fecha_cierre.label }}</label>
+            {{ pc_form.fecha_cierre }}
+            {% if pc_form.fecha_cierre.errors %}
+              <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ pc_form.fecha_cierre.errors|striptags }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div style="margin-top:1rem; padding-top:0.75rem; border-top:1px solid #eee;">
+          <label style="font-size:0.85rem; font-weight:500; display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer;">
+            {{ pc_form.desbloqueo_secuencial }}
+            <span>{{ pc_form.desbloqueo_secuencial.label }}</span>
+          </label>
+          <p style="margin:0.3rem 0 0 1.6rem; font-size:0.82rem; color:#666;">
+            {{ pc_form.desbloqueo_secuencial.help_text }}
+          </p>
+          {% if pc_form.desbloqueo_secuencial.errors %}
+            <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ pc_form.desbloqueo_secuencial.errors|striptags }}</span>
+          {% endif %}
+        </div>
+
+        {% if pc_form.non_field_errors %}
+          <span class="alert alert-error" style="display:block; margin-top:0.4rem; padding:0.4rem 0.6rem;">{{ pc_form.non_field_errors|striptags }}</span>
+        {% endif %}
+      </div>
+
+      <!-- Banco común -->
+      <div style="margin-top:0.75rem; padding:0.75rem 1rem; background:#f8f9fa; border-radius:6px; border:1px solid #e0e0e0;">
+        <label style="display:flex; align-items:center; gap:0.6rem; cursor:pointer; font-weight:500;">
+          {{ form.es_publica }}
+          <span>{{ form.es_publica.label }}</span>
+        </label>
+        <p style="margin:0.3rem 0 0 1.6rem; font-size:0.82rem; color:#666;">
+          Si la marcás, cualquier docente puede importar esta práctica a sus comisiones.
+          Los ejercicios no se duplican; se reutilizan los originales.
+        </p>
+        {% if form.es_publica.errors %}
+          <span class="alert alert-error" style="display:block; margin-top:0.3rem; padding:0.4rem 0.6rem;">{{ form.es_publica.errors|striptags }}</span>
+        {% endif %}
+      </div>
+
+      <div style="display:flex; gap:0.75rem; margin-top:1.25rem;">
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        {% if modo == 'editar' %}
+          <a class="btn btn-secondary" href="{% url 'docentes:practica_detail' practica.id %}">Cancelar</a>
+        {% else %}
+          <a class="btn btn-secondary" href="{% url 'docentes:comisiones_list' %}">Cancelar</a>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
