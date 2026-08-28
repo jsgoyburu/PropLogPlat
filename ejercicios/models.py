@@ -20,7 +20,7 @@ import logging
 from django.conf import settings
 from django.db import models
 from django_ckeditor_5.fields import CKEditor5Field
-from django.utils.translation import get_language
+from django.utils.translation import get_language, gettext
 
 from cursos.models import Comision
 
@@ -29,9 +29,15 @@ logger = logging.getLogger(__name__)
 
 def _texto_localizado(instancia, campo_base):
     """Devuelve una traducción disponible o conserva el castellano original."""
-    idioma = (get_language() or 'es').split('-')[0]
-    if idioma in {'en', 'fr', 'de'}:
-        traduccion = getattr(instancia, f'{campo_base}_{idioma}', '')
+    idioma = (get_language() or 'es').lower().replace('_', '-')
+    sufijo = {
+        'en': 'en',
+        'fr': 'fr',
+        'de': 'de',
+        'zh-hans': 'zh_hans',
+    }.get(idioma)
+    if sufijo:
+        traduccion = getattr(instancia, f'{campo_base}_{sufijo}', '')
         if traduccion:
             return traduccion
     return getattr(instancia, campo_base)
@@ -92,6 +98,12 @@ class Ejercicio(models.Model):
         blank=True,
         default='',
         verbose_name='enunciado en alemán',
+        help_text='Traducción opcional. Si queda vacía se mostrará el castellano original.',
+    )
+    enunciado_zh_hans = models.TextField(
+        blank=True,
+        default='',
+        verbose_name='enunciado en chino simplificado',
         help_text='Traducción opcional. Si queda vacía se mostrará el castellano original.',
     )
     formula_solucion = models.CharField(
@@ -160,22 +172,7 @@ class Ejercicio(models.Model):
 
     @property
     def tipo_localizado(self):
-        idioma = (get_language() or 'es').split('-')[0]
-        etiquetas = {
-            'tabla_verdad': {
-                'es': 'Tabla de verdad', 'en': 'Truth table',
-                'fr': 'Table de vérité', 'de': 'Wahrheitstafel',
-            },
-            'formalizacion': {
-                'es': 'Formalización', 'en': 'Formalization',
-                'fr': 'Formalisation', 'de': 'Formalisierung',
-            },
-            'determinacion_verdad': {
-                'es': 'Determinación de valor de verdad', 'en': 'Truth-value determination',
-                'fr': 'Détermination de la valeur de vérité', 'de': 'Bestimmung des Wahrheitswerts',
-            },
-        }
-        return etiquetas.get(self.tipo, {}).get(idioma, self.get_tipo_display())
+        return gettext(self.get_tipo_display())
 
 
 class Practica(models.Model):
@@ -221,6 +218,12 @@ class Practica(models.Model):
         default='',
         verbose_name='título en alemán',
     )
+    titulo_zh_hans = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        verbose_name='título en chino simplificado',
+    )
     descripcion = CKEditor5Field(
         null=True,
         blank=True,
@@ -244,6 +247,12 @@ class Practica(models.Model):
         null=True,
         blank=True,
         verbose_name='descripción en alemán',
+        config_name='extends',
+    )
+    descripcion_zh_hans = CKEditor5Field(
+        null=True,
+        blank=True,
+        verbose_name='descripción en chino simplificado',
         config_name='extends',
     )
     es_publica = models.BooleanField(

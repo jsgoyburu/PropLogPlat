@@ -25,6 +25,7 @@ NOMBRE_JSON = 'package.json'
 MAX_ARCHIVO = 5 * 1024 * 1024
 MAX_JSON = 5 * 1024 * 1024
 TIPOS_EJERCICIO = {valor for valor, _etiqueta in Ejercicio.TIPO_CHOICES}
+IDIOMAS_CONTENIDO = ('es', 'en', 'fr', 'de', 'zh-hans')
 
 
 class PaqueteInvalido(ValueError):
@@ -43,6 +44,7 @@ def _ejercicio_dict(ejercicio):
             'en': _texto_plano(ejercicio.enunciado_en),
             'fr': _texto_plano(ejercicio.enunciado_fr),
             'de': _texto_plano(ejercicio.enunciado_de),
+            'zh-hans': _texto_plano(ejercicio.enunciado_zh_hans),
         },
         'tipo': ejercicio.tipo,
         'formula_solucion': ejercicio.formula_solucion,
@@ -85,12 +87,14 @@ def paquete_practica(practica):
                 'en': _texto_plano(practica.titulo_en),
                 'fr': _texto_plano(practica.titulo_fr),
                 'de': _texto_plano(practica.titulo_de),
+                'zh-hans': _texto_plano(practica.titulo_zh_hans),
             },
             'description': {
                 'es': _texto_plano(practica.descripcion),
                 'en': _texto_plano(practica.descripcion_en),
                 'fr': _texto_plano(practica.descripcion_fr),
                 'de': _texto_plano(practica.descripcion_de),
+                'zh-hans': _texto_plano(practica.descripcion_zh_hans),
             },
             'exercises': ejercicios,
         },
@@ -161,7 +165,7 @@ def _mapa_idiomas(valor, campo, *, obligatorio_es=True, max_length=10000):
     if not isinstance(valor, dict):
         raise PaqueteInvalido(f'{campo} debe contener traducciones por idioma.')
     limpio = {}
-    for idioma in ('es', 'en', 'fr', 'de'):
+    for idioma in IDIOMAS_CONTENIDO:
         texto = valor.get(idioma, '')
         if texto is None:
             texto = ''
@@ -229,6 +233,7 @@ def _crear_ejercicio(data, usuario):
     ejercicio.enunciado_en = datos['enunciado']['en']
     ejercicio.enunciado_fr = datos['enunciado']['fr']
     ejercicio.enunciado_de = datos['enunciado']['de']
+    ejercicio.enunciado_zh_hans = datos['enunciado']['zh-hans']
     ejercicio.diccionario_solucion = datos['diccionario_solucion']
     ejercicio.valores_verdad_solucion = datos['valores_verdad_solucion']
     try:
@@ -267,10 +272,12 @@ def instalar_paquete(payload, usuario):
         titulo_en=titulo['en'],
         titulo_fr=titulo['fr'],
         titulo_de=titulo['de'],
+        titulo_zh_hans=titulo['zh-hans'],
         descripcion=descripcion['es'],
         descripcion_en=descripcion['en'],
         descripcion_fr=descripcion['fr'],
         descripcion_de=descripcion['de'],
+        descripcion_zh_hans=descripcion['zh-hans'],
         es_publica=False,
         creada_por=usuario,
         practica_origen=None,

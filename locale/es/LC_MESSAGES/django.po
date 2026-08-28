@@ -1,0 +1,314 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PropLogPlat\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-27 22:00-0300\n"
+"PO-Revision-Date: 2026-08-27 22:00-0300\n"
+"Last-Translator: PropLogPlat contributors\n"
+"Language: es\n"
+"Language-Team: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid "ui.teacher_panel"
+msgstr "Panel docente"
+
+msgid "ui.reviews"
+msgstr "Correcciones"
+
+msgid "ui.analytics"
+msgstr "Analíticas"
+
+msgid "ui.home"
+msgstr "Inicio"
+
+msgid "ui.my_history"
+msgstr "Mi historial"
+
+msgid "ui.log_out"
+msgstr "Salir"
+
+msgid "ui.log_in"
+msgstr "Iniciar sesión"
+
+msgid "ui.teacher"
+msgstr "docente"
+
+msgid "ui.student"
+msgstr "estudiante"
+
+msgid "ui.commissions"
+msgstr "Comisiones"
+
+msgid "ui.pending_reviews"
+msgstr "Correcciones pendientes"
+
+msgid "ui.new_class"
+msgstr "+ Comisión"
+
+msgid "ui.new_practice"
+msgstr "+ Práctica"
+
+msgid "ui.new_exercise"
+msgstr "+ Ejercicio"
+
+msgid "ui.language"
+msgstr "Idioma"
+
+msgid "ui.username"
+msgstr "Usuario"
+
+msgid "ui.password"
+msgstr "Contraseña"
+
+msgid "ui.enter"
+msgstr "Entrar"
+
+msgid "ui.bad_login"
+msgstr "Usuario o contraseña incorrectos. Intentá de nuevo."
+
+msgid "ui.account_from_class_link"
+msgstr "Si no tenés cuenta, ingresá desde el link de tu comisión para registrarte."
+
+msgid "ui.my_practices"
+msgstr "Mis prácticas"
+
+msgid "ui.view_attempt_history"
+msgstr "Ver mi historial de intentos"
+
+msgid "ui.not_enrolled"
+msgstr "Todavía no estás inscripto en ninguna comisión. Pedíselo a tu docente."
+
+msgid "ui.class_no_practices"
+msgstr "Esta comisión todavía no tiene prácticas."
+
+msgid "ui.not_available_yet"
+msgstr "No disponible aún"
+
+msgid "ui.closed"
+msgstr "Cerrada"
+
+msgid "ui.completed"
+msgstr "Completada"
+
+msgid "ui.in_progress"
+msgstr "En curso"
+
+msgid "ui.not_started"
+msgstr "Sin iniciar"
+
+msgid "ui.opens"
+msgstr "Abre"
+
+msgid "ui.closed_on"
+msgstr "Cerró"
+
+msgid "ui.closes"
+msgstr "Cierra"
+
+msgid "ui.teacher_comments"
+msgstr "Intentos con comentario docente"
+
+msgid "ui.approved"
+msgstr "Aprobado"
+
+msgid "ui.rejected"
+msgstr "Rechazado"
+
+msgid "ui.your_answer"
+msgstr "Tu respuesta"
+
+msgid "ui.show_more"
+msgstr "Ver más"
+
+msgid "ui.class"
+msgstr "Comisión"
+
+msgid "ui.practice_no_exercises"
+msgstr "Esta práctica todavía no tiene ejercicios."
+
+msgid "ui.exercise"
+msgstr "Ejercicio"
+
+msgid "ui.fix"
+msgstr "Corregir"
+
+msgid "ui.solve"
+msgstr "Resolver"
+
+msgid "ui.practice_unavailable"
+msgstr "Práctica aún no disponible"
+
+msgid "ui.practice_closed"
+msgstr "Práctica cerrada"
+
+msgid "ui.back_home"
+msgstr "Volver al inicio"
+
+msgid "ui.download_zip"
+msgstr "Descargar ZIP"
+
+msgid "ui.install_package"
+msgstr "Instalar paquete"
+
+msgid "ui.install_zip"
+msgstr "Instalar ZIP"
+
+msgid "ui.view"
+msgstr "Ver"
+
+msgid "ui.edit"
+msgstr "Editar"
+
+msgid "ui.delete"
+msgstr "Eliminar"
+
+msgid "ui.practice_bank"
+msgstr "Banco de prácticas"
+
+msgid "ui.exercise_bank"
+msgstr "Banco de ejercicios"
+
+msgid "ui.setup_title"
+msgstr "Asistente de instalación"
+
+msgid "ui.complete_setup"
+msgstr "Completar instalación"
+
+msgid "ui.forgot_password"
+msgstr "¿Olvidaste tu contraseña?"
+
+msgid "ui.password_reset"
+msgstr "Recuperar contraseña"
+
+msgid "ui.reset_intro"
+msgstr "Escribí el correo electrónico con el que te registraste. Te mandamos un link para elegir una contraseña nueva."
+
+msgid "ui.email"
+msgstr "Correo electrónico"
+
+msgid "ui.send_reset_link"
+msgstr "Enviarme el link"
+
+msgid "ui.back_to_login"
+msgstr "Volver al inicio de sesión"
+
+msgid "ui.check_email"
+msgstr "Revisá tu correo"
+
+msgid "ui.reset_sent_if_registered"
+msgstr "Si esa dirección está registrada en la plataforma, ya te llegó un mail con un link para elegir una contraseña nueva."
+
+msgid "ui.reset_link_expiry"
+msgstr "El link vence en 24 horas y sirve una sola vez."
+
+msgid "ui.reset_help_teacher"
+msgstr "Si no te llega en unos minutos, revisá la carpeta de spam. Si tampoco está ahí, escribile a tu docente: puede ser que tu cuenta tenga cargada otra dirección."
+
+msgid "ui.choose_new_password"
+msgstr "Elegir contraseña nueva"
+
+msgid "ui.expired_link"
+msgstr "Link vencido"
+
+msgid "ui.choose_your_new_password"
+msgstr "Elegí tu contraseña nueva"
+
+msgid "ui.new_password"
+msgstr "Contraseña nueva"
+
+msgid "ui.repeat_new_password"
+msgstr "Repetir contraseña nueva"
+
+msgid "ui.save"
+msgstr "Guardar"
+
+msgid "ui.invalid_reset_link"
+msgstr "Este link ya no sirve"
+
+msgid "ui.invalid_reset_detail"
+msgstr "Puede que haya vencido —los links duran 24 horas— o que ya lo hayas usado para cambiar la contraseña. Pedí uno nuevo y listo."
+
+msgid "ui.request_new_link"
+msgstr "Pedir un link nuevo"
+
+msgid "ui.password_updated"
+msgstr "Contraseña actualizada"
+
+msgid "ui.ready"
+msgstr "Listo"
+
+msgid "ui.password_updated_body"
+msgstr "Tu contraseña quedó actualizada. Ya podés entrar con ella."
+
+msgid "ui.class_access"
+msgstr "Acceso a comisión"
+
+msgid "ui.class_access_intro"
+msgstr "Si ya tenés cuenta, podés iniciar sesión. Si no, registrate para comenzar el onboarding y quedar inscripto/a en esta comisión."
+
+msgid "ui.have_account_login"
+msgstr "Ya tengo cuenta · Iniciar sesión"
+
+msgid "ui.register_student"
+msgstr "Registrarme como estudiante"
+
+msgid "ui.create_account_continue"
+msgstr "Crear cuenta y continuar"
+
+msgid "ui.cohort"
+msgstr "Cohorte"
+
+msgid "ui.current"
+msgstr "en curso"
+
+msgid "ui.new_cohort"
+msgstr "+ Nueva cohorte"
+
+msgid "ui.cohorts"
+msgstr "Cohortes"
+
+msgid "ui.unchecked_all"
+msgstr "sin tildar: todas"
+
+msgid "ui.no_classes_available"
+msgstr "Sin comisiones disponibles"
+
+msgid "ui.apply"
+msgstr "Aplicar"
+
+msgid "ui.clear"
+msgstr "Limpiar"
+
+msgid "ui.empty_filter"
+msgstr "La selección de filtros no tiene datos: ninguna comisión pedida está a tu cargo, o ninguna cohorte pedida existe entre tus comisiones. No hay datos para mostrar."
+
+msgid "Tabla de verdad"
+msgstr "Tabla de verdad"
+
+msgid "Formalización"
+msgstr "Formalización"
+
+msgid "Determinación de valor de verdad"
+msgstr "Determinación de valor de verdad"
+
+msgid "Hola"
+msgstr "Hola"
+
+msgid "Alguien pidió recuperar la contraseña de la cuenta \"%(username)s\" en %(site)s."
+msgstr "Alguien pidió recuperar la contraseña de la cuenta \"%(username)s\" en %(site)s."
+
+msgid "Para elegir una contraseña nueva, entrá acá:"
+msgstr "Para elegir una contraseña nueva, entrá acá:"
+
+msgid "Este link vence en 24 horas y sirve una sola vez: apenas lo uses, deja de funcionar."
+msgstr "Este link vence en 24 horas y sirve una sola vez: apenas lo uses, deja de funcionar."
+
+msgid "Si no pediste esto, ignorá este mensaje. Tu contraseña sigue siendo la misma y nadie puede cambiarla sin abrir el link de arriba."
+msgstr "Si no pediste esto, ignorá este mensaje. Tu contraseña sigue siendo la misma y nadie puede cambiarla sin abrir el link de arriba."
+
+msgid "Recuperar tu contraseña de %(site)s"
+msgstr "Recuperar tu contraseña de %(site)s"

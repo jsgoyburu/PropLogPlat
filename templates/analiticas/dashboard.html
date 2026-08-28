@@ -21,6 +21,7 @@
 
 {% block content %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% include "analiticas/_chart_links.html" %}
 <div class="container-wide">
   <div style="display:flex; align-items:baseline; gap:1.5rem; margin-bottom:1rem; flex-wrap:wrap;">
     <h2 style="margin:0;">Dashboard analítico</h2>
@@ -34,6 +35,8 @@
     </a>
   </div>
 
+  {% include "analiticas/_filtros.html" %}
+
   {# ── Aviso de consentimientos ── #}
   <div style="background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; padding: 0.85rem 1rem; margin-bottom: 1.5rem; font-size: 0.88rem; color: #5d4037;">
     <strong>Uso de datos:</strong>
@@ -42,7 +45,7 @@
     El uso de estos datos nunca será comercial.
   </div>
 
-  {% if not comisiones_data %}
+  {% if not comisiones_data and not filtros.seleccion_vacia %}
   <div class="card">
     <p style="margin: 0; color: #666;">
       {% if user.is_staff %}
@@ -167,7 +170,7 @@
           <tbody>
             {% for ej in ejercicios_dificiles %}
             <tr style="border-bottom: 1px solid #eee;">
-              <td style="padding: 0.4rem 0.6rem; color: #333;">{{ ej.enunciado_corto }}{% if ej.enunciado_corto|length >= 69 %}…{% endif %}</td>
+              <td style="padding: 0.4rem 0.6rem; color: #333;">{% if ej.url %}<a href="{{ ej.url }}" title="{{ ej.enunciado_corto }}" target="_blank">{{ ej.enunciado_corto }}{% if ej.enunciado_corto|length >= 69 %}…{% endif %}</a>{% else %}{{ ej.enunciado_corto }}{% if ej.enunciado_corto|length >= 69 %}…{% endif %}{% endif %}</td>
               <td style="padding: 0.4rem 0.6rem; color: #555;">{{ ej.practica_titulo }}</td>
               <td style="padding: 0.4rem 0.6rem;">
                 <span style="font-size: 0.75rem; background: {% if ej.tipo == 'tabla_verdad' %}#e0f0ff{% else %}#f0f0f0{% endif %}; padding: 0.1rem 0.4rem; border-radius: 3px;">
@@ -183,7 +186,7 @@
               <td style="padding: 0.3rem 0.4rem;">
                 <button class="btn-drill"
                         data-ej="{{ ej.ejercicio_id }}"
-                        data-com="{{ comision_ids_csv }}"
+                        data-qs="{{ filtros.qs }}"
                         data-tipo="{{ ej.tipo }}"
                         style="font-size:0.75rem; padding:0.2rem 0.55rem; border:1px solid #bbb;
                                border-radius:3px; background:#f5f5f5; cursor:pointer; white-space:nowrap;">
@@ -296,7 +299,7 @@
           {% for d in distribucion_intentos %}
           <tbody x-data="{ abierto: false }">
             <tr style="border-bottom: 1px solid #eee;">
-              <td style="padding: 0.4rem 0.6rem; color: #333;">{{ d.enunciado_corto }}{% if d.enunciado_corto|length >= 69 %}…{% endif %}</td>
+              <td style="padding: 0.4rem 0.6rem; color: #333;">{% if d.url %}<a href="{{ d.url }}" title="{{ d.enunciado_corto }}" target="_blank">{{ d.enunciado_corto }}{% if d.enunciado_corto|length >= 69 %}…{% endif %}</a>{% else %}{{ d.enunciado_corto }}{% if d.enunciado_corto|length >= 69 %}…{% endif %}{% endif %}</td>
               <td style="padding: 0.4rem 0.6rem; text-align: right;">{{ d.resolvieron }}</td>
               <td style="padding: 0.4rem 0.6rem; text-align: right; color: {% if d.no_resolvieron > 0 %}#b00020{% else %}#555{% endif %};">{{ d.no_resolvieron }}</td>
               <td style="padding: 0.4rem 0.6rem; text-align: right; font-weight: {% if d.pct_no_resolvio and d.pct_no_resolvio >= 40 %}600{% else %}400{% endif %};
@@ -426,8 +429,8 @@
     </p>
     <div class="export-row" style="margin-bottom: 0.5rem;">
       <span>Exportar:</span>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'errores_sistematicos' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'errores_sistematicos' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'errores_sistematicos' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'errores_sistematicos' %}?formato=csv&{{ filtros.qs }}">CSV</a>
     </div>
     {% if errores_sistematicos %}
     <details class="tbl-collapse">
@@ -474,7 +477,6 @@
       Descomposición de los intentos en ejercicios de tabla de verdad según si el estudiante acertó
       en el <strong>juicio</strong> (validez del argumento) y/o en el <strong>cómputo</strong>
       (completar correctamente la tabla).
-      Solo disponible cuando se filtra una única comisión.
     </p>
     {% if matriz_juicio %}
     {% with m=matriz_juicio %}
@@ -669,7 +671,7 @@
       e intervalo promedio &lt; {{ cfg_umbral_adivinacion_segundos }}&thinsp;s entre intentos consecutivos,
       sin convergencia semántica detectable.
       Puede indicar práctica mecánica sin reflexión entre intentos.
-      Solo disponible para una única comisión y estudiantes con consentimiento pedagógico.
+      Solo considera estudiantes con consentimiento pedagógico.
       <em style="color: #999;">(Umbrales configurables en el admin.)</em>
     </p>
     {% if patron_baja_variacion %}
@@ -820,7 +822,7 @@
     if (!data || !data.length) { noData(canvas); return; }
     const n = data.length;
     cont.style.height = Math.min(Math.max(n * 48, 120), 400) + 'px';
-    new Chart(canvas, {
+    const chart = new Chart(canvas, {
       type: 'bar',
       data: {
         labels: data.map(d => trunc(d.enunciado_corto, 42)),
@@ -837,13 +839,17 @@
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        // El callback del tooltip se declara acá (config inicial), no se
+        // agrega después mutando chart.options: ver el comentario en
+        // tooltipEjercicios() en _chart_links.html.
+        plugins: { legend: { display: false }, tooltip: { callbacks: tooltipEjercicios(data) } },
         scales: {
           x: { min: 0, max: 100, title: { display: true, text: '% Error' } },
           y: { ticks: { font: { size: 11 } } },
         },
       },
     });
+    enlazarEjerciciosDelEje(chart, data);
   })();
 
   // ── Distribución de intentos ──
@@ -855,7 +861,7 @@
     if (!data || !data.length) { noData(canvas); return; }
     const n = data.length;
     cont.style.height = Math.min(Math.max(n * 48, 120), 500) + 'px';
-    new Chart(canvas, {
+    const chart = new Chart(canvas, {
       type: 'bar',
       data: {
         labels: data.map(d => trunc(d.enunciado_corto, 42)),
@@ -870,13 +876,17 @@
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } },
+        // El callback del tooltip se declara acá (config inicial), no se
+        // agrega después mutando chart.options: ver el comentario en
+        // tooltipEjercicios() en _chart_links.html.
+        plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: tooltipEjercicios(data) } },
         scales: {
           x: { stacked: true, title: { display: true, text: 'Estudiantes' } },
           y: { stacked: true, ticks: { font: { size: 11 } } },
         },
       },
     });
+    enlazarEjerciciosDelEje(chart, data);
   })();
 
   // ── Drill-down M3/M4/M5 por ejercicio ──
@@ -974,9 +984,9 @@
       if (!btn) return;
 
       const ejId  = btn.dataset.ej;
-      const comId = btn.dataset.com;
+      const qsStr = btn.dataset.qs;
       const tipo  = btn.dataset.tipo;
-      const key   = ejId + '_' + comId;
+      const key   = ejId + '_' + qsStr;
 
       // Encontrar la fila de drill-down correspondiente
       const drillRow = document.querySelector(`.drill-row[data-ej="${ejId}"]`);
@@ -999,7 +1009,7 @@
         return;
       }
 
-      fetch(`{% url 'analiticas:detalle_ejercicio' %}?ejercicio_id=${ejId}&comision_id=${comId}`, {
+      fetch(`{% url 'analiticas:detalle_ejercicio' %}?ejercicio_id=${ejId}&${qsStr}`, {
         headers: { 'X-Requested-With': 'XMLHttpRequest' }
       })
       .then(r => r.json())

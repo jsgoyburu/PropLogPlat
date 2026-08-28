@@ -1,20 +1,24 @@
 {% extends "base.html" %}
+{% load ui_i18n %}
 
-{% block title %}Acceso a comisión — {{ config_sitio.nombre_sitio }}{% endblock %}
+{% block title %}{% ui 'class_access' %} — {{ config_sitio.nombre_sitio }}{% endblock %}
 
 {% block content %}
 <div class="container" style="max-width: 560px;">
   <div class="card" style="margin-top: 2.5rem;">
     <h2 style="margin-top:0; margin-bottom:0.6rem;">{{ comision.nombre }}</h2>
     <p style="color:#555; margin-top:0;">
-      Si ya tenés cuenta, podés iniciar sesión. Si no, registrate para comenzar el onboarding y quedar inscripto/a en esta comisión.
+      {% ui 'class_access_intro' %}
     </p>
 
     <div style="display:flex; gap:0.6rem; flex-wrap:wrap; margin-bottom:1.1rem;">
-      <a class="btn btn-secondary" href="{{ login_url }}">Ya tengo cuenta · Iniciar sesión</a>
+      <a class="btn btn-secondary" href="{{ login_url }}">{% ui 'have_account_login' %}</a>
+      {% if recuperacion_password_habilitada %}
+      <a class="btn btn-secondary" href="{% url 'accounts:password_reset' %}">{% ui 'forgot_password' %}</a>
+      {% endif %}
     </div>
 
-    <h3 style="font-size:1rem; margin-bottom:0.9rem;">Registrarme como estudiante</h3>
+    <h3 style="font-size:1rem; margin-bottom:0.9rem;">{% ui 'register_student' %}</h3>
 
     <form method="post" novalidate>
       {% csrf_token %}
@@ -32,7 +36,7 @@
         {% endif %}
       </div>
       {% endfor %}
-      <button type="submit" class="btn btn-primary" style="width:100%;">Crear cuenta y continuar</button>
+      <button type="submit" class="btn btn-primary" style="width:100%;">{% ui 'create_account_continue' %}</button>
     </form>
   </div>
 </div>

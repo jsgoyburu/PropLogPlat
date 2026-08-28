@@ -406,8 +406,10 @@
                 {% elif detalle.ejercicio_actual and detalle.desbloqueo_secuencial %}
                   Ej. {{ detalle.ejercicio_actual.orden }}
                 {% endif %}
-                {# Práctica libre, o secuencial ya terminada pero sin revisar: la
-                   celda queda vacía y el avance lo informa la columna Resuelto. #}
+                {% comment %}
+                Práctica libre, o secuencial ya terminada pero sin revisar: la
+                celda queda vacía y el avance lo informa la columna Resuelto.
+                {% endcomment %}
               </span>
             </div>
           {% endfor %}

@@ -1,0 +1,314 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PropLogPlat\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-27 22:00-0300\n"
+"PO-Revision-Date: 2026-08-27 22:00-0300\n"
+"Last-Translator: PropLogPlat contributors\n"
+"Language: de\n"
+"Language-Team: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid "ui.teacher_panel"
+msgstr "Lehrbereich"
+
+msgid "ui.reviews"
+msgstr "Korrekturen"
+
+msgid "ui.analytics"
+msgstr "Analysen"
+
+msgid "ui.home"
+msgstr "Start"
+
+msgid "ui.my_history"
+msgstr "Mein Verlauf"
+
+msgid "ui.log_out"
+msgstr "Abmelden"
+
+msgid "ui.log_in"
+msgstr "Anmelden"
+
+msgid "ui.teacher"
+msgstr "Lehrkraft"
+
+msgid "ui.student"
+msgstr "Lernende"
+
+msgid "ui.commissions"
+msgstr "Kurse"
+
+msgid "ui.pending_reviews"
+msgstr "Offene Korrekturen"
+
+msgid "ui.new_class"
+msgstr "+ Kurs"
+
+msgid "ui.new_practice"
+msgstr "+ Übung"
+
+msgid "ui.new_exercise"
+msgstr "+ Aufgabe"
+
+msgid "ui.language"
+msgstr "Sprache"
+
+msgid "ui.username"
+msgstr "Benutzername"
+
+msgid "ui.password"
+msgstr "Passwort"
+
+msgid "ui.enter"
+msgstr "Anmelden"
+
+msgid "ui.bad_login"
+msgstr "Benutzername oder Passwort falsch. Bitte erneut versuchen."
+
+msgid "ui.account_from_class_link"
+msgstr "Wenn du noch kein Konto hast, registriere dich über den Link deines Kurses."
+
+msgid "ui.my_practices"
+msgstr "Meine Übungen"
+
+msgid "ui.view_attempt_history"
+msgstr "Meine Versuche ansehen"
+
+msgid "ui.not_enrolled"
+msgstr "Du bist noch in keinem Kurs eingeschrieben. Frage deine Lehrkraft."
+
+msgid "ui.class_no_practices"
+msgstr "Dieser Kurs hat noch keine Übungen."
+
+msgid "ui.not_available_yet"
+msgstr "Noch nicht verfügbar"
+
+msgid "ui.closed"
+msgstr "Geschlossen"
+
+msgid "ui.completed"
+msgstr "Abgeschlossen"
+
+msgid "ui.in_progress"
+msgstr "In Bearbeitung"
+
+msgid "ui.not_started"
+msgstr "Nicht begonnen"
+
+msgid "ui.opens"
+msgstr "Öffnet"
+
+msgid "ui.closed_on"
+msgstr "Geschlossen"
+
+msgid "ui.closes"
+msgstr "Schließt"
+
+msgid "ui.teacher_comments"
+msgstr "Versuche mit Rückmeldung"
+
+msgid "ui.approved"
+msgstr "Bestätigt"
+
+msgid "ui.rejected"
+msgstr "Abgelehnt"
+
+msgid "ui.your_answer"
+msgstr "Deine Antwort"
+
+msgid "ui.show_more"
+msgstr "Mehr anzeigen"
+
+msgid "ui.class"
+msgstr "Kurs"
+
+msgid "ui.practice_no_exercises"
+msgstr "Diese Übung hat noch keine Aufgaben."
+
+msgid "ui.exercise"
+msgstr "Aufgabe"
+
+msgid "ui.fix"
+msgstr "Überarbeiten"
+
+msgid "ui.solve"
+msgstr "Lösen"
+
+msgid "ui.practice_unavailable"
+msgstr "Übung noch nicht verfügbar"
+
+msgid "ui.practice_closed"
+msgstr "Übung geschlossen"
+
+msgid "ui.back_home"
+msgstr "Zurück zum Start"
+
+msgid "ui.download_zip"
+msgstr "ZIP herunterladen"
+
+msgid "ui.install_package"
+msgstr "Paket installieren"
+
+msgid "ui.install_zip"
+msgstr "ZIP installieren"
+
+msgid "ui.view"
+msgstr "Ansehen"
+
+msgid "ui.edit"
+msgstr "Bearbeiten"
+
+msgid "ui.delete"
+msgstr "Löschen"
+
+msgid "ui.practice_bank"
+msgstr "Übungsbibliothek"
+
+msgid "ui.exercise_bank"
+msgstr "Aufgabenbibliothek"
+
+msgid "ui.setup_title"
+msgstr "Installationsassistent"
+
+msgid "ui.complete_setup"
+msgstr "Installation abschließen"
+
+msgid "ui.forgot_password"
+msgstr "Passwort vergessen?"
+
+msgid "ui.password_reset"
+msgstr "Passwort zurücksetzen"
+
+msgid "ui.reset_intro"
+msgstr "Gib die E-Mail-Adresse ein, mit der du dich registriert hast. Wir senden dir einen Link zum Festlegen eines neuen Passworts."
+
+msgid "ui.email"
+msgstr "E-Mail-Adresse"
+
+msgid "ui.send_reset_link"
+msgstr "Link senden"
+
+msgid "ui.back_to_login"
+msgstr "Zurück zur Anmeldung"
+
+msgid "ui.check_email"
+msgstr "Prüfe deine E-Mails"
+
+msgid "ui.reset_sent_if_registered"
+msgstr "Wenn diese Adresse auf der Plattform registriert ist, wurde eine E-Mail mit einem Link zum Festlegen eines neuen Passworts gesendet."
+
+msgid "ui.reset_link_expiry"
+msgstr "Der Link läuft nach 24 Stunden ab und kann nur einmal verwendet werden."
+
+msgid "ui.reset_help_teacher"
+msgstr "Wenn die E-Mail nach einigen Minuten nicht ankommt, prüfe den Spam-Ordner. Ist sie auch dort nicht, wende dich an deine Lehrkraft: Für dein Konto ist möglicherweise eine andere Adresse hinterlegt."
+
+msgid "ui.choose_new_password"
+msgstr "Neues Passwort wählen"
+
+msgid "ui.expired_link"
+msgstr "Abgelaufener Link"
+
+msgid "ui.choose_your_new_password"
+msgstr "Wähle dein neues Passwort"
+
+msgid "ui.new_password"
+msgstr "Neues Passwort"
+
+msgid "ui.repeat_new_password"
+msgstr "Neues Passwort wiederholen"
+
+msgid "ui.save"
+msgstr "Speichern"
+
+msgid "ui.invalid_reset_link"
+msgstr "Dieser Link ist nicht mehr gültig"
+
+msgid "ui.invalid_reset_detail"
+msgstr "Der Link ist möglicherweise abgelaufen – er gilt 24 Stunden – oder wurde bereits zum Ändern des Passworts verwendet. Fordere einfach einen neuen an."
+
+msgid "ui.request_new_link"
+msgstr "Neuen Link anfordern"
+
+msgid "ui.password_updated"
+msgstr "Passwort aktualisiert"
+
+msgid "ui.ready"
+msgstr "Fertig"
+
+msgid "ui.password_updated_body"
+msgstr "Dein Passwort wurde aktualisiert. Du kannst dich jetzt damit anmelden."
+
+msgid "ui.class_access"
+msgstr "Kurszugang"
+
+msgid "ui.class_access_intro"
+msgstr "Wenn du bereits ein Konto hast, melde dich an. Andernfalls registriere dich, um das Onboarding zu beginnen und diesem Kurs beizutreten."
+
+msgid "ui.have_account_login"
+msgstr "Ich habe ein Konto · Anmelden"
+
+msgid "ui.register_student"
+msgstr "Als Lernende:r registrieren"
+
+msgid "ui.create_account_continue"
+msgstr "Konto erstellen und fortfahren"
+
+msgid "ui.cohort"
+msgstr "Kohorte"
+
+msgid "ui.current"
+msgstr "laufend"
+
+msgid "ui.new_cohort"
+msgstr "+ Neue Kohorte"
+
+msgid "ui.cohorts"
+msgstr "Kohorten"
+
+msgid "ui.unchecked_all"
+msgstr "ohne Auswahl: alle"
+
+msgid "ui.no_classes_available"
+msgstr "Keine Kurse verfügbar"
+
+msgid "ui.apply"
+msgstr "Anwenden"
+
+msgid "ui.clear"
+msgstr "Zurücksetzen"
+
+msgid "ui.empty_filter"
+msgstr "Die ausgewählten Filter enthalten keine Daten: Keiner der angeforderten Kurse ist dir zugeordnet oder keine der angeforderten Kohorten existiert in deinen Kursen. Es gibt keine Daten anzuzeigen."
+
+msgid "Tabla de verdad"
+msgstr "Wahrheitstafel"
+
+msgid "Formalización"
+msgstr "Formalisierung"
+
+msgid "Determinación de valor de verdad"
+msgstr "Bestimmung des Wahrheitswerts"
+
+msgid "Hola"
+msgstr "Hallo"
+
+msgid "Alguien pidió recuperar la contraseña de la cuenta \"%(username)s\" en %(site)s."
+msgstr "Jemand hat das Zurücksetzen des Passworts für das Konto „%(username)s“ auf %(site)s angefordert."
+
+msgid "Para elegir una contraseña nueva, entrá acá:"
+msgstr "Um ein neues Passwort zu wählen, öffne diesen Link:"
+
+msgid "Este link vence en 24 horas y sirve una sola vez: apenas lo uses, deja de funcionar."
+msgstr "Dieser Link läuft nach 24 Stunden ab und kann nur einmal verwendet werden. Nach der Verwendung ist er ungültig."
+
+msgid "Si no pediste esto, ignorá este mensaje. Tu contraseña sigue siendo la misma y nadie puede cambiarla sin abrir el link de arriba."
+msgstr "Wenn du dies nicht angefordert hast, ignoriere diese Nachricht. Dein Passwort bleibt unverändert und kann ohne den obigen Link nicht geändert werden."
+
+msgid "Recuperar tu contraseña de %(site)s"
+msgstr "Passwort für %(site)s zurücksetzen"

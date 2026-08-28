@@ -160,9 +160,22 @@ else:
 
 import sys as _sys
 
+# ¿Esto es una corrida de tests? Un solo criterio, usado acá y por
+# PASSWORD_HASHERS más abajo.
+#
+# Se mira `argv[1]` —la posición del subcomando— y no `'test' in argv`, que
+# matchea también un *argumento* igual a 'test'. Con la versión laxa,
+# `manage.py changepassword test` (donde 'test' es un username, plausible en
+# este proyecto) entraba por esta rama y guardaba esa contraseña de producción
+# con el hasher de tests.
+_ES_TEST = (
+    (len(_sys.argv) > 1 and _sys.argv[1] == 'test')
+    or 'pytest' in _sys.modules
+)
+
 _redis_url = os.environ.get('REDIS_URL')
 
-if 'test' in _sys.argv or 'pytest' in _sys.modules:
+if _ES_TEST:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -183,6 +196,66 @@ else:
             'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
         }
     }
+
+# ---------------------------------------------------------------------------
+# Email
+# ---------------------------------------------------------------------------
+# Se usa para la recuperación de contraseña (django.contrib.auth).
+#
+# El backend se elige en cascada, de más específico a más genérico:
+#
+#   1. con BREVO_API_KEY → API HTTP de Brevo (`logica_ipc/email_backends.py`).
+#   2. sin ella pero con EMAIL_HOST → SMTP.
+#   3. sin ninguna → consola: el mail se imprime en la terminal, con el link
+#      clickeable. Permite probar el flujo entero en local sin credenciales.
+#
+# **Por qué la API va primero, y no SMTP.** Railway bloquea los puertos SMTP
+# salientes (25, 465, 587 y 2525) en los planes Free, Trial y Hobby; solo los
+# abre en Pro. Con el backend SMTP, el deploy no puede conectarse a ningún
+# proveedor. El 443 no se bloquea nunca. El SMTP se mantiene porque sirve en
+# local, en Railway Pro y en cualquier otro hosting.
+#
+# ATENCIÓN: en el caso 3, quien pida recuperar su contraseña ve la pantalla de
+# "revisá tu correo" y no recibe nada nunca. No anunciar la funcionalidad hasta
+# tener credenciales cargadas y entrega verificada.
+
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', '')
+
+if BREVO_API_KEY:
+    EMAIL_BACKEND = 'logica_ipc.email_backends.BrevoAPIEmailBackend'
+elif EMAIL_HOST:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+    EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+    EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True') == 'True'
+    EMAIL_USE_SSL = os.environ.get('EMAIL_USE_SSL', 'False') == 'True'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Sin timeout explícito, un SMTP que no responde bloquea un worker de gunicorn
+# hasta el timeout de socket del sistema operativo.
+EMAIL_TIMEOUT = 10
+
+DEFAULT_FROM_EMAIL = os.environ.get(
+    'DEFAULT_FROM_EMAIL', 'IPC · Lógica <no-reply@localhost>'
+)
+
+# Proxies de confianza delante de la app, para leer X-Forwarded-For.
+#
+# En Railway hay uno solo: su edge. El header es
+# `<lo que mandó el cliente>, <lo que vio el proxy 1>, ...`, así que los
+# valores de la IZQUIERDA los escribe quien llama y son falsificables. Se lee
+# desde la derecha, tantas posiciones como proxies de confianza haya.
+#
+# Subir este número solo si se agrega otro proxy delante (por ejemplo un CDN);
+# ponerlo de más hace que se confíe en un valor que escribió el cliente.
+TRUSTED_PROXY_COUNT = int(os.environ.get('TRUSTED_PROXY_COUNT', '1'))
+
+# Vencimiento del link de recuperación de contraseña.
+# Django trae 259200 (3 días); el pedido es de 24 horas.
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 24
 
 # ---------------------------------------------------------------------------
 # Modelo de usuario personalizado
@@ -217,6 +290,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# En tests, hasher rápido. El default de Django 6 es PBKDF2 con 1.200.000
+# iteraciones, deliberadamente costoso: ~1,9 s por hash en esta máquina. La
+# suite crea usuarios y hace login cientos de veces (el helper ``_u`` de los
+# tests y cada ``client.login``), así que ese costo se llevaba del orden del
+# 80 % del tiempo total: no se estaba midiendo la lógica de negocio sino el
+# derivador de claves.
+#
+# MD5 acá no debilita nada: solo aplica bajo `_ES_TEST` (ver el bloque de
+# CACHES), es decir únicamente cuando corre la suite. En producción sigue
+# vigente el hasher por defecto.
+if _ES_TEST:
+    PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
+
 # ---------------------------------------------------------------------------
 # Internacionalización
 # ---------------------------------------------------------------------------
@@ -227,6 +313,7 @@ LANGUAGES = [
     ('en', 'English'),
     ('fr', 'Français'),
     ('de', 'Deutsch'),
+    ('zh-hans', '简体中文'),
 ]
 LOCALE_PATHS = [BASE_DIR / 'locale']
 TIME_ZONE = 'America/Argentina/Buenos_Aires'

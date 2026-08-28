@@ -240,7 +240,7 @@ HEADERS_INTENTOS: tuple[str, ...] = (
 
 # ─── Datasets batch ───────────────────────────────────────────────────────────
 
-def dataset_encuesta(comision_ids, anio=None, cuatri=None) -> list[dict]:
+def dataset_encuesta(comision_ids, anio=None, cuatri=None, *, cohorte_ids=None) -> list[dict]:
     """Genera el dataset de encuesta anonimizado para los filtros dados.
 
     Una fila por estudiante (primera inscripción en las comisiones incluidas).
@@ -251,6 +251,8 @@ def dataset_encuesta(comision_ids, anio=None, cuatri=None) -> list[dict]:
         comision_ids: lista de IDs de comisión permitidos para el usuario.
         anio: filtrar por año de la cohorte (None = todos).
         cuatri: filtrar por cuatrimestre (1 o 2, None = ambos). Requiere anio.
+        cohorte_ids: PKs de cohorte a incluir (None = todas). Alternativa
+            moderna a anio/cuatri; si se pasan ambos, se aplican los dos.
 
     Returns:
         Lista de dicts con columnas :data:`HEADERS_ENCUESTA`.
@@ -273,6 +275,8 @@ def dataset_encuesta(comision_ids, anio=None, cuatri=None) -> list[dict]:
         qs_insc = qs_insc.filter(cohorte__anio=anio)
         if cuatri is not None:
             qs_insc = qs_insc.filter(cohorte__cuatrimestre=cuatri)
+    if cohorte_ids is not None:
+        qs_insc = qs_insc.filter(cohorte_id__in=cohorte_ids)
 
     filas = []
     vistos = set()
@@ -295,7 +299,7 @@ def dataset_encuesta(comision_ids, anio=None, cuatri=None) -> list[dict]:
     return filas
 
 
-def dataset_intentos(comision_ids, anio=None, cuatri=None) -> list[dict]:
+def dataset_intentos(comision_ids, anio=None, cuatri=None, *, cohorte_ids=None) -> list[dict]:
     """Genera el dataset de intentos anonimizado para los filtros dados.
 
     Una fila por intento. Solo intentos de estudiantes con
@@ -310,6 +314,8 @@ def dataset_intentos(comision_ids, anio=None, cuatri=None) -> list[dict]:
         comision_ids: lista de IDs de comisión permitidos para el usuario.
         anio: filtrar por año de la cohorte de inscripción (None = todos).
         cuatri: filtrar por cuatrimestre (1 o 2, None = ambos). Requiere anio.
+        cohorte_ids: PKs de cohorte a incluir (None = todas). Alternativa
+            moderna a anio/cuatri; si se pasan ambos, se aplican los dos.
 
     Returns:
         Lista de dicts con columnas :data:`HEADERS_INTENTOS`.
@@ -333,6 +339,8 @@ def dataset_intentos(comision_ids, anio=None, cuatri=None) -> list[dict]:
         insc_qs = insc_qs.filter(cohorte__anio=anio)
         if cuatri is not None:
             insc_qs = insc_qs.filter(cohorte__cuatrimestre=cuatri)
+    if cohorte_ids is not None:
+        insc_qs = insc_qs.filter(cohorte_id__in=cohorte_ids)
 
     # est_comision: estudiante_id → comision_id de su primera inscripción en cids
     # (fallback cuando practica_comision es NULL)
@@ -366,6 +374,8 @@ def dataset_intentos(comision_ids, anio=None, cuatri=None) -> list[dict]:
         qs = qs.filter(cohorte__anio=anio)
         if cuatri is not None:
             qs = qs.filter(cohorte__cuatrimestre=cuatri)
+    if cohorte_ids is not None:
+        qs = qs.filter(cohorte_id__in=cohorte_ids)
 
     contadores: dict = defaultdict(int)
     filas = []

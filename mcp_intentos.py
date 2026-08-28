@@ -59,6 +59,10 @@ Distribuciones onboarding:
 Todas las herramientas tienen un wrapper ``*_compat`` con firma (args, kwargs)
 para compatibilidad con conectores que envuelven parámetros.
 
+Todas las herramientas analíticas aceptan ``comision_ids`` y ``cohorte_ids``
+(listas de PK; None = todas). ``comision_id`` singular sigue funcionando como
+alias. Los IDs salen de ``listar_comisiones`` y ``listar_cohortes``.
+
 Configurar en .claude/settings.json bajo la clave mcpServers.
 Para uso local con SQLite no se requiere DATABASE_URL; alcanza con SECRET_KEY.
 """
@@ -149,6 +153,33 @@ def _correcto_efectivo(es_correcto: bool, aprobado_docente) -> bool:
     if aprobado_docente is not None:
         return bool(aprobado_docente)
     return bool(es_correcto)
+
+
+def _normalizar_comisiones(comision_id, comision_ids):
+    """Unifica el alias singular ``comision_id`` con el plural ``comision_ids``.
+
+    El plural es la forma canónica; el singular sobrevive porque hay prompts y
+    clientes MCP guardados que lo usan. Devuelve ``None`` cuando no se pidió
+    ninguna comisión, que en todo el servidor significa "todas".
+    """
+    if comision_ids:
+        return list(comision_ids)
+    if comision_id is not None:
+        return [comision_id]
+    return None
+
+
+def _comisiones_o_todas(comision_id, comision_ids):
+    """Como ``_normalizar_comisiones``, pero materializa "todas" en una lista.
+
+    Las funciones de ``analiticas.calculos`` filtran con ``__in`` y no
+    interpretan ``None``, a diferencia de las de ``analiticas.research``.
+    """
+    ids = _normalizar_comisiones(comision_id, comision_ids)
+    if ids is not None:
+        return ids
+    from cursos.models import Comision
+    return list(Comision.objects.values_list('id', flat=True))
 
 
 def _pid(usuario) -> str:
@@ -316,15 +347,19 @@ def _listar_intentos_impl(
     solo_incorrectos: bool = False,
     limit: int = 50,
     offset: int = 0,
+    comision_ids: Optional[list[int]] = None,
+    cohorte_ids: Optional[list[int]] = None,
 ) -> list[dict]:
     """Lista intentos recientes con filtros opcionales.
 
     Args:
-        comision_id: filtra por comisión (opcional).
+        comision_id: alias singular heredado. Preferir ``comision_ids``.
         ejercicio_id: filtra por ejercicio (opcional).
         solo_incorrectos: si True, excluye los intentos correctos.
         limit: máximo de resultados (default 50, máximo 500).
         offset: desplazamiento para paginación (default 0).
+        comision_ids: comisiones a incluir; None = todas.
+        cohorte_ids: cohortes a incluir; None = todas. Ver ``listar_cohortes``.
 
     Returns:
         Lista de dicts con id, estudiante, ejercicio, práctica, comisión,
@@ -350,8 +385,11 @@ def _listar_intentos_impl(
         .filter(estudiante__research_id__isnull=False)
         .order_by("-timestamp", "-id")
     )
-    if comision_id is not None:
-        qs = qs.filter(practica_comision__comision_id=comision_id)
+    _comisiones = _normalizar_comisiones(comision_id, comision_ids)
+    if _comisiones is not None:
+        qs = qs.filter(practica_comision__comision_id__in=_comisiones)
+    if cohorte_ids is not None:
+        qs = qs.filter(cohorte_id__in=cohorte_ids)
     if ejercicio_id is not None:
         qs = qs.filter(ejercicio_practica__ejercicio_id=ejercicio_id)
     if solo_incorrectos:
@@ -383,14 +421,28 @@ async def listar_intentos(
     solo_incorrectos: bool = False,
     limit: int = 50,
     offset: int = 0,
+    comision_ids: Optional[list[int]] = None,
+    cohorte_ids: Optional[list[int]] = None,
 ) -> list[dict]:
-    """Lista intentos recientes con filtros opcionales y paginación por offset."""
+    """Lista intentos recientes con filtros opcionales y paginación por offset.
+
+    Args:
+        comision_id: alias singular heredado. Preferir ``comision_ids``.
+        ejercicio_id: filtra por ejercicio (opcional).
+        solo_incorrectos: si True, excluye los intentos correctos.
+        limit: máximo de resultados (default 50, máximo 500).
+        offset: desplazamiento para paginación (default 0).
+        comision_ids: comisiones a incluir; None = todas.
+        cohorte_ids: cohortes a incluir; None = todas. Ver ``listar_cohortes``.
+    """
     return await sync_to_async(_listar_intentos_impl, thread_sensitive=True)(
         comision_id=comision_id,
         ejercicio_id=ejercicio_id,
         solo_incorrectos=solo_incorrectos,
         limit=limit,
         offset=offset,
+        comision_ids=comision_ids,
+        cohorte_ids=cohorte_ids,
     )
 
 
@@ -456,6 +508,8 @@ async def obtener_intento(intento_id: int) -> dict:
 def intentos_por_estudiante(
     pseudonimo: str,
     comision_id: Optional[int] = None,
+    comision_ids: Optional[list[int]] = None,
+    cohorte_ids: Optional[list[int]] = None,
 ) -> list[dict]:
     """Lista el historial completo de intentos de un estudiante, ordenado cronológicamente.
 
@@ -463,7 +517,9 @@ def intentos_por_estudiante(
 
     Args:
         pseudonimo: hex del research_id del estudiante (obtenido de listar_intentos).
-        comision_id: filtra por comisión (opcional).
+        comision_id: alias singular heredado. Preferir ``comision_ids``.
+        comision_ids: comisiones a incluir; None = todas.
+        cohorte_ids: cohortes a incluir; None = todas. Ver ``listar_cohortes``.
     """
     import uuid as _uuid
     from ejercicios.models import Intento
@@ -483,8 +539,11 @@ def intentos_por_estudiante(
         )
         .order_by("timestamp")
     )
-    if comision_id is not None:
-        qs = qs.filter(practica_comision__comision_id=comision_id)
+    _comisiones = _normalizar_comisiones(comision_id, comision_ids)
+    if _comisiones is not None:
+        qs = qs.filter(practica_comision__comision_id__in=_comisiones)
+    if cohorte_ids is not None:
+        qs = qs.filter(cohorte_id__in=cohorte_ids)
 
     resultado = []
     for i in qs[:200]:
@@ -511,11 +570,19 @@ def intentos_por_estudiante(
 def analizar_errores_ejercicio(
     ejercicio_id: int,
     comision_id: Optional[int] = None,
+    comision_ids: Optional[list[int]] = None,
+    cohorte_ids: Optional[list[int]] = None,
 ) -> dict:
     """Analiza los errores en un ejercicio específico.
 
     Devuelve tasa de error, las respuestas incorrectas más frecuentes y las
     categorías de error más comunes.  Útil para detectar conceptos mal comprendidos.
+
+    Args:
+        ejercicio_id: ID del ejercicio.
+        comision_id: alias singular heredado. Preferir ``comision_ids``.
+        comision_ids: comisiones a incluir; None = todas.
+        cohorte_ids: cohortes a incluir; None = todas. Ver ``listar_cohortes``.
     """
     from ejercicios.models import Intento, Ejercicio
     from django.db.models import Count
@@ -526,8 +593,11 @@ def analizar_errores_ejercicio(
         raise ValueError(f"No existe el ejercicio {ejercicio_id}")
 
     qs = Intento.objects.filter(ejercicio_practica__ejercicio_id=ejercicio_id)
-    if comision_id is not None:
-        qs = qs.filter(practica_comision__comision_id=comision_id)
+    _comisiones = _normalizar_comisiones(comision_id, comision_ids)
+    if _comisiones is not None:
+        qs = qs.filter(practica_comision__comision_id__in=_comisiones)
+    if cohorte_ids is not None:
+        qs = qs.filter(cohorte_id__in=cohorte_ids)
 
     from ejercicios.correctitud import Q_CORRECTO as _q_correcto
     from ejercicios.correctitud import Q_INCORRECTO as _q_incorrecto
@@ -568,14 +638,18 @@ def analizar_errores_ejercicio(
 def errores_compartidos(
     comision_id: Optional[int] = None,
     min_estudiantes: int = 2,
+    comision_ids: Optional[list[int]] = None,
+    cohorte_ids: Optional[list[int]] = None,
 ) -> list[dict]:
     """Detecta respuestas incorrectas que varios estudiantes escribieron exactamente igual.
 
     Revela concepciones erróneas compartidas (no errores individuales aleatorios).
 
     Args:
-        comision_id: ID de comisión (opcional; sin filtro = todas las comisiones).
+        comision_id: alias singular heredado. Preferir ``comision_ids``.
         min_estudiantes: mínimo de estudiantes distintos con la misma respuesta incorrecta.
+        comision_ids: comisiones a incluir; None = todas.
+        cohorte_ids: cohortes a incluir; None = todas. Ver ``listar_cohortes``.
     """
     from ejercicios.models import Intento
     from django.db.models import Count
@@ -583,8 +657,11 @@ def errores_compartidos(
     from ejercicios.correctitud import Q_INCORRECTO as _q_incorrecto
 
     qs = Intento.objects.filter(_q_incorrecto)
-    if comision_id is not None:
-        qs = qs.filter(practica_comision__comision_id=comision_id)
+    _comisiones = _normalizar_comisiones(comision_id, comision_ids)
+    if _comisiones is not None:
+        qs = qs.filter(practica_comision__comision_id__in=_comisiones)
+    if cohorte_ids is not None:
+        qs = qs.filter(cohorte_id__in=cohorte_ids)
 
     filas = list(
         qs.values(
@@ -611,48 +688,96 @@ def errores_compartidos(
 
 
 @db_tool()
-def estadisticas_comision(comision_id: int) -> dict:
-    """Devuelve estadísticas generales de una comisión.
+def estadisticas_comision(
+    comision_id: Optional[int] = None,
+    comision_ids: Optional[list[int]] = None,
+    cohorte_ids: Optional[list[int]] = None,
+) -> dict:
+    """Estadísticas generales: estudiantes, intentos, tasa de acierto y desglose por práctica.
 
-    Incluye: total de estudiantes, intentos, tasa de acierto global y
-    desglose por práctica.
+    Args:
+        comision_id: alias singular heredado. Preferir ``comision_ids``.
+        comision_ids: comisiones a incluir; None = todas.
+        cohorte_ids: cohortes a incluir; None = todas. Ver ``listar_cohortes``.
+
+    Nota: desde que ``comision_id`` es opcional, llamarla sin comisión ya no
+    es un error: devuelve el agregado de todas, como el resto del servidor.
+
+    El campo ``comision`` del resultado es el nombre de la comisión SOLO
+    cuando se pidió exactamente una (por cualquiera de los dos parámetros);
+    con ninguna, dos o más comisiones (incluido el caso "todas") vale
+    ``None``, porque ya no hay una única comisión que nombrar.
     """
     from ejercicios.models import Intento, Progreso, PracticaComision
-    from cursos.models import Comision
-    from django.db.models import Count
-
-    try:
-        comision = Comision.objects.get(id=comision_id)
-    except Comision.DoesNotExist:
-        raise ValueError(f"No existe la comisión {comision_id}")
-
+    from cursos.models import Comision, Inscripcion
     from ejercicios.correctitud import Q_CORRECTO as _q_correcto
 
-    pcs = list(
-        PracticaComision.objects
-        .filter(comision_id=comision_id)
-        .values("id", "practica__titulo")
-        .order_by("orden")
-    )
+    _comisiones = _normalizar_comisiones(comision_id, comision_ids)
+
+    comision_nombre = None
+    if _comisiones is not None and len(_comisiones) == 1:
+        comision_nombre = (
+            Comision.objects
+            .filter(id=_comisiones[0])
+            .values_list("nombre", flat=True)
+            .first()
+        )
+
+    pcs_qs = PracticaComision.objects.all()
+    if _comisiones is not None:
+        pcs_qs = pcs_qs.filter(comision_id__in=_comisiones)
+    pcs = list(pcs_qs.values("id", "practica__titulo").order_by("orden"))
     pc_ids = [p["id"] for p in pcs]
 
-    total_intentos = Intento.objects.filter(practica_comision_id__in=pc_ids).count()
-    correctos_global = Intento.objects.filter(practica_comision_id__in=pc_ids).filter(_q_correcto).count()
-    completaron = (
-        Progreso.objects
-        .filter(
-            practica_comision__comision_id=comision_id,
-            ejercicio_practica_actual__isnull=True,
-        )
-        .values("estudiante_id")
-        .distinct()
-        .count()
-    )
+    qs_intentos = Intento.objects.filter(practica_comision_id__in=pc_ids)
+    if cohorte_ids is not None:
+        qs_intentos = qs_intentos.filter(cohorte_id__in=cohorte_ids)
 
+    total_intentos = qs_intentos.count()
+    correctos_global = qs_intentos.filter(_q_correcto).count()
+
+    # M2M vía Inscripcion: un recursante tiene una fila por cohorte en la
+    # misma comisión; sin distinct() cuenta dos veces. "completaron" (más
+    # abajo) ya usa distinct por el mismo motivo, así que este contador se
+    # alinea con esa convención: estudiantes distintos de todas las camadas
+    # de la(s) comisión(es).
+    insc_qs = Inscripcion.objects.all()
+    if _comisiones is not None:
+        insc_qs = insc_qs.filter(comision_id__in=_comisiones)
+    if cohorte_ids is not None:
+        insc_qs = insc_qs.filter(cohorte_id__in=cohorte_ids)
+    total_estudiantes = insc_qs.values('estudiante_id').distinct().count()
+
+    completaron_qs = Progreso.objects.filter(
+        practica_comision_id__in=pc_ids,
+        ejercicio_practica_actual__isnull=True,
+    )
+    if cohorte_ids is not None:
+        completaron_qs = completaron_qs.filter(cohorte_id__in=cohorte_ids)
+    completaron = completaron_qs.values("estudiante_id").distinct().count()
+
+    # Agregado en dos queries (no 2×N): antes ``comision_id`` era obligatorio
+    # y ``pcs`` estaba acotado a una sola comisión; ahora que es opcional
+    # ("todas" por default) este loop podía iterar cada PracticaComision de
+    # la base emitiendo dos COUNT por vuelta. Mismo patrón que
+    # analiticas.views.dashboard() (_qs_intentos.values(...).annotate(...)).
+    from django.db.models import Count
+
+    total_por_pc = {
+        row["practica_comision_id"]: row["n"]
+        for row in qs_intentos.values("practica_comision_id").annotate(n=Count("id"))
+    }
+    correctos_por_pc = {
+        row["practica_comision_id"]: row["n"]
+        for row in (
+            qs_intentos.filter(_q_correcto)
+            .values("practica_comision_id").annotate(n=Count("id"))
+        )
+    }
     practicas_stats = []
     for pc in pcs:
-        n = Intento.objects.filter(practica_comision_id=pc["id"]).count()
-        c = Intento.objects.filter(practica_comision_id=pc["id"]).filter(_q_correcto).count()
+        n = total_por_pc.get(pc["id"], 0)
+        c = correctos_por_pc.get(pc["id"], 0)
         practicas_stats.append({
             "practica": pc["practica__titulo"],
             "intentos": n,
@@ -661,13 +786,8 @@ def estadisticas_comision(comision_id: int) -> dict:
         })
 
     return {
-        "comision": comision.nombre,
-        # M2M vía Inscripcion: un recursante tiene una fila por cohorte en la
-        # misma comisión; sin distinct() cuenta dos veces. "completaron" (más
-        # abajo) ya usa distinct por el mismo motivo, así que este contador
-        # se alinea con esa convención: estudiantes distintos de todas las
-        # camadas de la comisión.
-        "total_estudiantes": comision.estudiantes.distinct().count(),
+        "comision": comision_nombre,
+        "total_estudiantes": total_estudiantes,
         "completaron_alguna_practica": completaron,
         "total_intentos": total_intentos,
         "tasa_acierto_global_pct": round(correctos_global / total_intentos * 100, 1) if total_intentos else None,
@@ -679,11 +799,19 @@ def estadisticas_comision(comision_id: int) -> dict:
 def buscar_respuesta(
     texto: str,
     comision_id: Optional[int] = None,
+    comision_ids: Optional[list[int]] = None,
+    cohorte_ids: Optional[list[int]] = None,
 ) -> list[dict]:
     """Busca intentos cuya respuesta_raw contenga el texto dado (búsqueda parcial, ignora mayúsculas).
 
     Útil para encontrar todos los intentos donde los estudiantes usaron una
     fórmula o patrón específico.
+
+    Args:
+        texto: texto a buscar dentro de respuesta_raw (parcial, sin distinguir mayúsculas).
+        comision_id: alias singular heredado. Preferir ``comision_ids``.
+        comision_ids: comisiones a incluir; None = todas.
+        cohorte_ids: cohortes a incluir; None = todas. Ver ``listar_cohortes``.
     """
     from ejercicios.models import Intento
 
@@ -697,8 +825,11 @@ def buscar_respuesta(
         )
         .order_by("-timestamp", "-id")
     )
-    if comision_id is not None:
-        qs = qs.filter(practica_comision__comision_id=comision_id)
+    _comisiones = _normalizar_comisiones(comision_id, comision_ids)
+    if _comisiones is not None:
+        qs = qs.filter(practica_comision__comision_id__in=_comisiones)
+    if cohorte_ids is not None:
+        qs = qs.filter(cohorte_id__in=cohorte_ids)
 
     resultado = []
     for i in qs[:100]:
@@ -716,11 +847,20 @@ def buscar_respuesta(
 
 
 @db_tool()
-def categorias_error_resumen(comision_id: Optional[int] = None) -> list[dict]:
+def categorias_error_resumen(
+    comision_id: Optional[int] = None,
+    comision_ids: Optional[list[int]] = None,
+    cohorte_ids: Optional[list[int]] = None,
+) -> list[dict]:
     """Devuelve un resumen de la distribución de categorías de error en todos los intentos incorrectos.
 
     Muestra cuántos intentos caen en cada categoría (polaridad, tautología,
     error parcial, etc.) para identificar el patrón de error dominante.
+
+    Args:
+        comision_id: alias singular heredado. Preferir ``comision_ids``.
+        comision_ids: comisiones a incluir; None = todas.
+        cohorte_ids: cohortes a incluir; None = todas. Ver ``listar_cohortes``.
     """
     from ejercicios.models import Intento
     from django.db.models import Count
@@ -728,8 +868,11 @@ def categorias_error_resumen(comision_id: Optional[int] = None) -> list[dict]:
     from ejercicios.correctitud import Q_INCORRECTO as _q_incorrecto
 
     qs = Intento.objects.filter(_q_incorrecto)
-    if comision_id is not None:
-        qs = qs.filter(practica_comision__comision_id=comision_id)
+    _comisiones = _normalizar_comisiones(comision_id, comision_ids)
+    if _comisiones is not None:
+        qs = qs.filter(practica_comision__comision_id__in=_comisiones)
+    if cohorte_ids is not None:
+        qs = qs.filter(cohorte_id__in=cohorte_ids)
 
     total = qs.count()
     categorias = list(
@@ -814,8 +957,12 @@ async def clasificar_error_formula(
 
 
 @db_tool()
-def matriz_juicio_computo(comision_id: int) -> dict:
-    """Matriz 2×2 juicio × cómputo para ejercicios de tabla_verdad de una comisión.
+def matriz_juicio_computo(
+    comision_id: Optional[int] = None,
+    comision_ids: Optional[list[int]] = None,
+    cohorte_ids: Optional[list[int]] = None,
+) -> dict:
+    """Matriz 2×2 juicio × cómputo para ejercicios de tabla_verdad.
 
     Para cada intento de tipo tabla_verdad con juicio_estudiante registrado,
     determina si el estudiante acertó en el juicio (correcto/incorrecto) y en
@@ -830,18 +977,28 @@ def matriz_juicio_computo(comision_id: int) -> dict:
     sobre el total de intentos con juicio registrado).
 
     Args:
-        comision_id: ID de la comisión (obtener con ``listar_comisiones``).
+        comision_id: alias singular heredado. Preferir ``comision_ids``.
+        comision_ids: comisiones; None = todas.
+        cohorte_ids: cohortes; None = todas. Ver ``listar_cohortes``.
 
     Returns:
         Dict con ``celdas`` (4 cuadrantes) y ``total`` (base del análisis).
     """
     from analiticas.calculos import _matriz_juicio_computo
-    return _matriz_juicio_computo(comision_id)
+    return _matriz_juicio_computo(
+        _comisiones_o_todas(comision_id, comision_ids),
+        cohorte_ids=cohorte_ids,
+    )
 
 
 @db_tool()
-def convergencia_por_ejercicio(comision_id: int, ejercicio_id: int) -> dict:
-    """Perfiles de convergencia semántica de un ejercicio de formalización.
+def convergencia_por_ejercicio(
+    ejercicio_id: int,
+    comision_id: Optional[int] = None,
+    comision_ids: Optional[list[int]] = None,
+    cohorte_ids: Optional[list[int]] = None,
+) -> dict:
+    """Perfiles de convergencia semántica para un ejercicio de formalización.
 
     Para cada estudiante que intentó el ejercicio, calcula la secuencia de
     distancias semánticas intento a intento (filas de tabla de verdad donde
@@ -856,8 +1013,10 @@ def convergencia_por_ejercicio(comision_id: int, ejercicio_id: int) -> dict:
     Solo aplica a ejercicios de tipo ``formalizacion``.
 
     Args:
-        comision_id: ID de la comisión.
         ejercicio_id: ID del ejercicio (obtener con ``listar_ejercicios``).
+        comision_id: alias singular heredado. Preferir ``comision_ids``.
+        comision_ids: comisiones; None = todas.
+        cohorte_ids: cohortes; None = todas. Ver ``listar_cohortes``.
 
     Returns:
         Dict con ``perfiles`` ({nombre: count}),
@@ -865,11 +1024,20 @@ def convergencia_por_ejercicio(comision_id: int, ejercicio_id: int) -> dict:
         ``total_estudiantes``.
     """
     from analiticas.calculos import _convergencia_por_ejercicio
-    return _convergencia_por_ejercicio(comision_id, ejercicio_id)
+    return _convergencia_por_ejercicio(
+        _comisiones_o_todas(comision_id, comision_ids),
+        ejercicio_id,
+        cohorte_ids=cohorte_ids,
+    )
 
 
 @db_tool()
-def perfil_error_tabla(comision_id: int, ejercicio_id: int) -> dict:
+def perfil_error_tabla(
+    ejercicio_id: int,
+    comision_id: Optional[int] = None,
+    comision_ids: Optional[list[int]] = None,
+    cohorte_ids: Optional[list[int]] = None,
+) -> dict:
     """Descomposición de errores en tabla_verdad por tipo de columna.
 
     Para cada intento incorrecto de tipo tabla_verdad, compara celda a celda
@@ -890,8 +1058,10 @@ def perfil_error_tabla(comision_id: int, ejercicio_id: int) -> dict:
     Solo aplica a ejercicios de tipo ``tabla_verdad``.
 
     Args:
-        comision_id: ID de la comisión.
         ejercicio_id: ID del ejercicio.
+        comision_id: alias singular heredado. Preferir ``comision_ids``.
+        comision_ids: comisiones; None = todas.
+        cohorte_ids: cohortes; None = todas. Ver ``listar_cohortes``.
 
     Returns:
         Dict con ``tasa_error_por_columna``, ``verdad_vacua_count``,
@@ -899,11 +1069,20 @@ def perfil_error_tabla(comision_id: int, ejercicio_id: int) -> dict:
         ``total_intentos_incorrectos``.
     """
     from analiticas.calculos import _perfil_error_tabla
-    return _perfil_error_tabla(comision_id, ejercicio_id)
+    return _perfil_error_tabla(
+        _comisiones_o_todas(comision_id, comision_ids),
+        ejercicio_id,
+        cohorte_ids=cohorte_ids,
+    )
 
 
 @db_tool()
-def indice_atomizacion(comision_id: int, ejercicio_id: int) -> dict:
+def indice_atomizacion(
+    ejercicio_id: int,
+    comision_id: Optional[int] = None,
+    comision_ids: Optional[list[int]] = None,
+    cohorte_ids: Optional[list[int]] = None,
+) -> dict:
     """Distribución de variables usadas vs. variables en la solución (formalización).
 
     Para cada estudiante toma su primer intento correcto o, si no resolvió,
@@ -921,8 +1100,10 @@ def indice_atomizacion(comision_id: int, ejercicio_id: int) -> dict:
     Solo aplica a ejercicios de tipo ``formalizacion``.
 
     Args:
-        comision_id: ID de la comisión.
         ejercicio_id: ID del ejercicio.
+        comision_id: alias singular heredado. Preferir ``comision_ids``.
+        comision_ids: comisiones; None = todas.
+        cohorte_ids: cohortes; None = todas. Ver ``listar_cohortes``.
 
     Returns:
         Dict con ``n_solucion``, ``distribucion`` ({k_vars: count}),
@@ -930,14 +1111,20 @@ def indice_atomizacion(comision_id: int, ejercicio_id: int) -> dict:
         ``total_estudiantes``.
     """
     from analiticas.calculos import _indice_atomizacion
-    return _indice_atomizacion(comision_id, ejercicio_id)
+    return _indice_atomizacion(
+        _comisiones_o_todas(comision_id, comision_ids),
+        ejercicio_id,
+        cohorte_ids=cohorte_ids,
+    )
 
 
 @db_tool()
 def patron_baja_variacion(
-    comision_id: int,
+    comision_id: Optional[int] = None,
     min_intentos: int = 5,
     max_intervalo_seg: int = 30,
+    comision_ids: Optional[list[int]] = None,
+    cohorte_ids: Optional[list[int]] = None,
 ) -> list[dict]:
     """Identifica pares (estudiante, ejercicio) con señal de baja variación entre intentos.
 
@@ -951,9 +1138,11 @@ def patron_baja_variacion(
     ``consentimiento_pedagogico=True``.
 
     Args:
-        comision_id: ID de la comisión.
+        comision_id: alias singular heredado. Preferir ``comision_ids``.
         min_intentos: mínimo de intentos para activar la señal (default 5).
         max_intervalo_seg: intervalo promedio máximo en segundos (default 30).
+        comision_ids: comisiones; None = todas.
+        cohorte_ids: cohortes; None = todas. Ver ``listar_cohortes``.
 
     Returns:
         Lista de dicts con ``username``, ``nombre``, ``enunciado_corto``,
@@ -961,7 +1150,12 @@ def patron_baja_variacion(
         ``resolvio``. Ordenada por ``n_intentos`` descendente.
     """
     from analiticas.calculos import _patron_adivinacion
-    return _patron_adivinacion(comision_id, min_intentos, max_intervalo_seg)
+    return _patron_adivinacion(
+        _comisiones_o_todas(comision_id, comision_ids),
+        min_intentos=min_intentos,
+        max_intervalo_seg=max_intervalo_seg,
+        cohorte_ids=cohorte_ids,
+    )
 
 
 # ──────────────────────────────────────────────
@@ -1606,6 +1800,8 @@ async def listar_intentos_compat(args: dict | None = None, kwargs: dict | None =
         solo_incorrectos=params.get("solo_incorrectos", False),
         limit=params.get("limit", 50),
         offset=params.get("offset", 0),
+        comision_ids=params.get("comision_ids"),
+        cohorte_ids=params.get("cohorte_ids"),
     )
 
 

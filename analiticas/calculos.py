@@ -46,7 +46,7 @@ def _correcto_efectivo(es_correcto, aprobado_docente) -> bool:
 # Métrica 2 — Matriz juicio × cómputo (ejercicios tabla_verdad)
 # ---------------------------------------------------------------------------
 
-def _matriz_juicio_computo(comision_id: int) -> dict:
+def _matriz_juicio_computo(comision_ids: list[int], *, cohorte_ids: list[int] | None = None) -> dict:
     """Construye la matriz 2×2 juicio_correcto × tabla_correcta para tabla_verdad.
 
     Para cada intento de tipo ``tabla_verdad`` en la comisión determina si:
@@ -66,7 +66,8 @@ def _matriz_juicio_computo(comision_id: int) -> dict:
     campo se pobla en tiempo real desde :mod:`ejercicios.api.views`.
 
     Args:
-        comision_id: ID de la comisión.
+        comision_ids: IDs de las comisiones a incluir.
+        cohorte_ids: cohortes a incluir; None = todas.
 
     Returns:
         Dict con:
@@ -80,7 +81,7 @@ def _matriz_juicio_computo(comision_id: int) -> dict:
     intentos = (
         Intento.objects
         .filter(
-            practica_comision__comision_id=comision_id,
+            practica_comision__comision_id__in=comision_ids,
             ejercicio_practica__ejercicio__tipo='tabla_verdad',
             juicio_estudiante__isnull=False,
         )
@@ -99,6 +100,8 @@ def _matriz_juicio_computo(comision_id: int) -> dict:
         )
         .order_by('ejercicio_practica__ejercicio_id', 'timestamp')
     )
+    if cohorte_ids is not None:
+        intentos = intentos.filter(cohorte_id__in=cohorte_ids)
 
     celdas = defaultdict(int)
     por_ejercicio_raw = defaultdict(lambda: defaultdict(int))
@@ -158,7 +161,7 @@ def _matriz_juicio_computo(comision_id: int) -> dict:
 # Métrica 3 — Curva de convergencia semántica (formalizacion)
 # ---------------------------------------------------------------------------
 
-def _convergencia_por_ejercicio(comision_id: int, ejercicio_id: int) -> dict:
+def _convergencia_por_ejercicio(comision_ids: list[int], ejercicio_id: int, *, cohorte_ids: list[int] | None = None) -> dict:
     """Perfiles de convergencia semántica para un ejercicio de formalización.
 
     Para cada estudiante que intentó el ejercicio, calcula la secuencia de
@@ -176,8 +179,13 @@ def _convergencia_por_ejercicio(comision_id: int, ejercicio_id: int) -> dict:
         No resuelto aún.
 
     Args:
-        comision_id: ID de la comisión.
+        comision_ids: IDs de las comisiones a incluir.
         ejercicio_id: ID del ejercicio (Ejercicio.pk).
+        cohorte_ids: cohortes a incluir; None = todas.
+
+    Nota: agrupa por ``(estudiante, ejercicio)``. Con varias comisiones, un
+    estudiante inscripto en más de una ve sus intentos unificados en una sola
+    secuencia, en vez de una por comisión.
 
     Returns:
         Dict con:
@@ -190,7 +198,7 @@ def _convergencia_por_ejercicio(comision_id: int, ejercicio_id: int) -> dict:
     intentos = (
         Intento.objects
         .filter(
-            practica_comision__comision_id=comision_id,
+            practica_comision__comision_id__in=comision_ids,
             ejercicio_practica__ejercicio_id=ejercicio_id,
             ejercicio_practica__ejercicio__tipo='formalizacion',
         )
@@ -204,6 +212,8 @@ def _convergencia_por_ejercicio(comision_id: int, ejercicio_id: int) -> dict:
         )
         .order_by('estudiante_id', 'timestamp', 'id')
     )
+    if cohorte_ids is not None:
+        intentos = intentos.filter(cohorte_id__in=cohorte_ids)
 
     # Agrupar por estudiante
     por_estudiante = defaultdict(list)
@@ -278,7 +288,7 @@ def _clasificar_secuencia(secuencia: list[int], resuelto: bool) -> str:
 # Métrica 4 — Perfil de error en tabla de verdad (tabla_verdad)
 # ---------------------------------------------------------------------------
 
-def _perfil_error_tabla(comision_id: int, ejercicio_id: int) -> dict:
+def _perfil_error_tabla(comision_ids: list[int], ejercicio_id: int, *, cohorte_ids: list[int] | None = None) -> dict:
     """Descompone los errores en tabla_verdad por tipo de celda/operador.
 
     Para cada intento incorrecto de tipo ``tabla_verdad``, compara la
@@ -298,8 +308,13 @@ def _perfil_error_tabla(comision_id: int, ejercicio_id: int) -> dict:
     aplica la misma regla incorrecta en todas las filas del mismo tipo.
 
     Args:
-        comision_id: ID de la comisión.
+        comision_ids: IDs de las comisiones a incluir.
         ejercicio_id: ID del ejercicio (Ejercicio.pk).
+        cohorte_ids: cohortes a incluir; None = todas.
+
+    Nota: agrupa por ``(estudiante, ejercicio)``. Con varias comisiones, un
+    estudiante inscripto en más de una ve sus intentos unificados en una sola
+    secuencia, en vez de una por comisión.
 
     Returns:
         Dict con:
@@ -316,7 +331,7 @@ def _perfil_error_tabla(comision_id: int, ejercicio_id: int) -> dict:
     intentos = (
         Intento.objects
         .filter(
-            practica_comision__comision_id=comision_id,
+            practica_comision__comision_id__in=comision_ids,
             ejercicio_practica__ejercicio_id=ejercicio_id,
             ejercicio_practica__ejercicio__tipo='tabla_verdad',
             tabla_json__isnull=False,
@@ -333,6 +348,8 @@ def _perfil_error_tabla(comision_id: int, ejercicio_id: int) -> dict:
             'ejercicio_practica__ejercicio__formula_solucion',
         )
     )
+    if cohorte_ids is not None:
+        intentos = intentos.filter(cohorte_id__in=cohorte_ids)
 
     errores_por_tipo = defaultdict(int)
     total_por_tipo = defaultdict(int)
@@ -469,7 +486,7 @@ def _tipo_columna(col: str) -> str:
 # Métrica 5 — Índice de atomización (formalizacion)
 # ---------------------------------------------------------------------------
 
-def _indice_atomizacion(comision_id: int, ejercicio_id: int) -> dict:
+def _indice_atomizacion(comision_ids: list[int], ejercicio_id: int, *, cohorte_ids: list[int] | None = None) -> dict:
     """Distribución de variables usadas vs. variables en la solución.
 
     Para ejercicios de formalización, compara ``len(intento.diccionario)``
@@ -479,8 +496,13 @@ def _indice_atomizacion(comision_id: int, ejercicio_id: int) -> dict:
     intento (para no contar reintentos con variables corregidas).
 
     Args:
-        comision_id: ID de la comisión.
+        comision_ids: IDs de las comisiones a incluir.
         ejercicio_id: ID del ejercicio.
+        cohorte_ids: cohortes a incluir; None = todas.
+
+    Nota: agrupa por ``(estudiante, ejercicio)``. Con varias comisiones, un
+    estudiante inscripto en más de una ve sus intentos unificados en una sola
+    secuencia, en vez de una por comisión.
 
     Returns:
         Dict con:
@@ -495,7 +517,7 @@ def _indice_atomizacion(comision_id: int, ejercicio_id: int) -> dict:
     intentos = (
         Intento.objects
         .filter(
-            practica_comision__comision_id=comision_id,
+            practica_comision__comision_id__in=comision_ids,
             ejercicio_practica__ejercicio_id=ejercicio_id,
             ejercicio_practica__ejercicio__tipo='formalizacion',
         )
@@ -509,6 +531,8 @@ def _indice_atomizacion(comision_id: int, ejercicio_id: int) -> dict:
         )
         .order_by('estudiante_id', 'timestamp', 'id')
     )
+    if cohorte_ids is not None:
+        intentos = intentos.filter(cohorte_id__in=cohorte_ids)
 
     n_solucion = None
     por_estudiante = defaultdict(list)
@@ -567,10 +591,12 @@ def _indice_atomizacion(comision_id: int, ejercicio_id: int) -> dict:
 # ---------------------------------------------------------------------------
 
 def _patron_adivinacion(
-    comision_id: int,
+    comision_ids: list[int],
     min_intentos: int = 5,
     max_intervalo_seg: int = 30,
     modo_pedagogico: bool = False,
+    *,
+    cohorte_ids: list[int] | None = None,
 ) -> list[dict]:
     """Identifica pares (estudiante, ejercicio) con práctica de baja variación.
 
@@ -584,12 +610,17 @@ def _patron_adivinacion(
     Solo accede a datos de estudiantes con ``consentimiento_pedagogico=True``.
 
     Args:
-        comision_id: ID de la comisión.
+        comision_ids: IDs de las comisiones a incluir.
         min_intentos: mínimo de intentos para activar la señal.
         max_intervalo_seg: intervalo promedio máximo (en segundos) para activar.
         modo_pedagogico: si True, incluye ``username`` y ``nombre`` para uso
             docente directo. Si False (default), devuelve solo ``pseudonimo``
             (o None para estudiantes sin consentimiento de investigación).
+        cohorte_ids: cohortes a incluir; None = todas.
+
+    Nota: agrupa por ``(estudiante, ejercicio)``. Con varias comisiones, un
+    estudiante inscripto en más de una ve sus intentos unificados en una sola
+    secuencia, en vez de una por comisión.
 
     Returns:
         Lista de dicts ordenada por n_intentos descendente. Siempre incluye:
@@ -600,7 +631,7 @@ def _patron_adivinacion(
     intentos = (
         Intento.objects
         .filter(
-            practica_comision__comision_id=comision_id,
+            practica_comision__comision_id__in=comision_ids,
             estudiante__consentimiento_pedagogico=True,
         )
         .select_related(
@@ -626,6 +657,8 @@ def _patron_adivinacion(
         )
         .order_by('estudiante_id', 'ejercicio_practica_id', 'timestamp', 'id')
     )
+    if cohorte_ids is not None:
+        intentos = intentos.filter(cohorte_id__in=cohorte_ids)
 
     # Agrupar por (estudiante, ejercicio_practica)
     grupos = defaultdict(list)

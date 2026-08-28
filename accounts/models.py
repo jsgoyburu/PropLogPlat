@@ -35,6 +35,7 @@ class ConfigSitio(models.Model):
         ('en', 'English'),
         ('fr', 'Français'),
         ('de', 'Deutsch'),
+        ('zh-hans', '简体中文'),
     ]
 
     nombre_sitio = models.CharField(
@@ -55,7 +56,7 @@ class ConfigSitio(models.Model):
         help_text='Color de la barra de rol docente y links en la nav (hex, ej: #2e6da4).',
     )
     idioma_predeterminado = models.CharField(
-        max_length=2,
+        max_length=7,
         choices=IDIOMA_CHOICES,
         default='es',
         verbose_name='idioma predeterminado',

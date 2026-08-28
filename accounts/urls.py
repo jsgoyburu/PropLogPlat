@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, reverse_lazy
 from django.contrib.auth import views as auth_views
 
 from . import views
@@ -15,4 +15,32 @@ urlpatterns = [
     path('encuesta/', views.encuesta_onboarding, name='encuesta'),
     path('encuesta/editar/', views.editar_encuesta, name='editar_encuesta'),
     path('perfil/', views.mi_perfil, name='mi_perfil'),
+
+    # Recuperación de contraseña. `success_url` va explícito porque las vistas
+    # de Django lo resuelven sin namespace (reverse_lazy("password_reset_done"))
+    # y esta app declara app_name = 'accounts'.
+    path(
+        'password_reset/',
+        views.PasswordResetSitioView.as_view(
+            success_url=reverse_lazy('accounts:password_reset_done'),
+        ),
+        name='password_reset',
+    ),
+    path(
+        'password_reset/enviado/',
+        auth_views.PasswordResetDoneView.as_view(),
+        name='password_reset_done',
+    ),
+    path(
+        'reset/<uidb64>/<token>/',
+        views.PasswordResetConfirmLimpiaFlagView.as_view(
+            success_url=reverse_lazy('accounts:password_reset_complete'),
+        ),
+        name='password_reset_confirm',
+    ),
+    path(
+        'reset/completo/',
+        auth_views.PasswordResetCompleteView.as_view(),
+        name='password_reset_complete',
+    ),
 ]

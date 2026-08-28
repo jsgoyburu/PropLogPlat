@@ -1,0 +1,314 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PropLogPlat\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-27 22:00-0300\n"
+"PO-Revision-Date: 2026-08-27 22:00-0300\n"
+"Last-Translator: PropLogPlat contributors\n"
+"Language: fr\n"
+"Language-Team: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid "ui.teacher_panel"
+msgstr "Espace enseignant"
+
+msgid "ui.reviews"
+msgstr "Corrections"
+
+msgid "ui.analytics"
+msgstr "Analyses"
+
+msgid "ui.home"
+msgstr "Accueil"
+
+msgid "ui.my_history"
+msgstr "Mon historique"
+
+msgid "ui.log_out"
+msgstr "Se déconnecter"
+
+msgid "ui.log_in"
+msgstr "Se connecter"
+
+msgid "ui.teacher"
+msgstr "enseignant·e"
+
+msgid "ui.student"
+msgstr "étudiant·e"
+
+msgid "ui.commissions"
+msgstr "Groupes"
+
+msgid "ui.pending_reviews"
+msgstr "Corrections en attente"
+
+msgid "ui.new_class"
+msgstr "+ Groupe"
+
+msgid "ui.new_practice"
+msgstr "+ Activité"
+
+msgid "ui.new_exercise"
+msgstr "+ Exercice"
+
+msgid "ui.language"
+msgstr "Langue"
+
+msgid "ui.username"
+msgstr "Identifiant"
+
+msgid "ui.password"
+msgstr "Mot de passe"
+
+msgid "ui.enter"
+msgstr "Entrer"
+
+msgid "ui.bad_login"
+msgstr "Identifiant ou mot de passe incorrect. Réessayez."
+
+msgid "ui.account_from_class_link"
+msgstr "Si vous n’avez pas de compte, utilisez le lien de votre groupe pour vous inscrire."
+
+msgid "ui.my_practices"
+msgstr "Mes activités"
+
+msgid "ui.view_attempt_history"
+msgstr "Voir mon historique de tentatives"
+
+msgid "ui.not_enrolled"
+msgstr "Vous n’êtes encore inscrit·e dans aucun groupe. Demandez à votre enseignant·e."
+
+msgid "ui.class_no_practices"
+msgstr "Ce groupe n’a pas encore d’activités."
+
+msgid "ui.not_available_yet"
+msgstr "Pas encore disponible"
+
+msgid "ui.closed"
+msgstr "Fermée"
+
+msgid "ui.completed"
+msgstr "Terminée"
+
+msgid "ui.in_progress"
+msgstr "En cours"
+
+msgid "ui.not_started"
+msgstr "Non commencée"
+
+msgid "ui.opens"
+msgstr "Ouvre"
+
+msgid "ui.closed_on"
+msgstr "Fermée"
+
+msgid "ui.closes"
+msgstr "Ferme"
+
+msgid "ui.teacher_comments"
+msgstr "Tentatives commentées par l’enseignant·e"
+
+msgid "ui.approved"
+msgstr "Approuvé"
+
+msgid "ui.rejected"
+msgstr "Rejeté"
+
+msgid "ui.your_answer"
+msgstr "Votre réponse"
+
+msgid "ui.show_more"
+msgstr "Voir plus"
+
+msgid "ui.class"
+msgstr "Groupe"
+
+msgid "ui.practice_no_exercises"
+msgstr "Cette activité n’a pas encore d’exercices."
+
+msgid "ui.exercise"
+msgstr "Exercice"
+
+msgid "ui.fix"
+msgstr "Corriger"
+
+msgid "ui.solve"
+msgstr "Résoudre"
+
+msgid "ui.practice_unavailable"
+msgstr "Activité pas encore disponible"
+
+msgid "ui.practice_closed"
+msgstr "Activité fermée"
+
+msgid "ui.back_home"
+msgstr "Retour à l’accueil"
+
+msgid "ui.download_zip"
+msgstr "Télécharger le ZIP"
+
+msgid "ui.install_package"
+msgstr "Installer un paquet"
+
+msgid "ui.install_zip"
+msgstr "Installer le ZIP"
+
+msgid "ui.view"
+msgstr "Voir"
+
+msgid "ui.edit"
+msgstr "Modifier"
+
+msgid "ui.delete"
+msgstr "Supprimer"
+
+msgid "ui.practice_bank"
+msgstr "Bibliothèque d’activités"
+
+msgid "ui.exercise_bank"
+msgstr "Bibliothèque d’exercices"
+
+msgid "ui.setup_title"
+msgstr "Assistant d’installation"
+
+msgid "ui.complete_setup"
+msgstr "Terminer l’installation"
+
+msgid "ui.forgot_password"
+msgstr "Mot de passe oublié ?"
+
+msgid "ui.password_reset"
+msgstr "Réinitialiser le mot de passe"
+
+msgid "ui.reset_intro"
+msgstr "Saisissez l’adresse e-mail utilisée lors de votre inscription. Nous vous enverrons un lien pour choisir un nouveau mot de passe."
+
+msgid "ui.email"
+msgstr "Adresse e-mail"
+
+msgid "ui.send_reset_link"
+msgstr "M’envoyer le lien"
+
+msgid "ui.back_to_login"
+msgstr "Retour à la connexion"
+
+msgid "ui.check_email"
+msgstr "Consultez votre messagerie"
+
+msgid "ui.reset_sent_if_registered"
+msgstr "Si cette adresse est enregistrée sur la plateforme, un e-mail contenant un lien pour choisir un nouveau mot de passe a été envoyé."
+
+msgid "ui.reset_link_expiry"
+msgstr "Le lien expire au bout de 24 heures et ne peut être utilisé qu’une seule fois."
+
+msgid "ui.reset_help_teacher"
+msgstr "S’il n’arrive pas dans quelques minutes, vérifiez le dossier indésirable. S’il n’y est pas non plus, contactez votre enseignant·e : une autre adresse est peut-être enregistrée sur votre compte."
+
+msgid "ui.choose_new_password"
+msgstr "Choisir un nouveau mot de passe"
+
+msgid "ui.expired_link"
+msgstr "Lien expiré"
+
+msgid "ui.choose_your_new_password"
+msgstr "Choisissez votre nouveau mot de passe"
+
+msgid "ui.new_password"
+msgstr "Nouveau mot de passe"
+
+msgid "ui.repeat_new_password"
+msgstr "Répéter le nouveau mot de passe"
+
+msgid "ui.save"
+msgstr "Enregistrer"
+
+msgid "ui.invalid_reset_link"
+msgstr "Ce lien n’est plus valide"
+
+msgid "ui.invalid_reset_detail"
+msgstr "Il a peut-être expiré — les liens durent 24 heures — ou vous l’avez déjà utilisé pour changer le mot de passe. Demandez-en un nouveau."
+
+msgid "ui.request_new_link"
+msgstr "Demander un nouveau lien"
+
+msgid "ui.password_updated"
+msgstr "Mot de passe mis à jour"
+
+msgid "ui.ready"
+msgstr "Terminé"
+
+msgid "ui.password_updated_body"
+msgstr "Votre mot de passe a été mis à jour. Vous pouvez maintenant vous connecter avec celui-ci."
+
+msgid "ui.class_access"
+msgstr "Accès au groupe"
+
+msgid "ui.class_access_intro"
+msgstr "Si vous avez déjà un compte, connectez-vous. Sinon, inscrivez-vous pour commencer l’accueil et rejoindre ce groupe."
+
+msgid "ui.have_account_login"
+msgstr "J’ai déjà un compte · Se connecter"
+
+msgid "ui.register_student"
+msgstr "M’inscrire comme étudiant·e"
+
+msgid "ui.create_account_continue"
+msgstr "Créer le compte et continuer"
+
+msgid "ui.cohort"
+msgstr "Cohorte"
+
+msgid "ui.current"
+msgstr "en cours"
+
+msgid "ui.new_cohort"
+msgstr "+ Nouvelle cohorte"
+
+msgid "ui.cohorts"
+msgstr "Cohortes"
+
+msgid "ui.unchecked_all"
+msgstr "sans sélection : toutes"
+
+msgid "ui.no_classes_available"
+msgstr "Aucun groupe disponible"
+
+msgid "ui.apply"
+msgstr "Appliquer"
+
+msgid "ui.clear"
+msgstr "Effacer"
+
+msgid "ui.empty_filter"
+msgstr "Les filtres sélectionnés ne contiennent aucune donnée : aucun des groupes demandés ne vous est attribué, ou aucune des cohortes demandées n’existe dans vos groupes. Aucune donnée à afficher."
+
+msgid "Tabla de verdad"
+msgstr "Table de vérité"
+
+msgid "Formalización"
+msgstr "Formalisation"
+
+msgid "Determinación de valor de verdad"
+msgstr "Détermination de la valeur de vérité"
+
+msgid "Hola"
+msgstr "Bonjour"
+
+msgid "Alguien pidió recuperar la contraseña de la cuenta \"%(username)s\" en %(site)s."
+msgstr "Une demande de réinitialisation du mot de passe du compte « %(username)s » sur %(site)s a été effectuée."
+
+msgid "Para elegir una contraseña nueva, entrá acá:"
+msgstr "Pour choisir un nouveau mot de passe, suivez ce lien :"
+
+msgid "Este link vence en 24 horas y sirve una sola vez: apenas lo uses, deja de funcionar."
+msgstr "Ce lien expire au bout de 24 heures et ne peut être utilisé qu’une seule fois. Il cesse de fonctionner dès son utilisation."
+
+msgid "Si no pediste esto, ignorá este mensaje. Tu contraseña sigue siendo la misma y nadie puede cambiarla sin abrir el link de arriba."
+msgstr "Si vous n’êtes pas à l’origine de cette demande, ignorez ce message. Votre mot de passe reste inchangé et personne ne peut le modifier sans ouvrir le lien ci-dessus."
+
+msgid "Recuperar tu contraseña de %(site)s"
+msgstr "Réinitialiser votre mot de passe pour %(site)s"

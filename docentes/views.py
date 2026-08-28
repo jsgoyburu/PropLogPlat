@@ -1030,6 +1030,10 @@ def comision_detail(request, comision_id):
 
     estudiantes_ids = [i.estudiante_id for i in comision.inscripciones.all()]
     _cohorte_id = cohorte.id if cohorte else None
+    # Las ocho funciones importadas de analiticas.views aceptan cohorte_ids
+    # (lista); None sigue significando "todas las cohortes" y no debe
+    # envolverse en [None] (eso filtraría por una cohorte inexistente).
+    _cohorte_ids = [_cohorte_id] if _cohorte_id is not None else None
     aprobados = _aprobados_por_estudiante_ep([comision.id], estudiantes_ids, cohorte_id=_cohorte_id)
     resueltos = _resueltos_por_estudiante_ep([comision.id], estudiantes_ids, cohorte_id=_cohorte_id)
     progreso_estudiantes = _build_progreso_estudiantes(comision, aprobados, resueltos)
@@ -1061,28 +1065,28 @@ def comision_detail(request, comision_id):
         # que agrega varias comisiones): se pasa _cohorte_id para que las
         # ocho funciones no mezclen, en un recursante, los intentos de su
         # camada anterior con los de la que se está mirando.
-        _silencio_cd = _silencio_temprano(_ids, estudiantes_ids, cohorte_id=_cohorte_id)
+        _silencio_cd = _silencio_temprano(_ids, estudiantes_ids, cohorte_ids=_cohorte_ids)
         analiticas = {
             'ejercicios_dificiles':  _ejercicios_mas_dificiles(
-                _ids, estudiantes_ids, min_intentos=cfg.umbral_min_intentos, cohorte_id=_cohorte_id,
+                _ids, estudiantes_ids, min_intentos=cfg.umbral_min_intentos, cohorte_ids=_cohorte_ids,
             ),
             'en_riesgo':             _estudiantes_en_riesgo(
-                _ids, estudiantes_ids, umbral_riesgo=cfg.umbral_riesgo, cohorte_id=_cohorte_id,
+                _ids, estudiantes_ids, umbral_riesgo=cfg.umbral_riesgo, cohorte_ids=_cohorte_ids,
             ),
-            'distribucion_intentos': _distribucion_intentos(_ids, estudiantes_ids, cohorte_id=_cohorte_id),
-            'evolucion_temporal':    _evolucion_temporal(_ids, estudiantes_ids, cohorte_id=_cohorte_id),
+            'distribucion_intentos': _distribucion_intentos(_ids, estudiantes_ids, cohorte_ids=_cohorte_ids),
+            'evolucion_temporal':    _evolucion_temporal(_ids, estudiantes_ids, cohorte_ids=_cohorte_ids),
             'errores_sistematicos':  _errores_sistematicos(
-                _ids, estudiantes_ids, min_estudiantes=cfg.error_consenso_min, cohorte_id=_cohorte_id,
+                _ids, estudiantes_ids, min_estudiantes=cfg.error_consenso_min, cohorte_ids=_cohorte_ids,
             ),
             'silencio':              _silencio_cd,
             'silencio_resumen':      _silencio_resumen(
                 _silencio_cd, umbral_silencio_dias=cfg.umbral_silencio_dias,
             ),
             'concentracion':         _concentracion_practica(
-                _ids, estudiantes_ids, umbral_maraton=cfg.umbral_maraton, cohorte_id=_cohorte_id,
+                _ids, estudiantes_ids, umbral_maraton=cfg.umbral_maraton, cohorte_ids=_cohorte_ids,
             ),
             'velocidad':             _velocidad_arranque(
-                _ids, estudiantes_ids, umbral_arranque_dias=cfg.umbral_arranque_dias, cohorte_id=_cohorte_id,
+                _ids, estudiantes_ids, umbral_arranque_dias=cfg.umbral_arranque_dias, cohorte_ids=_cohorte_ids,
             ),
         }
         cache.set(_cache_key, analiticas, _ANALITICAS_TTL)

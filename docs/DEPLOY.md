@@ -2,9 +2,9 @@
 
 ## Railway — camino recomendado
 
-El template público crea dos servicios: la aplicación y PostgreSQL. Genera
-`SECRET_KEY` y solicita una `SETUP_TOKEN` privada. La configuración del
-repositorio ejecuta migraciones antes de arrancar y verifica `/healthz/`.
+La configuración de Railway crea dos servicios: la aplicación y PostgreSQL.
+El template de PropLogPlat genera `SECRET_KEY` y `SETUP_TOKEN`; el repositorio
+ejecuta migraciones antes de arrancar y verifica `/healthz/`.
 
 Después del primer despliegue:
 
@@ -26,6 +26,13 @@ base PostgreSQL administrada y estas variables:
 - `ALLOWED_HOSTS`: dominio público sin `https://`;
 - `DATABASE_URL`: URL PostgreSQL completa;
 - `PORT`: opcional, el proveedor suele inyectarla.
+
+Para ofrecer recuperación de contraseña hay que agregar `BREVO_API_KEY` y un
+`DEFAULT_FROM_EMAIL` perteneciente a un dominio autenticado. Sin
+`BREVO_API_KEY` ni `EMAIL_HOST`, el correo se imprime en consola: por eso la
+interfaz no anuncia el enlace de recuperación hasta detectar un proveedor
+configurado. En Railway Free/Trial/Hobby usar la API HTTP de Brevo; sus puertos
+SMTP salientes están bloqueados.
 
 El contenedor ejecuta migraciones idempotentes antes de iniciar Gunicorn. Para
 múltiples réplicas, es preferible configurar la migración como tarea previa del

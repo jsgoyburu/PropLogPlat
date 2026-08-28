@@ -1,0 +1,314 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PropLogPlat\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-27 22:00-0300\n"
+"PO-Revision-Date: 2026-08-27 22:00-0300\n"
+"Last-Translator: PropLogPlat contributors\n"
+"Language: en\n"
+"Language-Team: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid "ui.teacher_panel"
+msgstr "Teacher panel"
+
+msgid "ui.reviews"
+msgstr "Reviews"
+
+msgid "ui.analytics"
+msgstr "Analytics"
+
+msgid "ui.home"
+msgstr "Home"
+
+msgid "ui.my_history"
+msgstr "My history"
+
+msgid "ui.log_out"
+msgstr "Log out"
+
+msgid "ui.log_in"
+msgstr "Log in"
+
+msgid "ui.teacher"
+msgstr "teacher"
+
+msgid "ui.student"
+msgstr "student"
+
+msgid "ui.commissions"
+msgstr "Classes"
+
+msgid "ui.pending_reviews"
+msgstr "Pending reviews"
+
+msgid "ui.new_class"
+msgstr "+ Class"
+
+msgid "ui.new_practice"
+msgstr "+ Practice"
+
+msgid "ui.new_exercise"
+msgstr "+ Exercise"
+
+msgid "ui.language"
+msgstr "Language"
+
+msgid "ui.username"
+msgstr "Username"
+
+msgid "ui.password"
+msgstr "Password"
+
+msgid "ui.enter"
+msgstr "Enter"
+
+msgid "ui.bad_login"
+msgstr "Incorrect username or password. Please try again."
+
+msgid "ui.account_from_class_link"
+msgstr "If you do not have an account, use your class link to register."
+
+msgid "ui.my_practices"
+msgstr "My practices"
+
+msgid "ui.view_attempt_history"
+msgstr "View my attempt history"
+
+msgid "ui.not_enrolled"
+msgstr "You are not enrolled in any class yet. Ask your teacher."
+
+msgid "ui.class_no_practices"
+msgstr "This class has no practices yet."
+
+msgid "ui.not_available_yet"
+msgstr "Not available yet"
+
+msgid "ui.closed"
+msgstr "Closed"
+
+msgid "ui.completed"
+msgstr "Completed"
+
+msgid "ui.in_progress"
+msgstr "In progress"
+
+msgid "ui.not_started"
+msgstr "Not started"
+
+msgid "ui.opens"
+msgstr "Opens"
+
+msgid "ui.closed_on"
+msgstr "Closed"
+
+msgid "ui.closes"
+msgstr "Closes"
+
+msgid "ui.teacher_comments"
+msgstr "Attempts with teacher feedback"
+
+msgid "ui.approved"
+msgstr "Approved"
+
+msgid "ui.rejected"
+msgstr "Rejected"
+
+msgid "ui.your_answer"
+msgstr "Your answer"
+
+msgid "ui.show_more"
+msgstr "Show more"
+
+msgid "ui.class"
+msgstr "Class"
+
+msgid "ui.practice_no_exercises"
+msgstr "This practice has no exercises yet."
+
+msgid "ui.exercise"
+msgstr "Exercise"
+
+msgid "ui.fix"
+msgstr "Revise"
+
+msgid "ui.solve"
+msgstr "Solve"
+
+msgid "ui.practice_unavailable"
+msgstr "Practice not available yet"
+
+msgid "ui.practice_closed"
+msgstr "Practice closed"
+
+msgid "ui.back_home"
+msgstr "Back to home"
+
+msgid "ui.download_zip"
+msgstr "Download ZIP"
+
+msgid "ui.install_package"
+msgstr "Install package"
+
+msgid "ui.install_zip"
+msgstr "Install ZIP"
+
+msgid "ui.view"
+msgstr "View"
+
+msgid "ui.edit"
+msgstr "Edit"
+
+msgid "ui.delete"
+msgstr "Delete"
+
+msgid "ui.practice_bank"
+msgstr "Practice library"
+
+msgid "ui.exercise_bank"
+msgstr "Exercise library"
+
+msgid "ui.setup_title"
+msgstr "Setup assistant"
+
+msgid "ui.complete_setup"
+msgstr "Complete setup"
+
+msgid "ui.forgot_password"
+msgstr "Forgot your password?"
+
+msgid "ui.password_reset"
+msgstr "Reset password"
+
+msgid "ui.reset_intro"
+msgstr "Enter the email address you registered with. We will send you a link to choose a new password."
+
+msgid "ui.email"
+msgstr "Email address"
+
+msgid "ui.send_reset_link"
+msgstr "Send me the link"
+
+msgid "ui.back_to_login"
+msgstr "Back to log in"
+
+msgid "ui.check_email"
+msgstr "Check your email"
+
+msgid "ui.reset_sent_if_registered"
+msgstr "If that address is registered on the platform, an email with a link to choose a new password has been sent."
+
+msgid "ui.reset_link_expiry"
+msgstr "The link expires after 24 hours and can only be used once."
+
+msgid "ui.reset_help_teacher"
+msgstr "If it does not arrive within a few minutes, check your spam folder. If it is not there either, contact your teacher: your account may have a different address."
+
+msgid "ui.choose_new_password"
+msgstr "Choose a new password"
+
+msgid "ui.expired_link"
+msgstr "Expired link"
+
+msgid "ui.choose_your_new_password"
+msgstr "Choose your new password"
+
+msgid "ui.new_password"
+msgstr "New password"
+
+msgid "ui.repeat_new_password"
+msgstr "Repeat new password"
+
+msgid "ui.save"
+msgstr "Save"
+
+msgid "ui.invalid_reset_link"
+msgstr "This link is no longer valid"
+
+msgid "ui.invalid_reset_detail"
+msgstr "It may have expired—links last 24 hours—or you may have already used it to change the password. Request a new one."
+
+msgid "ui.request_new_link"
+msgstr "Request a new link"
+
+msgid "ui.password_updated"
+msgstr "Password updated"
+
+msgid "ui.ready"
+msgstr "Done"
+
+msgid "ui.password_updated_body"
+msgstr "Your password has been updated. You can now log in with it."
+
+msgid "ui.class_access"
+msgstr "Class access"
+
+msgid "ui.class_access_intro"
+msgstr "If you already have an account, log in. Otherwise, register to begin onboarding and join this class."
+
+msgid "ui.have_account_login"
+msgstr "I have an account · Log in"
+
+msgid "ui.register_student"
+msgstr "Register as a student"
+
+msgid "ui.create_account_continue"
+msgstr "Create account and continue"
+
+msgid "ui.cohort"
+msgstr "Cohort"
+
+msgid "ui.current"
+msgstr "current"
+
+msgid "ui.new_cohort"
+msgstr "+ New cohort"
+
+msgid "ui.cohorts"
+msgstr "Cohorts"
+
+msgid "ui.unchecked_all"
+msgstr "unchecked: all"
+
+msgid "ui.no_classes_available"
+msgstr "No classes available"
+
+msgid "ui.apply"
+msgstr "Apply"
+
+msgid "ui.clear"
+msgstr "Clear"
+
+msgid "ui.empty_filter"
+msgstr "The selected filters contain no data: none of the requested classes are assigned to you, or none of the requested cohorts exist in your classes. There is no data to display."
+
+msgid "Tabla de verdad"
+msgstr "Truth table"
+
+msgid "Formalización"
+msgstr "Formalization"
+
+msgid "Determinación de valor de verdad"
+msgstr "Truth-value determination"
+
+msgid "Hola"
+msgstr "Hello"
+
+msgid "Alguien pidió recuperar la contraseña de la cuenta \"%(username)s\" en %(site)s."
+msgstr "Someone requested a password reset for the account \"%(username)s\" on %(site)s."
+
+msgid "Para elegir una contraseña nueva, entrá acá:"
+msgstr "To choose a new password, follow this link:"
+
+msgid "Este link vence en 24 horas y sirve una sola vez: apenas lo uses, deja de funcionar."
+msgstr "This link expires after 24 hours and can only be used once. It stops working as soon as you use it."
+
+msgid "Si no pediste esto, ignorá este mensaje. Tu contraseña sigue siendo la misma y nadie puede cambiarla sin abrir el link de arriba."
+msgstr "If you did not request this, ignore this message. Your password remains unchanged, and nobody can change it without opening the link above."
+
+msgid "Recuperar tu contraseña de %(site)s"
+msgstr "Reset your password for %(site)s"

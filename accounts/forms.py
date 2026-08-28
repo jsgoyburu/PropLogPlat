@@ -36,6 +36,7 @@ class InstalacionInicialForm(forms.Form):
             ('en', 'English'),
             ('fr', 'Français'),
             ('de', 'Deutsch'),
+            ('zh-hans', '简体中文'),
         ),
         initial='es',
     )

@@ -37,7 +37,10 @@ class EjercicioAdmin(admin.ModelAdmin):
             'fields': ('enunciado', 'formula_solucion', 'tipo', 'es_publico'),
         }),
         ('Traducciones opcionales', {
-            'fields': ('enunciado_en', 'enunciado_fr', 'enunciado_de'),
+            'fields': (
+                'enunciado_en', 'enunciado_fr', 'enunciado_de',
+                'enunciado_zh_hans',
+            ),
             'description': 'Si una traducción queda vacía, el sitio muestra el castellano original.',
         }),
         ('Metadatos', {'fields': ('creado_por', 'fecha_creacion')}),
@@ -62,6 +65,7 @@ class PracticaAdmin(admin.ModelAdmin):
         ('English', {'fields': ('titulo_en', 'descripcion_en')}),
         ('Français', {'fields': ('titulo_fr', 'descripcion_fr')}),
         ('Deutsch', {'fields': ('titulo_de', 'descripcion_de')}),
+        ('简体中文', {'fields': ('titulo_zh_hans', 'descripcion_zh_hans')}),
     )
 
 

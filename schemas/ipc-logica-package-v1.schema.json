@@ -33,7 +33,8 @@
         "es": {"type": "string"},
         "en": {"type": "string"},
         "fr": {"type": "string"},
-        "de": {"type": "string"}
+        "de": {"type": "string"},
+        "zh-hans": {"type": "string"}
       }
     },
     "exercise": {

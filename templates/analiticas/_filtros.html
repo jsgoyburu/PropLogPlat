@@ -1,0 +1,63 @@
+{% load ui_i18n %}
+{% comment %}
+Barra de filtros compartida por dashboard, investigación y encuesta.
+Espera en el contexto `filtros` (analiticas.filtros.FiltroAnaliticas).
+{% endcomment %}
+<form method="get" class="card"
+      style="margin-bottom:1.5rem; padding:1rem 1.25rem; display:flex; gap:2rem;
+             flex-wrap:wrap; align-items:flex-start;">
+
+  <div>
+    <div style="font-size:0.82rem; font-weight:600; color:#555; margin-bottom:0.4rem;">
+      {% ui 'commissions' %} <span style="font-weight:400;">({% ui 'unchecked_all' %})</span>
+    </div>
+    {% for comision in filtros.comisiones %}
+    <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.84rem;
+                  cursor:pointer; margin-bottom:0.2rem;">
+      <input type="checkbox" name="comision_ids" value="{{ comision.id }}"
+             {% if comision.id in filtros.comision_ids %}checked{% endif %}
+             style="cursor:pointer;">
+      {{ comision.nombre }}
+    </label>
+    {% empty %}
+    <span style="font-size:0.83rem; color:#888;">{% ui 'no_classes_available' %}</span>
+    {% endfor %}
+  </div>
+
+  {% if filtros.cohortes %}
+  <div>
+    <div style="font-size:0.82rem; font-weight:600; color:#555; margin-bottom:0.4rem;">
+      {% ui 'cohorts' %} <span style="font-weight:400;">({% ui 'unchecked_all' %})</span>
+    </div>
+    {% for c in filtros.cohortes %}
+    <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.84rem;
+                  cursor:pointer; margin-bottom:0.2rem;">
+      <input type="checkbox" name="cohorte_ids" value="{{ c.id }}"
+             {% if filtros.cohorte_ids and c.id in filtros.cohorte_ids %}checked{% endif %}
+             style="cursor:pointer;">
+      {{ c.label }}
+    </label>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div style="display:flex; gap:0.5rem; align-self:flex-end;">
+    <button type="submit"
+            style="padding:0.4rem 1rem; border-radius:4px; border:1px solid #1976d2;
+                   background:#e3f2fd; color:#1565c0; font-size:0.84rem;
+                   font-weight:600; cursor:pointer;">{% ui 'apply' %}</button>
+    {% if filtros.activo %}
+    <a href="{{ request.path }}"
+       style="padding:0.4rem 1rem; border-radius:4px; border:1px solid #ccc;
+              background:#fafafa; color:#555; font-size:0.84rem;
+              text-decoration:none;">{% ui 'clear' %}</a>
+    {% endif %}
+  </div>
+</form>
+
+{% if filtros.seleccion_vacia %}
+<div style="background:#ffebee; border:1px solid #ef9a9a; border-radius:6px;
+            padding:0.85rem 1rem; margin-bottom:1.5rem; font-size:0.88rem; color:#b71c1c;">
+  {% ui 'empty_filter' %}
+</div>
+{% endif %}

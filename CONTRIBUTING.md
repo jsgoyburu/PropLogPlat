@@ -56,6 +56,12 @@ python manage.py makemigrations --check --dry-run
 python manage.py test
 ```
 
+Si se modifica un catálogo `.po`, recompilar y versionar también su `.mo`:
+
+```bash
+python -m babel.messages.frontend compile -d locale -D django
+```
+
 Las contribuciones deben incluir tests cuando cambian comportamiento. Un cambio
 de textos, documentación o estilos puede justificar una comprobación visual en
 lugar de un test automatizado, pero debe quedar anotado en `MEMORY.md`.

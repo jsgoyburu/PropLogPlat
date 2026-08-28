@@ -1,0 +1,97 @@
+{% comment %}
+Helper compartido: hace que las barras y las etiquetas de un gráfico por
+ejercicio abran el ejercicio.
+
+Chart.js dibuja el eje dentro de un <canvas>, así que las etiquetas no pueden
+ser <a> de verdad. Esto es la aproximación: click sobre la barra o sobre su
+etiqueta, cursor de mano donde hay link, y el enunciado en el tooltip.
+
+Lo cargan investigacion.html y dashboard.html. encuesta_resumen.html no, porque
+no tiene gráficos por ejercicio.
+{% endcomment %}
+<script>
+  // Arma el objeto de callbacks de tooltip para un gráfico por ejercicio.
+  // Cada `new Chart(...)` debe pasar el resultado en su propia config, como
+  // options.plugins.tooltip.callbacks: tooltipEjercicios(filas)
+  //
+  // IMPORTANTE: no muevas esto a un paso posterior que mute chart.options
+  // después de construido el gráfico. En Chart.js v4, chart.options es un
+  // proxy de "opciones resueltas": leer options.plugins.tooltip.callbacks
+  // devuelve otro proxy que resuelve a través de una cadena de configs
+  // (config del chart → defaults del tipo → defaults globales), y volver a
+  // asignar ese valor sobre el mismo proxy crea un ciclo autorreferencial.
+  // Cada lectura posterior de "callbacks" recorre la cadena de nuevo,
+  // recursivamente, hasta agotar la pila ("Maximum call stack size
+  // exceeded") — y como los cinco gráficos viven en un único <script>, ese
+  // throw aborta la construcción de todos los gráficos siguientes en la
+  // página, incluidos los que no tienen nada que ver con este feature.
+  // Declarar el callback acá, en el objeto de configuración literal que se
+  // pasa a `new Chart(...)`, evita el proxy por completo: en ese punto
+  // `options.plugins.tooltip.callbacks` es todavía un objeto plano.
+  function tooltipEjercicios(filas) {
+    return {
+      afterTitle: function (items) {
+        const fila = filas[items[0].dataIndex];
+        if (!fila) return '';
+        const partes = [];
+        if (fila.enunciado_corto) partes.push(fila.enunciado_corto);
+        if (fila.url) partes.push('(click para abrir el ejercicio)');
+        return partes.join('\n');
+      },
+    };
+  }
+
+  function enlazarEjerciciosDelEje(chart, filas) {
+    if (!chart || !filas || !filas.length) return;
+
+    // El eje de categorías es el X en los verticales y el Y en los
+    // horizontales (indexAxis: 'y'). Leerlo de la config en vez de asumirlo:
+    // los dos gráficos del dashboard son horizontales y los tres de
+    // investigación verticales.
+    const ejeCat = (chart.options.indexAxis === 'y') ? 'y' : 'x';
+
+    // IMPORTANTE: esto NO se resuelve con options.onClick/onHover. Chart.js
+    // v4 gatea ambos con `inChartArea` (ver _handleEvent en el bundle): solo
+    // se disparan cuando el evento cae dentro de chart.chartArea, y las
+    // etiquetas del eje se dibujan afuera de esa área. El resultado es que
+    // options.onClick jamás corre para un click sobre una etiqueta, aunque
+    // el cálculo del índice sea correcto — probarlo invocando
+    // options.onClick(...) a mano no lo detecta, porque eso salta el gateo.
+    //
+    // La solución es un listener nativo en el propio <canvas>: recibe todo
+    // click/mousemove sobre el elemento, adentro o afuera de chartArea, sin
+    // pasar por _handleEvent. Por eso no se toca chart.options.onClick /
+    // onHover en absoluto — un solo handler, para no procesar el mismo click
+    // dos veces.
+    function indiceEn(nativeEvent) {
+      const els = chart.getElementsAtEventForMode(nativeEvent, 'index', { intersect: true }, false);
+      if (els.length) return els[0].index;
+      // Sin intersección con ninguna barra: puede ser la etiqueta del eje, o
+      // espacio muerto dentro del área de dibujo (p.ej. arriba de una barra
+      // corta). getValueForPixel mapea la posición contra la escala de
+      // categorías de todos modos, así que toda la columna/fila queda
+      // clickeable, no solo el rectángulo de la barra.
+      const escala = chart.scales[ejeCat];
+      if (!escala) return null;
+      const pos = Chart.helpers.getRelativePosition(nativeEvent, chart);
+      const i = escala.getValueForPixel(ejeCat === 'y' ? pos.y : pos.x);
+      return (Number.isInteger(i) && i >= 0 && i < filas.length) ? i : null;
+    }
+
+    function urlDe(i) {
+      return (i === null || !filas[i]) ? null : filas[i].url;
+    }
+
+    chart.canvas.addEventListener('click', function (evt) {
+      const url = urlDe(indiceEn(evt));
+      if (url) window.open(url, '_blank', 'noopener');
+    });
+
+    // Mismo tratamiento para el cursor: si solo se atendiera onHover (con el
+    // mismo gateo de inChartArea), el cursor nunca cambiaría sobre una
+    // etiqueta aunque el click ahí sí abra el ejercicio.
+    chart.canvas.addEventListener('mousemove', function (evt) {
+      chart.canvas.style.cursor = urlDe(indiceEn(evt)) ? 'pointer' : 'default';
+    });
+  }
+</script>

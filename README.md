@@ -5,7 +5,7 @@ proposicional, nacida como **IPC-Lógica** en IPC/CBC-UBA y diseñada como apoyo
 pedagógico para el trabajo docente en cursos masivos.
 
 El castellano es el idioma original. Cada instalación puede elegir castellano,
-inglés, francés o alemán desde el sitio, y el administrador puede definir el
+inglés, francés, alemán o chino simplificado desde el sitio, y el administrador puede definir el
 idioma predeterminado y cargar traducciones de prácticas y ejercicios sin
 reemplazar los textos originales.
 
@@ -35,7 +35,7 @@ Actualmente el sistema incluye:
 - Módulo de investigación con métricas de onboarding socioeducativo (NSE, puntaje lógico, pandemia, cohortes y cruces con desempeño en ejercicios), filtradas por consentimiento.
 - Importación masiva de estudiantes por Excel (`.xlsx`) tolerante a errores por fila.
 - Configuración del sitio en base de datos (incluyendo favicon y umbrales de analítica pedagógica).
-- Selector de idioma castellano/inglés/francés/alemán, con idioma predeterminado y traducciones pedagógicas editables desde el admin.
+- Selector de idioma castellano/inglés/francés/alemán/chino simplificado, con idioma predeterminado desde el admin. La interfaz usa catálogos gettext `.po` compilados a `.mo`; las traducciones pedagógicas se editan como contenido desde el admin.
 - Prácticas y ejercicios portables: descarga en ZIP con JSON versionado e instalación como copia privada revisable.
 - Asistente web seguro para la primera instalación y despliegue reproducible en Railway o contenedores.
 
@@ -57,6 +57,26 @@ Actualmente el sistema incluye:
 - Cargar estudiantes por Excel con reporte de filas inválidas.
 - Exportar listado de estudiantes por comisión a Excel (DNI, apellido, nombre y correo).
 - Consultar tablero de analíticas para detectar señales de acompañamiento.
+
+#### Cohortes (camadas)
+
+Una **comisión** es el aula y persiste entre cuatrimestres, conservando sus prácticas y ejercicios. Una **cohorte** es la camada que la cursa: año más cuatrimestre.
+
+Para abrir un cuatrimestre nuevo:
+
+1. Un superusuario crea la cohorte desde el home del panel. Es una acción global: cambia la camada en curso para toda la plataforma, por eso no vive dentro de una comisión.
+2. Cada docente inscribe a su camada, por alta individual, por Excel, o re-inscribiendo cuentas que ya existen.
+
+El aula aparece con las mismas prácticas y los mismos ejercicios, y todo lo de estudiantes en cero. Las camadas anteriores quedan consultables desde el selector del home.
+
+Algunas propiedades que conviene conocer:
+
+- **La cohorte es la camada de pertenencia, no el período del calendario.** Quien cursó en 2026-C1 y sigue practicando en septiembre para rendir un final sigue perteneciendo a 2026-C1.
+- **Una camada cerrada no bloquea a quien la cursó.** Sus estudiantes siguen practicando y avanzando, y se les sigue corrigiendo. Las fechas de apertura y cierre de las prácticas solo frenan a la camada en curso.
+- **Una camada cerrada no crece ni suma parciales.** No se pueden dar de alta estudiantes ni crear parciales nuevos en ella; sí cargar notas de los parciales que ya tiene.
+- **Quien recursa arranca de cero sin perder su historial.** Su progreso, sus intentos y sus notas de la camada anterior quedan intactos y separados.
+
+Las analíticas, las exportaciones y las herramientas MCP se pueden acotar por camada.
 
 ### Estudiantes
 
@@ -96,7 +116,7 @@ Regla didáctica vigente: si se mezclan conectivos binarios distintos al mismo n
 
 ## Stack técnico
 
-- **Backend:** Django 5 + Django REST Framework
+- **Backend:** Django 6 + Django REST Framework
 - **Base de datos:** SQLite (local) / PostgreSQL (Railway)
 - **Motor lógico:** SymPy (`sympy.logic`)
 - **Frontend:** templates Django + Alpine.js
@@ -120,6 +140,7 @@ motor/           # parser, tablas de verdad y verificador (sin Django)
 templates/       # UI HTML
 static/          # assets estáticos
 docs/            # documentación Sphinx
+locale/          # catálogos gettext .po y .mo (es/en/fr/de/zh-Hans)
 tests/           # E2E (Playwright)
 ```
 
@@ -154,6 +175,8 @@ docker compose up --build
 ```
 
 Ver [`docs/DEPLOY.md`](docs/DEPLOY.md) para Railway y otros proveedores.
+Para agregar o corregir traducciones de interfaz, ver
+[`docs/TRADUCCIONES.md`](docs/TRADUCCIONES.md).
 
 ---
 
@@ -170,6 +193,54 @@ Base (`.env.example`):
 - `SETUP_TOKEN` (protege el asistente de primera instalación)
 - `GEMINI_API_KEY` (opcional, para generar pistas automáticas en intentos no verificados)
 - `GROQ_API_KEY` (opcional, fallback automático a Groq cuando Gemini alcanza su cuota)
+
+Email (recuperación de contraseña):
+
+- `BREVO_API_KEY` (la de producción: manda por la API HTTP de Brevo)
+- `EMAIL_HOST` (alternativa por SMTP; sin ninguna de las dos, los mails se imprimen en consola en vez de enviarse)
+- `EMAIL_PORT` (default `587`)
+- `EMAIL_HOST_USER`
+- `EMAIL_HOST_PASSWORD`
+- `EMAIL_USE_TLS` (default `True`)
+- `EMAIL_USE_SSL` (default `False`; mutuamente excluyente con `EMAIL_USE_TLS`)
+- `DEFAULT_FROM_EMAIL` (remitente visible)
+- `TRUSTED_PROXY_COUNT` (default `1`; proxies delante de la app, para leer `X-Forwarded-For` al aplicar el techo de pedidos por IP)
+
+La plataforma usa **Brevo** con el dominio propio `practicaslogica.com.ar`
+autenticado (SPF + DKIM), y sale por su **API HTTP**, no por SMTP: alcanza con
+`BREVO_API_KEY`.
+
+Es API y no SMTP por una razón concreta: **Railway bloquea los puertos SMTP
+salientes** (25, 465, 587 y 2525) en los planes Free, Trial y Hobby, y solo los
+abre en Pro. Ahí el backend SMTP falla con *Network is unreachable*. El 443 no
+se bloquea nunca. El backend vive en `logica_ipc/email_backends.py`, usa
+`urllib` de la biblioteca estándar —igual que `ejercicios/gemini_hints.py` con
+Gemini y Groq— y no suma dependencias.
+
+El backend SMTP se mantiene como alternativa (`EMAIL_HOST` y compañía) para
+desarrollo local, Railway Pro y cualquier otro hosting.
+
+Se eligió sobre Mailgun por una razón operativa, no técnica: Mailgun exige
+tarjeta de crédito para mandar a destinatarios no autorizados, aunque nunca se
+llegue al límite. Autenticando el mismo dominio, la entregabilidad de los dos
+es equivalente. Cambiar de proveedor es editar variables, no código.
+
+`DEFAULT_FROM_EMAIL` tiene que ser una dirección **del dominio autenticado**
+(`no-reply@practicaslogica.com.ar`). Con una dirección de otro dominio —un
+Gmail, o el subdominio de Railway— SPF y DKIM no alinean, DMARC falla y el mail
+se va a spam.
+
+Para probar la configuración sin pasar por la pantalla de recuperación:
+
+```bash
+python manage.py sendtestemail vos@ejemplo.com
+```
+
+**Si no hay ni `BREVO_API_KEY` ni `EMAIL_HOST`, el sitio no anuncia el enlace
+de recuperación de contraseña.** El endpoint sigue disponible para desarrollo
+y el correo se imprime en consola; en producción hay que configurar y probar
+uno de los dos proveedores antes de ofrecerlo. El setup recomendado en Railway
+es `BREVO_API_KEY` sola, sin `EMAIL_HOST`.
 
 `DATABASE_URL`:
 
@@ -211,6 +282,15 @@ python manage.py poblar_error_categoria
 
 ---
 
+## Traspaso entre agentes
+
+Si vas a continuar trabajo en curso, empezá por **[`docs/HANDOFF.md`](docs/HANDOFF.md)**:
+estado de las ramas y PRs abiertos, verificaciones pendientes contra producción
+y trampas del entorno.
+
+Para el modelo de cohortes en particular, **[`docs/bitacora/2026-08-cohortes/README.md`](docs/bitacora/2026-08-cohortes/README.md)**
+tiene los invariantes que no hay que romper.
+
 ## Documentación
 
 | Documento | Contenido |
@@ -242,3 +322,11 @@ Con warnings como errores:
 ```bash
 sphinx-build -W -b html docs/ docs/_build/html
 ```
+
+---
+
+## Licencia
+
+[GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0).
+
+Se puede usar, estudiar, modificar y redistribuir libremente, incluso con fines comerciales. La condición es la recíproca: cualquier trabajo derivado debe publicarse bajo la misma licencia, y **quien corra una versión modificada como servicio accesible por red está obligado a poner su código fuente a disposición de quienes la usen**. Esa cláusula de red es lo que distingue a la AGPL de la GPL común, y es la razón de elegirla para una plataforma web educativa: impide que el trabajo se convierta en un servicio cerrado sin devolver nada.

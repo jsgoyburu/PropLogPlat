@@ -46,6 +46,7 @@
 
 {% block content %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% include "analiticas/_chart_links.html" %}
 <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/d3-cloud@1.2.7/build/d3.layout.cloud.js"></script>
 
@@ -72,18 +73,10 @@
   {# ── Sección de descarga de datasets ── #}
   <div class="card" style="margin-bottom:1.5rem; padding:1.25rem 1.5rem;"
        x-data="{
-         comisiones_sel: [],
-         cohorte_sel: '',
-         get params() {
-           const p = new URLSearchParams();
-           if (this.comisiones_sel.length) p.set('comision_ids', this.comisiones_sel.join(','));
-           if (this.cohorte_sel) p.set('cohorte', this.cohorte_sel);
-           return p.toString();
-         },
          url(dataset, formato) {
-           const p = new URLSearchParams({ dataset, formato });
-           if (this.comisiones_sel.length) p.set('comision_ids', this.comisiones_sel.join(','));
-           if (this.cohorte_sel) p.set('cohorte', this.cohorte_sel);
+           const p = new URLSearchParams('{{ filtros.qs }}');
+           p.set('dataset', dataset);
+           p.set('formato', formato);
            return '{% url "analiticas:descargar_investigacion" %}?' + p.toString();
          }
        }">
@@ -91,42 +84,6 @@
     <h3 style="margin:0 0 1rem; font-size:1rem; font-weight:600; color:#1a1a2e;">
       Descargar datos de investigación
     </h3>
-
-    <div style="display:flex; gap:2rem; flex-wrap:wrap; align-items:flex-start; margin-bottom:1.25rem;">
-
-      {# Filtro: comisiones #}
-      <div>
-        <div style="font-size:0.82rem; font-weight:600; color:#555; margin-bottom:0.4rem;">
-          Comisiones <span style="font-weight:400;">(default: todas)</span>
-        </div>
-        {% for comision in comisiones %}
-        <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.84rem; cursor:pointer; margin-bottom:0.2rem;">
-          <input type="checkbox" :value="{{ comision.id }}" x-model="comisiones_sel"
-                 style="cursor:pointer;">
-          {{ comision.nombre }}
-        </label>
-        {% empty %}
-        <span style="font-size:0.83rem; color:#888;">Sin comisiones disponibles</span>
-        {% endfor %}
-      </div>
-
-      {# Filtro: cohorte #}
-      {% if cohortes_disponibles %}
-      <div>
-        <div style="font-size:0.82rem; font-weight:600; color:#555; margin-bottom:0.4rem;">
-          Cohorte <span style="font-weight:400;">(default: todas)</span>
-        </div>
-        <select x-model="cohorte_sel"
-                style="font-size:0.84rem; padding:0.3rem 0.5rem; border:1px solid #ccc; border-radius:4px; background:#fff;">
-          <option value="">Todas las cohortes</option>
-          {% for c in cohortes_disponibles %}
-          <option value="{{ c.anio }}-{{ c.cuatri }}">{{ c.label }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      {% endif %}
-
-    </div>
 
     {# Botones de descarga #}
     <div style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start;">
@@ -195,6 +152,7 @@
       Solo se incluyen estudiantes con <em>consentimiento de investigación</em>.
       <code>pseudonimo</code> es la clave entre encuesta e intentos;
       <code>ejercicio_practica_id</code> y <code>practica_comision_id</code> vinculan intentos con ejercicios y prácticas.
+      Las descargas respetan el filtro de comisión y cohorte de arriba.
     </p>
 
   </div>
@@ -204,6 +162,8 @@
     <a href="{% url 'analiticas:dashboard' %}" style="font-size:0.85rem; color:#1976d2;">← Dashboard operativo</a>
     <a href="{% url 'analiticas:encuesta_resumen' %}" style="font-size:0.85rem; color:#388e3c;">Encuesta inicial →</a>
   </div>
+
+  {% include "analiticas/_filtros.html" %}
 
   {# ── Banner de consentimiento ── #}
   <div class="consent-banner">
@@ -234,9 +194,9 @@
     </p>
     <div class="export-row">
       <span>Exportar:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'entrada' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'entrada' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'entrada' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'entrada' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'entrada' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'entrada' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if entrada %}
     <div style="position:relative; height:220px;">
@@ -289,9 +249,9 @@
     </p>
     <div class="export-row">
       <span>Exportar:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'intentos' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'intentos' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'intentos' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'intentos' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'intentos' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'intentos' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if intentos %}
     <div style="position:relative; height:220px;">
@@ -345,9 +305,9 @@
     </p>
     <div class="export-row">
       <span>Exportar:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'persistencia' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'persistencia' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'persistencia' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'persistencia' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'persistencia' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'persistencia' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if persistencia %}
     <div style="position:relative; height:220px;">
@@ -400,9 +360,9 @@
     </p>
     <div class="export-row">
       <span>Exportar:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'abandono' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'abandono' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'abandono' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'abandono' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'abandono' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'abandono' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if abandono %}
     <div style="position:relative; height:220px;">
@@ -456,9 +416,9 @@
     </p>
     <div class="export-row">
       <span>Exportar:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'desacople' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'desacople' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'desacople' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'desacople' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'desacople' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'desacople' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if desacople.total_revisados %}
     <div style="display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap;">
@@ -526,9 +486,9 @@
     </div>
     <div class="export-row" style="margin-top:0.75rem;">
       <span>Exportar base anonimizada:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_perfiles' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_perfiles' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_perfiles' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_perfiles' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_perfiles' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_perfiles' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
   </div>
 
@@ -537,9 +497,9 @@
 
     <div class="export-row">
       <span>NSE:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_nse' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_nse' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_nse' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_nse' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_nse' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_nse' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if nse %}
     <div style="display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:1rem;">
@@ -579,9 +539,9 @@
 
     <div class="export-row">
       <span>Puntaje de lógicas:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_logicas' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_logicas' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_logicas' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_logicas' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_logicas' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_logicas' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if logicas %}
     <div style="display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap; margin-bottom:1rem;">
@@ -619,9 +579,9 @@
 
     <div class="export-row">
       <span>Pandemia:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_pandemia' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_pandemia' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_pandemia' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_pandemia' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_pandemia' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_pandemia' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if pandemia %}
     <div style="display:flex; gap:1.5rem; align-items:flex-start; flex-wrap:wrap;">
@@ -663,9 +623,9 @@
 
     <div class="export-row">
       <span>Cohortes:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_cohortes' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_cohortes' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_cohortes' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_cohortes' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_cohortes' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_cohortes' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if cohortes %}
     <div style="position:relative; height:200px; margin-bottom:0.5rem;">
@@ -701,9 +661,9 @@
 
     <div class="export-row">
       <span>Cohortes × NSE:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_cohortes_nse' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_cohortes_nse' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_cohortes_nse' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_cohortes_nse' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_cohortes_nse' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_cohortes_nse' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if cohortes_nse %}
     <details class="tbl-collapse" style="margin-bottom:1rem;">
@@ -738,9 +698,9 @@
 
     <div class="export-row">
       <span>Cohortes × pandemia:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_cohortes_pandemia' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_cohortes_pandemia' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_cohortes_pandemia' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_cohortes_pandemia' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_cohortes_pandemia' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_cohortes_pandemia' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if cohortes_pandemia %}
     <details class="tbl-collapse" style="margin-bottom:1rem;">
@@ -777,9 +737,9 @@
 
     <div class="export-row">
       <span>Facultades:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_facultades' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_facultades' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_facultades' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_facultades' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_facultades' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_facultades' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if facultades %}
     <div style="position:relative; margin-bottom:0.5rem;" id="cont-facultades">
@@ -815,9 +775,9 @@
 
     <div class="export-row">
       <span>Carreras:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_carreras' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_carreras' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_carreras' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'encuesta_carreras' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'encuesta_carreras' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'encuesta_carreras' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if carreras %}
     <div style="position:relative; margin-bottom:0.5rem;" id="cont-carreras">
@@ -860,9 +820,9 @@
 
     <div class="export-row">
       <span>NSE × desempeño:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'desempeno_nse' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'desempeno_nse' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'desempeno_nse' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'desempeno_nse' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'desempeno_nse' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'desempeno_nse' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if desempeno_nse %}
     <div style="position:relative; height:220px; margin-bottom:0.5rem;">
@@ -908,9 +868,9 @@
 
     <div class="export-row">
       <span>Pandemia × desempeño:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'desempeno_pandemia' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'desempeno_pandemia' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'desempeno_pandemia' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'desempeno_pandemia' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'desempeno_pandemia' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'desempeno_pandemia' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if desempeno_pandemia %}
     <div style="position:relative; height:220px; margin-bottom:0.5rem;">
@@ -956,9 +916,9 @@
 
     <div class="export-row">
       <span>Lógicas × desempeño:</span>
-      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'desempeno_logicas' %}?formato=csv&comision_ids={{ comision_ids_csv }}">CSV</a>
-      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'desempeno_logicas' %}?formato=xlsx&comision_ids={{ comision_ids_csv }}">XLSX</a>
-      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'desempeno_logicas' %}?formato=ods&comision_ids={{ comision_ids_csv }}">ODS</a>
+      <a class="btn-export btn-csv"  href="{% url 'analiticas:exportar' 'desempeno_logicas' %}?formato=csv&{{ filtros.qs }}">CSV</a>
+      <a class="btn-export btn-xlsx" href="{% url 'analiticas:exportar' 'desempeno_logicas' %}?formato=xlsx&{{ filtros.qs }}">XLSX</a>
+      <a class="btn-export btn-ods"  href="{% url 'analiticas:exportar' 'desempeno_logicas' %}?formato=ods&{{ filtros.qs }}">ODS</a>
     </div>
     {% if desempeno_logicas %}
     <div style="position:relative; height:220px; margin-bottom:0.5rem;">
@@ -1136,14 +1096,9 @@
       El tamaño del nodo refleja con qué frecuencia aparece. Arrastrá los nodos para reorganizar.
     </p>
 
-    <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;flex-wrap:wrap;">
-      <label for="red-errores-selector" style="font-size:0.85rem;font-weight:600;color:#333;">Alcance:</label>
-      <select id="red-errores-selector" style="font-size:0.85rem;padding:0.3rem 0.6rem;border:1px solid #ccc;border-radius:4px;background:#fff;">
-        <option value="all">Global (todas las comisiones)</option>
-        {% for c in comisiones %}
-        <option value="{{ c.id }}">{{ c.nombre }}</option>
-        {% endfor %}
-      </select>
+    <div id="red-errores-scope" style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.75rem;flex-wrap:wrap;"
+         data-qs="{{ filtros.qs }}">
+      <span style="font-size:0.85rem;color:#888;">Alcance: el filtro de la página (arriba).</span>
       <span id="red-errores-meta" style="font-size:0.8rem;color:#888;"></span>
     </div>
 
@@ -1238,7 +1193,7 @@
     if (!canvas) return;
     if (!data || !data.length) { noData(canvas); return; }
     const labels = data.map(d => 'EP ' + d.ep_id + ' [' + d.comision_id + ']');
-    new Chart(canvas, {
+    const chart = new Chart(canvas, {
       type: 'bar',
       data: {
         labels,
@@ -1259,7 +1214,10 @@
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } },
+        // El callback del tooltip se declara acá (config inicial), no se
+        // agrega después mutando chart.options: ver el comentario en
+        // tooltipEjercicios() en _chart_links.html.
+        plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: tooltipEjercicios(data) } },
         scales: {
           y:  { beginAtZero: true, title: { display: true, text: 'Mediana' } },
           y2: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false },
@@ -1267,6 +1225,7 @@
         },
       },
     });
+    enlazarEjerciciosDelEje(chart, data);
   })();
 
   // ── B2. Persistencia ──
@@ -1276,7 +1235,7 @@
     if (!canvas) return;
     if (!data || !data.length) { noData(canvas); return; }
     const labels = data.map(d => 'EP ' + d.ep_id + ' [' + d.comision_id + ']');
-    new Chart(canvas, {
+    const chart = new Chart(canvas, {
       type: 'bar',
       data: {
         labels,
@@ -1291,10 +1250,14 @@
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        // El callback del tooltip se declara acá (config inicial), no se
+        // agrega después mutando chart.options: ver el comentario en
+        // tooltipEjercicios() en _chart_links.html.
+        plugins: { legend: { display: false }, tooltip: { callbacks: tooltipEjercicios(data) } },
         scales: { y: { min: 0, max: 100, title: { display: true, text: '%' } } },
       },
     });
+    enlazarEjerciciosDelEje(chart, data);
   })();
 
   // ── D1. Abandono local ──
@@ -1304,7 +1267,7 @@
     if (!canvas) return;
     if (!data || !data.length) { noData(canvas); return; }
     const labels = data.map(d => 'EP ' + d.ep_id + ' [' + d.comision_id + ']');
-    new Chart(canvas, {
+    const chart = new Chart(canvas, {
       type: 'bar',
       data: {
         labels,
@@ -1319,10 +1282,14 @@
       },
       options: {
         responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        // El callback del tooltip se declara acá (config inicial), no se
+        // agrega después mutando chart.options: ver el comentario en
+        // tooltipEjercicios() en _chart_links.html.
+        plugins: { legend: { display: false }, tooltip: { callbacks: tooltipEjercicios(data) } },
         scales: { y: { min: 0, max: 100, title: { display: true, text: '%' } } },
       },
     });
+    enlazarEjerciciosDelEje(chart, data);
   })();
 
   // ── C2. Desacople (donut) ──
@@ -1798,9 +1765,9 @@
   // ── Red de co-ocurrencia de errores (D3 force-directed) ──
   (function() {
     const container = document.getElementById('red-errores-svg');
-    const selector  = document.getElementById('red-errores-selector');
+    const scopeEl   = document.getElementById('red-errores-scope');
     const metaEl    = document.getElementById('red-errores-meta');
-    if (!container || !selector) return;
+    if (!container || !scopeEl) return;
 
     if (typeof d3 === 'undefined') {
       container.innerHTML = '<p style="color:#888;text-align:center;padding:2rem 0;">No se pudo cargar D3.js.</p>';
@@ -1928,8 +1895,8 @@
       });
     }
 
-    function load(comisionId) {
-      const url = '{% url "analiticas:red_errores" %}?comision_id=' + comisionId;
+    function load() {
+      const url = '{% url "analiticas:red_errores" %}?' + scopeEl.dataset.qs;
       container.innerHTML = '<p style="color:#888;text-align:center;padding:2rem 0;font-size:0.85rem;">Cargando…</p>';
       fetch(url)
         .then(r => r.json())
@@ -1939,8 +1906,7 @@
         });
     }
 
-    selector.addEventListener('change', () => load(selector.value));
-    load(selector.value);
+    load();
   })();
 
 })();

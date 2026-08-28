@@ -48,3 +48,7 @@ Los paquetes ZIP son independientes de Git: sirven para intercambiar contenidos
 entre instalaciones aunque sus códigos hayan evolucionado por separado. El
 campo `version` del paquete permite rechazar formatos futuros incompatibles sin
 corromper datos.
+
+Las traducciones fijas de la interfaz viven en archivos gettext `.po`/`.mo`, no
+en el código. Las consignas y descripciones, en cambio, son contenido docente y
+se cargan desde el admin. Ver `docs/TRADUCCIONES.md` antes de sumar un idioma.

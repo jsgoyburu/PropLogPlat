@@ -45,7 +45,13 @@
     </form>
   </div>
 
-  <p style="text-align: center; font-size: 0.85rem; color: #666; margin-top: 1rem;">
+  {% if recuperacion_password_habilitada %}
+  <p style="text-align: center; font-size: 0.85rem; margin-top: 1rem;">
+    <a href="{% url 'accounts:password_reset' %}">{% ui 'forgot_password' %}</a>
+  </p>
+  {% endif %}
+
+  <p style="text-align: center; font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
     {% ui 'account_from_class_link' %}
   </p>
 </div>

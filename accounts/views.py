@@ -2,14 +2,17 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import get_user_model, login, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import views as auth_views
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.forms import SetPasswordForm
+from django.core.cache import cache
 from django.db import IntegrityError, transaction
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -173,6 +176,112 @@ def favicon_view(request):
 class LoginConPrimerAccesoView(LoginView):
     """LoginView estándar. La detección de primer acceso se hace en el modelo."""
     pass
+
+
+# Techo del formulario público de recuperación de contraseña.
+LIMITE_RESET_POR_EMAIL = 5
+LIMITE_RESET_POR_IP = 20
+VENTANA_RESET_SEGUNDOS = 60 * 60
+
+
+def _ip_cliente(request):
+    """IP de quien hace el pedido, leída desde el proxy de confianza.
+
+    X-Forwarded-For se lee DE DERECHA A IZQUIERDA. El header queda como
+    `<lo que mandó el cliente>, <lo que vio el proxy 1>, ...`: cada proxy
+    agrega al final la dirección que él mismo vio, así que lo de la izquierda
+    lo escribió quien llama y no se puede creer.
+
+    Tomar el primer valor -que es lo que uno escribe sin pensarlo- deja el
+    techo por IP en la nada: alcanza con mandar el header a mano y cambiarlo en
+    cada pedido para estrenar un contador nuevo cada vez. Con
+    ``settings.TRUSTED_PROXY_COUNT`` proxies de confianza delante (en Railway,
+    uno), el valor confiable es el que está esa cantidad de posiciones desde el
+    final.
+
+    Sin el header se cae a REMOTE_ADDR, que es lo correcto cuando no hay proxy
+    (desarrollo local y tests).
+    """
+    reenviada = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    cadena = [ip.strip() for ip in reenviada.split(',') if ip.strip()]
+    if cadena:
+        confiables = getattr(settings, 'TRUSTED_PROXY_COUNT', 1)
+        return cadena[max(len(cadena) - confiables, 0)]
+    return request.META.get('REMOTE_ADDR', '')
+
+
+def _excede_limite(clave, limite):
+    """Suma uno al contador de `clave` y dice si se pasó de `limite`.
+
+    El par add+incr es el patrón que documenta Django para contadores en
+    cache: `add` solo escribe si la clave no existía, así que la ventana de
+    una hora se fija en el primer pedido y no se renueva con cada uno. El
+    except cubre el caso en que la clave venza justo entre las dos llamadas.
+    """
+    cache_key = f'reset_pw:{clave}'
+    cache.add(cache_key, 0, VENTANA_RESET_SEGUNDOS)
+    try:
+        contador = cache.incr(cache_key)
+    except ValueError:
+        cache.set(cache_key, 1, VENTANA_RESET_SEGUNDOS)
+        contador = 1
+    return contador > limite
+
+
+class PasswordResetSitioView(auth_views.PasswordResetView):
+    """PasswordResetView con el nombre del sitio en el mail.
+
+    Los templates de mail se renderizan con ``render_to_string``, sin request,
+    así que los context processors no corren y ``config_sitio`` no está
+    disponible como en el resto de los templates. El nombre se inyecta acá.
+
+    Va en ``form_valid`` y no en la definición de la URL a propósito: leer
+    ConfigSitio al importar el URLconf sería pegarle a la base antes de que
+    las apps estén listas.
+    """
+
+    def form_valid(self, form):
+        email = form.cleaned_data['email'].strip().lower()
+
+        # Los dos contadores se evalúan siempre, sin cortocircuito: si se
+        # usara `or`, un pedido frenado por el límite de email no sumaría al
+        # de IP y quien sondea direcciones distintas nunca tocaría ese techo.
+        excede_email = _excede_limite(f'email:{email}', LIMITE_RESET_POR_EMAIL)
+        excede_ip = _excede_limite(
+            f'ip:{_ip_cliente(self.request)}', LIMITE_RESET_POR_IP
+        )
+
+        if excede_email or excede_ip:
+            # Se corta el envío pero se devuelve la pantalla de siempre.
+            # Un error acá diría "esta dirección existe y ya pidió cinco".
+            return HttpResponseRedirect(self.get_success_url())
+
+        self.extra_email_context = {
+            'nombre_sitio': ConfigSitio.get().nombre_sitio,
+        }
+        return super().form_valid(form)
+
+
+class PasswordResetConfirmLimpiaFlagView(auth_views.PasswordResetConfirmView):
+    """Al terminar el reset, baja ``debe_cambiar_password``.
+
+    Un estudiante dado de alta por su docente arrastra el flag en True. Si
+    recupera la contraseña por mail y el flag queda prendido,
+    ForzarCambioPasswordMiddleware lo manda a cambiar la contraseña que acaba
+    de elegir. Bajándolo, el middleware pasa a su segundo check y lo lleva a
+    consentimientos: el onboarding sigue completo, sin el paso redundante.
+
+    No se activa ``post_reset_login``: la persona termina en el login normal y
+    entra con su contraseña nueva, como cualquiera.
+    """
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        usuario = form.user
+        if usuario.debe_cambiar_password:
+            usuario.debe_cambiar_password = False
+            usuario.save(update_fields=['debe_cambiar_password'])
+        return response
 
 
 def _get_tipo_encuesta(user):

@@ -8,6 +8,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from django.utils.translation import override as language_override
 try:
     from openpyxl import Workbook, load_workbook
 except ModuleNotFoundError:  # pragma: no cover - depende del entorno
@@ -66,6 +67,7 @@ class PaquetesPortablesTests(TestCase):
         self.practica = Practica.objects.create(
             titulo='Práctica compartida',
             titulo_en='Shared practice',
+            titulo_zh_hans='共享练习',
             descripcion='<p>Descripción <strong>formateada</strong></p>',
             creada_por=self.docente,
         )
@@ -74,6 +76,7 @@ class PaquetesPortablesTests(TestCase):
             enunciado_en='If it rains, the street gets wet.',
             enunciado_fr='S’il pleut, la rue est mouillée.',
             enunciado_de='Wenn es regnet, wird die Straße nass.',
+            enunciado_zh_hans='如果下雨，街道就会湿。',
             formula_solucion='p -> q',
             tipo='formalizacion',
             diccionario_solucion={'p': 'Llueve', 'q': 'La calle se moja'},
@@ -103,6 +106,7 @@ class PaquetesPortablesTests(TestCase):
         self.assertEqual(payload['version'], 1)
         self.assertEqual(payload['kind'], 'practice')
         self.assertEqual(payload['content']['title']['en'], 'Shared practice')
+        self.assertEqual(payload['content']['title']['zh-hans'], '共享练习')
         self.assertEqual(
             payload['content']['exercises'][0]['enunciado']['de'],
             'Wenn es regnet, wird die Straße nass.',
@@ -125,6 +129,7 @@ class PaquetesPortablesTests(TestCase):
         copia = Practica.objects.exclude(pk=self.practica.pk).get()
         self.assertEqual(copia.titulo, 'Práctica compartida')
         self.assertEqual(copia.titulo_en, 'Shared practice')
+        self.assertEqual(copia.titulo_zh_hans, '共享练习')
         self.assertFalse(copia.es_publica)
         self.assertEqual(copia.creada_por, self.docente)
         self.assertIsNone(copia.practica_origen)
@@ -132,6 +137,39 @@ class PaquetesPortablesTests(TestCase):
         self.assertFalse(ejercicio_copia.es_publico)
         self.assertEqual(ejercicio_copia.creado_por, self.docente)
         self.assertEqual(ejercicio_copia.enunciado_fr, 'S’il pleut, la rue est mouillée.')
+        self.assertEqual(ejercicio_copia.enunciado_zh_hans, '如果下雨，街道就会湿。')
+
+    def test_chino_localizado_y_fallback_al_castellano(self):
+        with language_override('zh-hans'):
+            self.assertEqual(self.practica.titulo_localizado, '共享练习')
+            self.assertEqual(self.ejercicio.enunciado_localizado, '如果下雨，街道就会湿。')
+
+            self.practica.titulo_zh_hans = ''
+            self.ejercicio.enunciado_zh_hans = ''
+            self.assertEqual(self.practica.titulo_localizado, 'Práctica compartida')
+            self.assertIn('Si llueve', self.ejercicio.enunciado_localizado)
+
+    def test_instala_paquete_v1_anterior_sin_clave_china(self):
+        contenido = self._descargar_practica()
+        with zipfile.ZipFile(BytesIO(contenido)) as archivo:
+            payload = json.loads(archivo.read('package.json'))
+        payload['content']['title'].pop('zh-hans')
+        payload['content']['description'].pop('zh-hans')
+        for ejercicio in payload['content']['exercises']:
+            ejercicio['enunciado'].pop('zh-hans')
+
+        buffer = BytesIO()
+        with zipfile.ZipFile(buffer, 'w', compression=zipfile.ZIP_DEFLATED) as archivo:
+            archivo.writestr('package.json', json.dumps(payload, ensure_ascii=False))
+        response = self.client.post(
+            reverse('docentes:paquete_instalar'),
+            {'archivo': SimpleUploadedFile('v1-anterior.zip', buffer.getvalue())},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        copia = Practica.objects.exclude(pk=self.practica.pk).get()
+        self.assertEqual(copia.titulo_zh_hans, '')
+        self.assertEqual(copia.ejercicio_practicas.get().ejercicio.enunciado_zh_hans, '')
 
     def test_rechaza_zip_con_archivos_adicionales(self):
         buffer = BytesIO()
@@ -739,6 +777,19 @@ class ComisionesListViewTests(TestCase):
 
 class ComisionDetailProgressViewTests(TestCase):
     def setUp(self):
+        # comision_detail cachea las analíticas 5 min bajo la clave
+        # `analiticas_<comision_id>_<cohorte_id>` (ver docentes/views.py). El
+        # caché es un LocMemCache de proceso: no lo resetea el rollback
+        # transaccional de cada test, así que sobrevive entre tests. Como
+        # sqlite reasigna PKs libremente tras cada rollback, otro test que
+        # haya corrido antes puede haber dejado una entrada para el mismo par
+        # (comision_id, cohorte_id) que este test reutiliza por coincidencia
+        # de PKs — y esta vista serviría esos datos viejos en vez de
+        # recalcular. En producción los IDs de Comision jamás se reciclan, así
+        # que esto no puede pasar ahí: es un artefacto de la suite de tests.
+        from django.core.cache import cache
+        cache.clear()
+
         self.docente = _u('doc-prog', es_docente=True)
         self.docente_otro = _u('doc-prog-otro', es_docente=True)
         self.admin = _u('admin-prog', is_staff=True, is_superuser=True)
@@ -818,6 +869,45 @@ class ComisionDetailProgressViewTests(TestCase):
         fila = response.context['progreso_estudiantes'][0]
         self.assertEqual(fila['porcentaje_resuelto'], 50.0)
         self.assertEqual(fila['porcentaje_global'], 0.0)
+
+    def test_analiticas_del_dashboard_se_calculan_sin_error(self):
+        """Regresión: comision_detail llama a ocho helpers importados de
+        analiticas.views (_ejercicios_mas_dificiles, _estudiantes_en_riesgo,
+        _distribucion_intentos, _evolucion_temporal, _errores_sistematicos,
+        _silencio_temprano, _concentracion_practica, _velocidad_arranque) con
+        el parámetro cohorte_id=<int|None>. Esas funciones fueron renombradas
+        a cohorte_ids=<list|None> en analiticas/views.py; si docentes/views.py
+        no se actualiza junto con ellas, esta vista tira TypeError y 500."""
+        Intento.objects.create(
+            estudiante=self.estudiante,
+            ejercicio_practica=self.ejercicio_practica_1,
+            practica_comision=self.pc,
+            cohorte=self.cohorte,
+            respuesta_raw='p',
+            es_correcto=True,
+            aprobado_docente=True,
+        )
+
+        self.client.login(username='doc-prog', password='clave123')
+        response = self.client.get(reverse('docentes:comision_detail', args=[self.comision.id]))
+
+        self.assertEqual(response.status_code, 200)
+        # El dict `analiticas` de la vista se desparrama con **analiticas
+        # directo en el contexto del template (no vive bajo una clave
+        # 'analiticas'), así que cada resultado es una clave de contexto
+        # de primer nivel.
+        for clave in (
+            'ejercicios_dificiles', 'en_riesgo', 'distribucion_intentos',
+            'evolucion_temporal', 'errores_sistematicos', 'silencio',
+            'silencio_resumen', 'concentracion', 'velocidad',
+        ):
+            self.assertIn(clave, response.context)
+
+        # Dato concreto: el único intento (resuelto al primer try) debe
+        # aparecer computado en la distribución de intentos del ejercicio 1.
+        fila = response.context['distribucion_intentos'][0]
+        self.assertEqual(fila['resolvieron'], 1)
+        self.assertEqual(fila['promedio'], 1.0)
 
     def test_resuelto_ignora_intentos_rechazados_por_el_docente(self):
         Intento.objects.create(

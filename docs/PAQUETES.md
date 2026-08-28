@@ -9,7 +9,7 @@ reconocer su procedencia, indicar los cambios y conservar esa licencia.
 
 ## Qué incluye
 
-- castellano original y traducciones opcionales al inglés, francés y alemán;
+- castellano original y traducciones opcionales al inglés, francés, alemán y chino simplificado (`zh-hans`);
 - título y descripción de la práctica;
 - consignas, tipos y orden de ejercicios;
 - fórmulas, diccionarios y valores de verdad usados para la verificación formal.
@@ -34,3 +34,8 @@ se revierte.
 El contrato formal está en `schemas/ipc-logica-package-v1.schema.json`. Para una
 versión incompatible se debe crear otro schema y mantener el lector v1; nunca
 se debe reinterpretar silenciosamente un paquete existente.
+
+`zh-hans` se agregó como clave opcional compatible dentro de v1: un paquete v1
+anterior, que solo tenga `es`, `en`, `fr` y `de`, sigue siendo instalable. Las
+nuevas exportaciones incluyen siempre las cinco claves, aunque alguna
+traducción esté vacía.

@@ -1072,9 +1072,19 @@ def _metricas_desempeno_por_estudiante(comision_ids=None, solo_consentimiento=Tr
     if solo_consentimiento:
         qs_progreso = qs_progreso.filter(estudiante__consentimiento_investigacion=True)
 
+    # Cuenta prácticas DISTINTAS, no filas de Progreso: Progreso es único por
+    # (estudiante, practica_comision, cohorte) (ver ejercicios/models.py), así
+    # que un recursante que completó la misma práctica en dos cohortes de la
+    # misma comisión aporta dos filas para una sola práctica. Deduplicar por
+    # ``practica_comision__practica_id`` (no por ``practica_comision_id``)
+    # también cubre el caso de un estudiante en dos comisiones distintas que
+    # comparten la misma Practica canónica: sigue siendo la misma práctica
+    # hecha dos veces, no dos prácticas.
     practicas_completadas = {
         row['estudiante__research_id'].hex: row['n']
-        for row in qs_progreso.values('estudiante__research_id').annotate(n=Count('id'))
+        for row in qs_progreso.values('estudiante__research_id').annotate(
+            n=Count('practica_comision__practica_id', distinct=True),
+        )
         if row['estudiante__research_id'] is not None
     }
 

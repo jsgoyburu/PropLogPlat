@@ -20,6 +20,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, F, Max, Q
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import ConfigSitio
@@ -52,7 +53,68 @@ def _strip_html(text):
     return re.sub(r'<[^>]+>', '', text or '')
 
 
-def _ejercicios_mas_dificiles(comision_ids, estudiante_ids, top_n=5, min_intentos=3, cohorte_id=None):
+def _url_ejercicio(pc_id, ep_id):
+    """Ruta al ejercicio dentro de su práctica, o ``None`` si no hay práctica.
+
+    Este es el único lugar del proyecto que conoce el nombre de la ruta para
+    los gráficos. La alternativa —reconstruirla en JavaScript— se rompe en
+    silencio si ``ejercicios/urls.py`` cambia: el link sigue ahí y no lleva
+    a ninguna parte.
+
+    Args:
+        pc_id: ID de PracticaComision, o None si el ejercicio no tiene una
+            práctica visible para el usuario.
+        ep_id: ID de EjercicioPractica.
+
+    Returns:
+        La ruta, o ``None``. Una fila con ``None`` deja su barra inerte en el
+        gráfico, que es preferible a un link roto o al de otra comisión.
+    """
+    if pc_id is None:
+        return None
+    return reverse('ejercicios:ejercicio', args=[pc_id, ep_id])
+
+
+def _urls_ejercicios(ep_ids, comision_ids):
+    """Resuelve en bulk la URL de cada EjercicioPractica dado.
+
+    Los paneles del dashboard agregan varias comisiones, así que una misma
+    práctica puede estar asignada a más de una y el ``PracticaComision`` no es
+    único. Se elige el de menor ``id``: es determinístico —dos cargas dan el
+    mismo link— y el ejercicio que se abre es el mismo en cualquier caso; lo
+    único que cambia es la práctica que lo enmarca.
+
+    Args:
+        ep_ids: iterable de IDs de EjercicioPractica.
+        comision_ids: comisiones visibles para el usuario.
+
+    Returns:
+        Dict ``{ep_id: url | None}``, con una entrada por cada ep pedido.
+    """
+    ep_ids = list(ep_ids)
+    if not ep_ids or not comision_ids:
+        return {ep_id: None for ep_id in ep_ids}
+
+    # Una sola query: (ep, pc) para todos los ep pedidos. Resolver de a uno
+    # sería N+1 sobre gráficos de ~40 barras.
+    filas = (
+        EjercicioPractica.objects
+        .filter(id__in=ep_ids, practica__practicas_comisiones__comision_id__in=comision_ids)
+        .values_list('id', 'practica__practicas_comisiones__id')
+    )
+
+    mejor_pc = {}
+    for ep_id, pc_id in filas:
+        if pc_id is None:
+            continue
+        actual = mejor_pc.get(ep_id)
+        if actual is None or pc_id < actual:
+            mejor_pc[ep_id] = pc_id
+
+    return {ep_id: _url_ejercicio(mejor_pc.get(ep_id), ep_id) for ep_id in ep_ids}
+
+
+def _ejercicios_mas_dificiles(comision_ids, estudiante_ids, top_n=5, min_intentos=3, cohorte_ids=None):
     """Devuelve los EjercicioPractica más difíciles por tasa de error.
 
     Solo considera EP con ≥ ``min_intentos`` intentos totales (evita ruido).
@@ -66,7 +128,7 @@ def _ejercicios_mas_dificiles(comision_ids, estudiante_ids, top_n=5, min_intento
             todas sus cohortes de una comisión.
         top_n: cuántos resultados devolver.
         min_intentos: mínimo de intentos totales para incluir el EP.
-        cohorte_id: si se da, acota los intentos a esa cohorte. Necesario
+        cohorte_ids: si se da, acota los intentos a esas cohortes. Necesario
             para no mezclar, en un recursante, los intentos de su camada
             anterior con los de la que se está mirando.
 
@@ -79,8 +141,8 @@ def _ejercicios_mas_dificiles(comision_ids, estudiante_ids, top_n=5, min_intento
         return []
 
     _filtro_estudiantes = Q(intentos__estudiante_id__in=estudiante_ids)
-    if cohorte_id is not None:
-        _filtro_estudiantes &= Q(intentos__cohorte_id=cohorte_id)
+    if cohorte_ids is not None:
+        _filtro_estudiantes &= Q(intentos__cohorte_id__in=cohorte_ids)
 
     eps = (
         EjercicioPractica.objects
@@ -105,6 +167,7 @@ def _ejercicios_mas_dificiles(comision_ids, estudiante_ids, top_n=5, min_intento
         enunciado_corto = _strip_html(ep.ejercicio.enunciado[:120]).strip()[:70]
         resultado.append({
             'ejercicio_id': ep.ejercicio.id,
+            'ep_id': ep.id,
             'enunciado_corto': enunciado_corto,
             'practica_titulo': ep.practica.titulo,
             'tipo': ep.ejercicio.tipo,
@@ -113,10 +176,16 @@ def _ejercicios_mas_dificiles(comision_ids, estudiante_ids, top_n=5, min_intento
             'error_rate': round(error_rate, 1),
         })
     resultado.sort(key=lambda x: x['error_rate'], reverse=True)
-    return resultado[:top_n]
+    resultado = resultado[:top_n]
+    # Se resuelve DESPUÉS del corte: no tiene sentido pedir URLs de filas
+    # que el panel no va a mostrar.
+    _urls = _urls_ejercicios([r['ep_id'] for r in resultado], comision_ids)
+    for r in resultado:
+        r['url'] = _urls.get(r['ep_id'])
+    return resultado
 
 
-def _estudiantes_en_riesgo(comision_ids, estudiante_ids, umbral_riesgo=5, cohorte_id=None):
+def _estudiantes_en_riesgo(comision_ids, estudiante_ids, umbral_riesgo=5, cohorte_ids=None):
     """Retorna estudiantes con racha ≥ ``umbral_riesgo`` fallos consecutivos.
 
     Para cada par (estudiante, EP), toma los intentos ordenados por timestamp
@@ -130,7 +199,7 @@ def _estudiantes_en_riesgo(comision_ids, estudiante_ids, umbral_riesgo=5, cohort
             población). No alcanza para acotar por camada: ver
             :func:`_ejercicios_mas_dificiles`.
         umbral_riesgo: cantidad de fallos consecutivos para activar la alerta.
-        cohorte_id: si se da, acota los intentos a esa cohorte.
+        cohorte_ids: si se da, acota los intentos a esas cohortes.
 
     Returns:
         Lista de dicts con claves:
@@ -145,8 +214,8 @@ def _estudiantes_en_riesgo(comision_ids, estudiante_ids, umbral_riesgo=5, cohort
         practica_comision__comision_id__in=comision_ids,
         estudiante_id__in=estudiante_ids,
     )
-    if cohorte_id is not None:
-        _filtros['cohorte_id'] = cohorte_id
+    if cohorte_ids is not None:
+        _filtros['cohorte_id__in'] = cohorte_ids
 
     intentos = (
         Intento.objects
@@ -197,7 +266,7 @@ def _estudiantes_en_riesgo(comision_ids, estudiante_ids, umbral_riesgo=5, cohort
     return en_riesgo
 
 
-def _distribucion_intentos(comision_ids, estudiante_ids, cohorte_id=None):
+def _distribucion_intentos(comision_ids, estudiante_ids, cohorte_ids=None):
     """Calcula la distribución de intentos hasta resolver, agrupada por ejercicio.
 
     El mismo ejercicio puede aparecer en varias prácticas/comisiones (vía
@@ -216,7 +285,7 @@ def _distribucion_intentos(comision_ids, estudiante_ids, cohorte_id=None):
         estudiante_ids: IDs de estudiantes a considerar (define la
             población). No alcanza para acotar por camada: ver
             :func:`_ejercicios_mas_dificiles`.
-        cohorte_id: si se da, acota los intentos a esa cohorte.
+        cohorte_ids: si se da, acota los intentos a esas cohortes.
 
     Returns:
         Lista de dicts con claves:
@@ -235,8 +304,8 @@ def _distribucion_intentos(comision_ids, estudiante_ids, cohorte_id=None):
         practica_comision__comision_id__in=comision_ids,
         estudiante_id__in=estudiante_ids,
     )
-    if cohorte_id is not None:
-        _filtros['cohorte_id'] = cohorte_id
+    if cohorte_ids is not None:
+        _filtros['cohorte_id__in'] = cohorte_ids
 
     intentos = (
         Intento.objects
@@ -294,7 +363,16 @@ def _distribucion_intentos(comision_ids, estudiante_ids, cohorte_id=None):
 
     resultado = []
     for ejercicio_id, eps_del_ejercicio in ejercicio_grupos.items():
-        first_m = ep_meta_map[eps_del_ejercicio[0]]
+        # Representante determinístico: el mismo ejercicio puede estar en
+        # varias prácticas y esta fila las agrega todas. Cualquiera de sus EP
+        # abre el mismo ejercicio; se fija el menor para que el link no cambie
+        # entre cargas.
+        ep_representante = min(eps_del_ejercicio)
+        # La metadata mostrada (práctica, enunciado) tiene que salir del MISMO
+        # EP que va a recibir el link más abajo. Si se tomara de otro EP del
+        # grupo, la fila podría mostrar "Práctica 3" mientras la barra abre
+        # la Práctica 1.
+        first_m = ep_meta_map[ep_representante]
         enunciado_corto = _strip_html(
             first_m['ejercicio_practica__ejercicio__enunciado'][:120]
         ).strip()[:70]
@@ -325,6 +403,7 @@ def _distribucion_intentos(comision_ids, estudiante_ids, cohorte_id=None):
         promedio = round(sum(all_counts) / len(all_counts), 1) if all_counts else None
         mediana = round(_statistics.median(all_counts), 1) if all_counts else None
         resultado.append({
+            'ep_id': ep_representante,
             'enunciado_corto': enunciado_corto,
             'practica_titulo': first_m['ejercicio_practica__practica__titulo'],
             'tipo': first_m['ejercicio_practica__ejercicio__tipo'],
@@ -340,10 +419,13 @@ def _distribucion_intentos(comision_ids, estudiante_ids, cohorte_id=None):
             'detalle': detalle,
         })
     resultado.sort(key=lambda x: (x['promedio'] is None, x['promedio'] or 0), reverse=True)
+    _urls = _urls_ejercicios([r['ep_id'] for r in resultado], comision_ids)
+    for r in resultado:
+        r['url'] = _urls.get(r['ep_id'])
     return resultado
 
 
-def _evolucion_temporal(comision_ids, estudiante_ids, semanas=_SEMANAS, cohorte_id=None):
+def _evolucion_temporal(comision_ids, estudiante_ids, semanas=_SEMANAS, cohorte_ids=None):
     """Intentos por semana ISO en las últimas ``semanas`` semanas.
 
     Args:
@@ -352,7 +434,7 @@ def _evolucion_temporal(comision_ids, estudiante_ids, semanas=_SEMANAS, cohorte_
             población). No alcanza para acotar por camada: ver
             :func:`_ejercicios_mas_dificiles`.
         semanas: cuántas semanas hacia atrás considerar.
-        cohorte_id: si se da, acota los intentos a esa cohorte.
+        cohorte_ids: si se da, acota los intentos a esas cohortes.
 
     Returns:
         Lista de dicts con claves:
@@ -369,8 +451,8 @@ def _evolucion_temporal(comision_ids, estudiante_ids, semanas=_SEMANAS, cohorte_
         estudiante_id__in=estudiante_ids,
         timestamp__gte=cutoff,
     )
-    if cohorte_id is not None:
-        _filtros['cohorte_id'] = cohorte_id
+    if cohorte_ids is not None:
+        _filtros['cohorte_id__in'] = cohorte_ids
     intentos = (
         Intento.objects
         .filter(**_filtros)
@@ -399,7 +481,7 @@ def _evolucion_temporal(comision_ids, estudiante_ids, semanas=_SEMANAS, cohorte_
     return resultado
 
 
-def _silencio_temprano(comision_ids, estudiante_ids, cohorte_id=None):
+def _silencio_temprano(comision_ids, estudiante_ids, cohorte_ids=None):
     """Para cada estudiante inscripto, días desde su último intento.
 
     Incluye a todos los inscriptos aunque no hayan intentado nada
@@ -411,10 +493,10 @@ def _silencio_temprano(comision_ids, estudiante_ids, cohorte_id=None):
         estudiante_ids: IDs de estudiantes a considerar; define la población
             que se reporta (incluye a quien nunca intentó nada). No alcanza
             para acotar por camada: ver :func:`_ejercicios_mas_dificiles`.
-        cohorte_id: si se da, acota los intentos a esa cohorte. Un recursante
-            con intentos solo en su camada vieja debe verse como "nunca
-            intentó" al mirar la camada actual, no arrastrar el último
-            intento de la otra.
+        cohorte_ids: si se da, acota los intentos a esas cohortes. Un
+            recursante con intentos solo en su camada vieja debe verse como
+            "nunca intentó" al mirar la camada actual, no arrastrar el
+            último intento de la otra.
 
     Returns:
         Lista de dicts con claves:
@@ -441,8 +523,8 @@ def _silencio_temprano(comision_ids, estudiante_ids, cohorte_id=None):
         practica_comision__comision_id__in=comision_ids,
         estudiante_id__in=estudiante_ids,
     )
-    if cohorte_id is not None:
-        _filtros['cohorte_id'] = cohorte_id
+    if cohorte_ids is not None:
+        _filtros['cohorte_id__in'] = cohorte_ids
     ultimos = (
         Intento.objects
         .filter(**_filtros)
@@ -499,7 +581,7 @@ def _silencio_resumen(silencio_lista, umbral_silencio_dias=7):
     }
 
 
-def _concentracion_practica(comision_ids, estudiante_ids, umbral_maraton=6, cohorte_id=None):
+def _concentracion_practica(comision_ids, estudiante_ids, umbral_maraton=6, cohorte_ids=None):
     """Detecta pares (estudiante, práctica) con práctica muy concentrada.
 
     Calcula el ratio intentos / días únicos con actividad. Un ratio alto
@@ -513,7 +595,7 @@ def _concentracion_practica(comision_ids, estudiante_ids, umbral_maraton=6, coho
         estudiante_ids: IDs de estudiantes a considerar (define la
             población). No alcanza para acotar por camada: ver
             :func:`_ejercicios_mas_dificiles`.
-        cohorte_id: si se da, acota los intentos a esa cohorte.
+        cohorte_ids: si se da, acota los intentos a esas cohortes.
 
     Returns:
         Lista de dicts con claves:
@@ -528,8 +610,8 @@ def _concentracion_practica(comision_ids, estudiante_ids, umbral_maraton=6, coho
         practica_comision__comision_id__in=comision_ids,
         estudiante_id__in=estudiante_ids,
     )
-    if cohorte_id is not None:
-        _filtros['cohorte_id'] = cohorte_id
+    if cohorte_ids is not None:
+        _filtros['cohorte_id__in'] = cohorte_ids
     intentos = (
         Intento.objects
         .filter(**_filtros)
@@ -579,7 +661,7 @@ def _concentracion_practica(comision_ids, estudiante_ids, umbral_maraton=6, coho
     return resultado
 
 
-def _velocidad_arranque(comision_ids, estudiante_ids, umbral_arranque_dias=14, cohorte_id=None):
+def _velocidad_arranque(comision_ids, estudiante_ids, umbral_arranque_dias=14, cohorte_ids=None):
     """Detecta estudiantes con arranque tardío en alguna práctica.
 
     Un arranque tardío ocurre cuando el estudiante no realizó ningún
@@ -592,7 +674,7 @@ def _velocidad_arranque(comision_ids, estudiante_ids, umbral_arranque_dias=14, c
         estudiante_ids: IDs de estudiantes a considerar (define la
             población). No alcanza para acotar por camada: ver
             :func:`_ejercicios_mas_dificiles`.
-        cohorte_id: si se da, acota los intentos a esa cohorte.
+        cohorte_ids: si se da, acota los intentos a esas cohortes.
 
     Returns:
         Lista de dicts con claves:
@@ -606,8 +688,8 @@ def _velocidad_arranque(comision_ids, estudiante_ids, umbral_arranque_dias=14, c
         practica_comision__comision_id__in=comision_ids,
         estudiante_id__in=estudiante_ids,
     )
-    if cohorte_id is not None:
-        _filtros['cohorte_id'] = cohorte_id
+    if cohorte_ids is not None:
+        _filtros['cohorte_id__in'] = cohorte_ids
     intentos = (
         Intento.objects
         .filter(**_filtros)
@@ -680,7 +762,7 @@ def _fmt_respuesta_error(respuesta_raw, tipo):
         return respuesta_raw or '(vacío)'
 
 
-def _errores_sistematicos(comision_ids, estudiante_ids, min_estudiantes=2, cohorte_id=None):
+def _errores_sistematicos(comision_ids, estudiante_ids, min_estudiantes=2, cohorte_ids=None):
     """Detecta respuestas incorrectas compartidas por ≥ ``min_estudiantes`` estudiantes.
 
     Agrupa los intentos incorrectos por (ejercicio, práctica, respuesta_raw) y
@@ -696,9 +778,10 @@ def _errores_sistematicos(comision_ids, estudiante_ids, min_estudiantes=2, cohor
         min_estudiantes: umbral mínimo de estudiantes coincidentes.
             Por defecto usa ``_ERROR_CONSENSO_MIN``; las vistas lo sobreescriben
             con el valor de ``ConfigSitio.error_consenso_min``.
-        cohorte_id: si se da, acota los intentos a esa cohorte. Sin acotar,
-            un mismo error de un recursante en dos camadas cuenta dos veces
-            hacia ``n_estudiantes`` cuando en realidad es la misma persona.
+        cohorte_ids: si se da, acota los intentos a esas cohortes. Sin
+            acotar, un mismo error de un recursante en dos camadas cuenta
+            dos veces hacia ``n_estudiantes`` cuando en realidad es la
+            misma persona.
 
     Returns:
         Lista de dicts con claves:
@@ -713,8 +796,8 @@ def _errores_sistematicos(comision_ids, estudiante_ids, min_estudiantes=2, cohor
         practica_comision__comision_id__in=comision_ids,
         estudiante_id__in=estudiante_ids,
     )
-    if cohorte_id is not None:
-        _filtros['cohorte_id'] = cohorte_id
+    if cohorte_ids is not None:
+        _filtros['cohorte_id__in'] = cohorte_ids
 
     filas = (
         Intento.objects
@@ -767,22 +850,18 @@ def dashboard(request):
     if not (usuario.is_staff or usuario.es_docente):
         return redirect('ejercicios:home')
 
-    if usuario.is_staff:
-        comisiones = (
-            Comision.objects.all()
-            .prefetch_related('practicas_comisiones__practica')
-            .order_by('nombre')
-        )
-    else:
-        comisiones = (
-            Comision.objects.filter(docentes=usuario)
-            .prefetch_related('practicas_comisiones__practica')
-            .order_by('nombre')
-        )
+    from analiticas.filtros import resolver_filtros
+
+    filtros = resolver_filtros(request)
+    comision_ids = filtros.comision_ids
+    cohorte_ids = filtros.cohorte_ids
+    comisiones = (
+        filtros.comisiones
+        .filter(id__in=comision_ids)
+        .prefetch_related('practicas_comisiones__practica')
+    )
 
     # Pre-calcular estadísticas en bulk para evitar N+1 por (comisión × práctica).
-    comision_ids = list(comisiones.values_list('id', flat=True))
-
     all_pcs = list(
         PracticaComision.objects
         .filter(comision_id__in=comision_ids)
@@ -790,46 +869,64 @@ def dashboard(request):
     )
     all_pc_ids = [pc['id'] for pc in all_pcs]
 
+    _qs_intentos = Intento.objects.filter(practica_comision_id__in=all_pc_ids)
+    if cohorte_ids is not None:
+        _qs_intentos = _qs_intentos.filter(cohorte_id__in=cohorte_ids)
+
     total_intentos_map = {
         row['practica_comision_id']: row['n']
-        for row in (
-            Intento.objects.filter(practica_comision_id__in=all_pc_ids)
-            .values('practica_comision_id').annotate(n=Count('id'))
-        )
+        for row in _qs_intentos.values('practica_comision_id').annotate(n=Count('id'))
     }
     intentos_correctos_map = {
         row['practica_comision_id']: row['n']
         for row in (
-            Intento.objects
-            .filter(practica_comision_id__in=all_pc_ids)
-            .filter(_Q_CORRECTO)
+            _qs_intentos.filter(_Q_CORRECTO)
             .values('practica_comision_id').annotate(n=Count('id'))
         )
     }
+    _qs_progreso = Progreso.objects.filter(
+        practica_comision_id__in=all_pc_ids,
+        ejercicio_practica_actual__isnull=True,
+        estudiante__inscripciones__comision=F('practica_comision__comision'),
+    )
+    if cohorte_ids is not None:
+        _qs_progreso = _qs_progreso.filter(cohorte_id__in=cohorte_ids)
+
     completaron_map = {
         row['practica_comision_id']: row['n']
         for row in (
-            Progreso.objects
-            .filter(
-                practica_comision_id__in=all_pc_ids,
-                ejercicio_practica_actual__isnull=True,
-                estudiante__inscripciones__comision=F('practica_comision__comision'),
-            )
-            # El join contra estudiante__inscripciones duplica la fila de
-            # Progreso por cada Inscripcion que matchea (un recursante tiene
-            # una por cohorte en la misma comisión); distinct=True cuenta
-            # cada Progreso una sola vez.
-            .values('practica_comision_id').annotate(n=Count('pk', distinct=True))
+            # Numerador de "completaron X de N": cuenta personas, para que
+            # la unidad matche al denominador (_estudiantes_por_comision,
+            # más abajo). Un recursante que completó la práctica en dos
+            # camadas de la misma comisión tiene dos filas de Progreso (una
+            # por cohorte, ver unique_together en el modelo); contar filas
+            # de Progreso lo contaría dos veces frente a una sola persona
+            # en el denominador. Además, el join contra
+            # estudiante__inscripciones duplica cada fila de Progreso por
+            # cada Inscripcion que matchea, así que distinct=True es
+            # necesario incluso para contar personas correctamente.
+            _qs_progreso.values('practica_comision_id').annotate(n=Count('estudiante_id', distinct=True))
+        )
+    }
+
+    from cursos.models import Inscripcion
+
+    _insc_qs = Inscripcion.objects.filter(comision_id__in=comision_ids)
+    if cohorte_ids is not None:
+        _insc_qs = _insc_qs.filter(cohorte_id__in=cohorte_ids)
+
+    # Denominador de "completaron X de N". Cuenta estudiantes distintos: un
+    # recursante con dos inscripciones en la misma comisión es una persona.
+    _estudiantes_por_comision = {
+        row['comision_id']: row['n']
+        for row in _insc_qs.values('comision_id').annotate(
+            n=Count('estudiante_id', distinct=True),
         )
     }
 
     comisiones_data = []
     for comision in comisiones:
-        # M2M vía Inscripcion: un recursante tiene dos filas (una por
-        # cohorte) y sin distinct() contaría dos veces. Este panel agrega
-        # todas las camadas (ver nota más abajo sobre _estudiantes_dashboard),
-        # así que el conteo correcto es de estudiantes distintos, no por cohorte.
-        total_estudiantes = comision.estudiantes.distinct().count()
+        total_estudiantes = _estudiantes_por_comision.get(comision.id, 0)
         practicas_data = []
         for pc in comision.practicas_comisiones.all():
             practica = pc.practica
@@ -853,31 +950,34 @@ def dashboard(request):
 
     cfg = ConfigSitio.get()
 
-    # Este dashboard agrega varias comisiones y no es por cohorte: se pasan
-    # todos los estudiantes inscriptos en las comisiones filtradas, sin
-    # importar la camada, para no cambiar en silencio los números que este
-    # panel de investigación viene reportando.
-    from cursos.models import Inscripcion
+    # Población del panel: los estudiantes inscriptos en las comisiones y
+    # cohortes filtradas. Sin filtro de cohorte agrega todas las camadas,
+    # que es lo que este panel viene reportando.
     _estudiantes_dashboard = list(
-        Inscripcion.objects
-        .filter(comision_id__in=comision_ids)
-        .values_list('estudiante_id', flat=True)
-        .distinct()
+        _insc_qs.values_list('estudiante_id', flat=True).distinct()
     )
 
-    _silencio = _silencio_temprano(comision_ids, _estudiantes_dashboard)
+    _silencio = _silencio_temprano(comision_ids, _estudiantes_dashboard, cohorte_ids=cohorte_ids)
     return render(request, 'analiticas/dashboard.html', {
+        'filtros':              filtros,
         'comisiones_data':      comisiones_data,
         'ejercicios_dificiles': _ejercicios_mas_dificiles(
             comision_ids, _estudiantes_dashboard, min_intentos=cfg.umbral_min_intentos,
+            cohorte_ids=cohorte_ids,
         ),
         'en_riesgo':            _estudiantes_en_riesgo(
             comision_ids, _estudiantes_dashboard, umbral_riesgo=cfg.umbral_riesgo,
+            cohorte_ids=cohorte_ids,
         ),
-        'distribucion_intentos': _distribucion_intentos(comision_ids, _estudiantes_dashboard),
-        'evolucion_temporal':    _evolucion_temporal(comision_ids, _estudiantes_dashboard),
+        'distribucion_intentos': _distribucion_intentos(
+            comision_ids, _estudiantes_dashboard, cohorte_ids=cohorte_ids,
+        ),
+        'evolucion_temporal':    _evolucion_temporal(
+            comision_ids, _estudiantes_dashboard, cohorte_ids=cohorte_ids,
+        ),
         'errores_sistematicos':  _errores_sistematicos(
             comision_ids, _estudiantes_dashboard, min_estudiantes=cfg.error_consenso_min,
+            cohorte_ids=cohorte_ids,
         ),
         'silencio':              _silencio,
         'silencio_resumen':      _silencio_resumen(
@@ -885,19 +985,23 @@ def dashboard(request):
         ),
         'concentracion':         _concentracion_practica(
             comision_ids, _estudiantes_dashboard, umbral_maraton=cfg.umbral_maraton,
+            cohorte_ids=cohorte_ids,
         ),
         'velocidad':             _velocidad_arranque(
             comision_ids, _estudiantes_dashboard, umbral_arranque_dias=cfg.umbral_arranque_dias,
+            cohorte_ids=cohorte_ids,
         ),
-        # M2: matriz juicio×cómputo (solo disponible cuando hay exactamente una comisión)
-        'matriz_juicio':         _matriz_juicio_computo(comision_ids[0]) if len(comision_ids) == 1 else None,
+        # M2: matriz juicio×cómputo. Desde el refactor a multi-comisión ya no
+        # depende de que el usuario tenga exactamente una comisión.
+        'matriz_juicio':         _matriz_juicio_computo(comision_ids, cohorte_ids=cohorte_ids),
         # M6: señal de práctica con baja variación entre intentos
         'patron_baja_variacion': _patron_adivinacion(
-            comision_ids[0],
+            comision_ids,
             min_intentos=cfg.umbral_adivinacion_intentos,
             max_intervalo_seg=cfg.umbral_adivinacion_segundos,
             modo_pedagogico=True,
-        ) if len(comision_ids) == 1 else [],
+            cohorte_ids=cohorte_ids,
+        ),
         # Umbrales visibles en template para documentar criterios al docente
         'cfg_umbral_riesgo':                cfg.umbral_riesgo,
         'cfg_umbral_silencio_dias':         cfg.umbral_silencio_dias,
@@ -955,20 +1059,18 @@ def investigacion(request):
 
     User = get_user_model()
 
-    if usuario.is_staff:
-        comisiones = Comision.objects.all().order_by('nombre')
-    else:
-        comisiones = Comision.objects.filter(docentes=usuario).order_by('nombre')
+    from analiticas.filtros import resolver_filtros
 
-    comision_ids = list(comisiones.values_list('id', flat=True))
+    filtros = resolver_filtros(request)
+    comisiones = filtros.comisiones
+    comision_ids = filtros.comision_ids
+    cohorte_ids = filtros.cohorte_ids
 
     # Estadísticas de consentimiento
-    estudiantes_ids = list(
-        Inscripcion.objects
-        .filter(comision_id__in=comision_ids)
-        .values_list('estudiante_id', flat=True)
-        .distinct()
-    )
+    _insc_qs = Inscripcion.objects.filter(comision_id__in=comision_ids)
+    if cohorte_ids is not None:
+        _insc_qs = _insc_qs.filter(cohorte_id__in=cohorte_ids)
+    estudiantes_ids = list(_insc_qs.values_list('estudiante_id', flat=True).distinct())
     total_est = len(estudiantes_ids)
     con_consent = User.objects.filter(
         id__in=estudiantes_ids, consentimiento_investigacion=True
@@ -979,11 +1081,12 @@ def investigacion(request):
     pendiente = total_est - con_consent - sin_consent
 
     # Métricas filtradas por consentimiento
-    entrada = tasa_entrada_efectiva(comision_ids=comision_ids, solo_consentimiento=True)
-    intentos = intentos_hasta_correcto_sin_sesgo(comision_ids=comision_ids, solo_consentimiento=True)
-    persistencia = persistencia_relativa(comision_ids=comision_ids, solo_consentimiento=True)
+    entrada = tasa_entrada_efectiva(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    intentos = intentos_hasta_correcto_sin_sesgo(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    persistencia = persistencia_relativa(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
     abandono = tasa_abandono_local(
         comision_ids=comision_ids, solo_consentimiento=True, solo_practicas_cerradas=False,
+        cohorte_ids=cohorte_ids,
     )
 
     # Enriquecer filas de EP con pc_id (para links) y enunciado_corto (para tooltip).
@@ -1008,33 +1111,39 @@ def investigacion(request):
             ep_id = row['ep_id']
             practica_id = _ep_practica.get(ep_id)
             pc_id = _pc_lookup.get((practica_id, row['comision_id'])) if practica_id else None
-            return {**row, 'pc_id': pc_id, 'enunciado_corto': _ep_enunciado.get(ep_id, '')}
+            return {
+                **row,
+                'pc_id': pc_id,
+                'enunciado_corto': _ep_enunciado.get(ep_id, ''),
+                # Los gráficos consumen esto vía json_script; la tabla de la
+                # misma sección arma su link con {% url %} y pc_id/ep_id.
+                'url': _url_ejercicio(pc_id, ep_id),
+            }
 
         intentos = [_enrich(r) for r in intentos]
         persistencia = [_enrich(r) for r in persistencia]
         abandono = [_enrich(r) for r in abandono]
 
-    desacople = desacople_docente_maquina(comision_ids=comision_ids, solo_consentimiento=True)
-    encuesta_perfiles = perfiles_encuesta_onboarding(comision_ids=comision_ids, solo_consentimiento=True)
-    nse = distribucion_nse_onboarding(comision_ids=comision_ids, solo_consentimiento=True)
-    logicas = distribucion_puntaje_logicas(comision_ids=comision_ids, solo_consentimiento=True)
-    pandemia = distribucion_pandemia_onboarding(comision_ids=comision_ids, solo_consentimiento=True)
-    cohortes = cohortes_onboarding(comision_ids=comision_ids, solo_consentimiento=True)
-    cohortes_nse = cohortes_nse_onboarding(comision_ids=comision_ids, solo_consentimiento=True)
-    cohortes_pandemia = cohortes_pandemia_onboarding(comision_ids=comision_ids, solo_consentimiento=True)
-    facultades = distribucion_facultad_onboarding(comision_ids=comision_ids, solo_consentimiento=True)
-    carreras = distribucion_carrera_onboarding(comision_ids=comision_ids, solo_consentimiento=True)
-    desempeno_nse = desempeno_por_nse_onboarding(comision_ids=comision_ids, solo_consentimiento=True)
-    desempeno_pandemia = desempeno_por_pandemia_onboarding(comision_ids=comision_ids, solo_consentimiento=True)
-    desempeno_logicas = desempeno_por_puntaje_logicas(comision_ids=comision_ids, solo_consentimiento=True)
-    correlaciones = correlaciones_encuesta(comision_ids=comision_ids, solo_consentimiento=True)
-    nube_palabras_ciencia = nube_ciencia(comision_ids=comision_ids, solo_consentimiento=True)
-    trabajo_nota = trabajo_vs_nota_logica(comision_ids=comision_ids, solo_consentimiento=True)
+    desacople = desacople_docente_maquina(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    encuesta_perfiles = perfiles_encuesta_onboarding(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    nse = distribucion_nse_onboarding(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    logicas = distribucion_puntaje_logicas(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    pandemia = distribucion_pandemia_onboarding(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    cohortes = cohortes_onboarding(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    cohortes_nse = cohortes_nse_onboarding(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    cohortes_pandemia = cohortes_pandemia_onboarding(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    facultades = distribucion_facultad_onboarding(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    carreras = distribucion_carrera_onboarding(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    desempeno_nse = desempeno_por_nse_onboarding(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    desempeno_pandemia = desempeno_por_pandemia_onboarding(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    desempeno_logicas = desempeno_por_puntaje_logicas(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    correlaciones = correlaciones_encuesta(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    nube_palabras_ciencia = nube_ciencia(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
+    trabajo_nota = trabajo_vs_nota_logica(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
 
     return render(request, 'analiticas/investigacion.html', {
+        'filtros': filtros,
         'comisiones': comisiones,
-        'comision_ids_csv': ','.join(str(cid) for cid in comision_ids),
-        'cohortes_disponibles': _cohortes_disponibles(comision_ids),
         'total_est': total_est,
         'con_consent': con_consent,
         'sin_consent': sin_consent,
@@ -1072,33 +1181,27 @@ def red_errores_json(request):
     """Endpoint JSON para la red de co-ocurrencia de errores.
 
     Query params:
-        comision_id: ID entero de comisión, o 'all' para global (default).
+        comision_ids: IDs separados por coma (default: todas las permitidas).
+        cohorte_ids: IDs separados por coma (default: todas).
+        comision_id: alias singular heredado.
     """
     from django.http import JsonResponse
     from analiticas.research import red_errores
+    from analiticas.filtros import resolver_filtros
 
     usuario = request.user
     if not (usuario.is_staff or usuario.es_docente):
         return JsonResponse({'error': 'no autorizado'}, status=403)
 
-    if usuario.is_staff:
-        allowed = set(Comision.objects.values_list('id', flat=True))
-    else:
-        allowed = set(Comision.objects.filter(docentes=usuario).values_list('id', flat=True))
+    filtros = resolver_filtros(request)
+    if filtros.seleccion_vacia:
+        return JsonResponse({'error': 'no autorizado'}, status=403)
 
-    comision_id_raw = request.GET.get('comision_id', 'all')
-    if comision_id_raw == 'all':
-        comision_ids = list(allowed)
-    else:
-        try:
-            cid = int(comision_id_raw)
-        except ValueError:
-            return JsonResponse({'error': 'parámetro inválido'}, status=400)
-        if cid not in allowed:
-            return JsonResponse({'error': 'no autorizado'}, status=403)
-        comision_ids = [cid]
-
-    data = red_errores(comision_ids=comision_ids, solo_consentimiento=True)
+    data = red_errores(
+        comision_ids=filtros.comision_ids,
+        solo_consentimiento=True,
+        cohorte_ids=filtros.cohorte_ids,
+    )
     return JsonResponse(data)
 
 
@@ -1134,34 +1237,33 @@ def encuesta_resumen(request):
 
     User = get_user_model()
 
-    if usuario.is_staff:
-        comisiones = Comision.objects.all().order_by('nombre')
-    else:
-        comisiones = Comision.objects.filter(docentes=usuario).order_by('nombre')
+    from analiticas.filtros import resolver_filtros
 
-    comision_ids = list(comisiones.values_list('id', flat=True))
+    filtros = resolver_filtros(request)
+    comisiones = filtros.comisiones
+    comision_ids = filtros.comision_ids
+    cohorte_ids = filtros.cohorte_ids
 
     # Totales de participación
-    estudiantes_ids = list(
-        Inscripcion.objects
-        .filter(comision_id__in=comision_ids)
-        .values_list('estudiante_id', flat=True)
-        .distinct()
-    )
+    _insc_qs = Inscripcion.objects.filter(comision_id__in=comision_ids)
+    if cohorte_ids is not None:
+        _insc_qs = _insc_qs.filter(cohorte_id__in=cohorte_ids)
+    estudiantes_ids = list(_insc_qs.values_list('estudiante_id', flat=True).distinct())
     total_est = len(estudiantes_ids)
     con_encuesta = User.objects.filter(
         id__in=estudiantes_ids, encuesta__isnull=False,
     ).count()
 
-    nse = distribucion_nse_onboarding(comision_ids, solo_consentimiento=False)
-    logicas = distribucion_puntaje_logicas(comision_ids, solo_consentimiento=False)
-    pandemia = distribucion_pandemia_onboarding(comision_ids, solo_consentimiento=False)
-    facultades = distribucion_facultad_onboarding(comision_ids, solo_consentimiento=False)
-    carreras = distribucion_carrera_onboarding(comision_ids, solo_consentimiento=False)
-    cohortes = cohortes_onboarding(comision_ids, solo_consentimiento=False)
-    detalle = distribuciones_encuesta_detalle(comision_ids)
+    nse = distribucion_nse_onboarding(comision_ids, solo_consentimiento=False, cohorte_ids=cohorte_ids)
+    logicas = distribucion_puntaje_logicas(comision_ids, solo_consentimiento=False, cohorte_ids=cohorte_ids)
+    pandemia = distribucion_pandemia_onboarding(comision_ids, solo_consentimiento=False, cohorte_ids=cohorte_ids)
+    facultades = distribucion_facultad_onboarding(comision_ids, solo_consentimiento=False, cohorte_ids=cohorte_ids)
+    carreras = distribucion_carrera_onboarding(comision_ids, solo_consentimiento=False, cohorte_ids=cohorte_ids)
+    cohortes = cohortes_onboarding(comision_ids, solo_consentimiento=False, cohorte_ids=cohorte_ids)
+    detalle = distribuciones_encuesta_detalle(comision_ids, cohorte_ids=cohorte_ids)
 
     return render(request, 'analiticas/encuesta_resumen.html', {
+        'filtros': filtros,
         'comisiones': comisiones,
         'comision_ids_csv': ','.join(str(cid) for cid in comision_ids),
         'total_est': total_est,
@@ -1183,14 +1285,15 @@ def encuesta_resumen(request):
 
 @login_required
 def detalle_ejercicio(request):
-    """Devuelve JSON con métricas M3/M4/M5 para un ejercicio y comisión dados.
+    """Devuelve JSON con métricas M3/M4/M5 para un ejercicio y un recorte dado.
 
     GET params:
-        ejercicio_id: int — ID del Ejercicio
-        comision_id: int — ID de la Comision
+        ejercicio_id: int — ID del Ejercicio (obligatorio)
+        comision_ids: IDs separados por coma (default: todas las permitidas)
+        cohorte_ids: IDs separados por coma (default: todas)
 
-    Solo accesible para docentes y admins. Verifica que el docente pertenezca
-    a la comisión solicitada.
+    Solo accesible para docentes y admins. ``resolver_filtros`` descarta las
+    comisiones ajenas; si la selección explícita queda vacía, devuelve 403.
     """
     from django.http import JsonResponse
     from analiticas.calculos import (
@@ -1198,6 +1301,7 @@ def detalle_ejercicio(request):
         _indice_atomizacion,
         _perfil_error_tabla,
     )
+    from analiticas.filtros import resolver_filtros
 
     usuario = request.user
     if not (usuario.is_staff or usuario.es_docente):
@@ -1205,18 +1309,20 @@ def detalle_ejercicio(request):
 
     try:
         ejercicio_id = int(request.GET['ejercicio_id'])
-        comision_id = int(request.GET['comision_id'])
     except (KeyError, ValueError):
         return JsonResponse({'error': 'Parámetros inválidos'}, status=400)
 
-    if not usuario.is_staff:
-        if not Comision.objects.filter(id=comision_id, docentes=usuario).exists():
-            return JsonResponse({'error': 'Acceso denegado'}, status=403)
+    filtros = resolver_filtros(request)
+    if filtros.seleccion_vacia or not filtros.comision_ids:
+        return JsonResponse({'error': 'Acceso denegado'}, status=403)
+
+    comision_ids = filtros.comision_ids
+    cohorte_ids = filtros.cohorte_ids
 
     return JsonResponse({
-        'convergencia': _convergencia_por_ejercicio(comision_id, ejercicio_id),
-        'perfil_tabla': _perfil_error_tabla(comision_id, ejercicio_id),
-        'atomizacion': _indice_atomizacion(comision_id, ejercicio_id),
+        'convergencia': _convergencia_por_ejercicio(comision_ids, ejercicio_id, cohorte_ids=cohorte_ids),
+        'perfil_tabla': _perfil_error_tabla(comision_ids, ejercicio_id, cohorte_ids=cohorte_ids),
+        'atomizacion': _indice_atomizacion(comision_ids, ejercicio_id, cohorte_ids=cohorte_ids),
     })
 
 
@@ -1246,7 +1352,7 @@ _DATASET_INFO = {
 }
 
 
-def _datos_exportacion(dataset, comision_ids):
+def _datos_exportacion(dataset, comision_ids, cohorte_ids=None):
     """Devuelve (headers, rows) para el dataset indicado.
 
     Los datos están filtrados por consentimiento_investigacion=True.
@@ -1272,7 +1378,7 @@ def _datos_exportacion(dataset, comision_ids):
         tasa_entrada_efectiva,
     )
 
-    kw = dict(comision_ids=comision_ids, solo_consentimiento=True)
+    kw = dict(comision_ids=comision_ids, solo_consentimiento=True, cohorte_ids=cohorte_ids)
 
     if dataset == 'entrada':
         rows = tasa_entrada_efectiva(**kw)
@@ -1352,16 +1458,20 @@ def _datos_exportacion(dataset, comision_ids):
         from accounts.models import ConfigSitio as _ConfigSitio
         from cursos.models import Inscripcion as _Inscripcion
         cfg = _ConfigSitio.get()
-        # Módulo de investigación: agrega comisiones sin acotar por cohorte
-        # (ver dashboard() más arriba, mismo criterio).
+        # Misma población y filtro de cohorte que dashboard() (views.py,
+        # _estudiantes_dashboard): _insc_qs se acota por cohorte_ids antes
+        # de listar estudiantes, y _errores_sistematicos recibe cohorte_ids
+        # para filtrar los intentos directamente por Intento.cohorte (evita
+        # contar dos veces al mismo recursante en distintas camadas).
+        _insc_qs_export = _Inscripcion.objects.filter(comision_id__in=comision_ids)
+        if cohorte_ids is not None:
+            _insc_qs_export = _insc_qs_export.filter(cohorte_id__in=cohorte_ids)
         _estudiantes_export = list(
-            _Inscripcion.objects
-            .filter(comision_id__in=comision_ids)
-            .values_list('estudiante_id', flat=True)
-            .distinct()
+            _insc_qs_export.values_list('estudiante_id', flat=True).distinct()
         )
         data = _errores_sistematicos(
             comision_ids, _estudiantes_export, min_estudiantes=cfg.error_consenso_min,
+            cohorte_ids=cohorte_ids,
         )
         rows = [
             {
@@ -1488,7 +1598,8 @@ def exportar(request, dataset):
 
     Query params:
         formato: 'csv' (default) | 'xlsx' | 'ods'
-        comision_ids: IDs separados por coma (opcional; default: todas las del usuario)
+        comision_ids: IDs separados por coma (default: todas las del usuario)
+        cohorte_ids: IDs separados por coma (default: todas)
     """
     usuario = request.user
     if not (usuario.is_staff or usuario.es_docente):
@@ -1498,23 +1609,12 @@ def exportar(request, dataset):
     if formato not in ('csv', 'xlsx', 'ods'):
         formato = 'csv'
 
-    # Comisiones permitidas para el usuario
-    if usuario.is_staff:
-        allowed = set(Comision.objects.values_list('id', flat=True))
-    else:
-        allowed = set(Comision.objects.filter(docentes=usuario).values_list('id', flat=True))
+    from analiticas.filtros import resolver_filtros
 
-    comision_ids_raw = request.GET.get('comision_ids', '').strip()
-    if comision_ids_raw:
-        try:
-            comision_ids = [int(x) for x in comision_ids_raw.split(',') if x.strip()]
-            comision_ids = [cid for cid in comision_ids if cid in allowed]
-        except ValueError:
-            comision_ids = list(allowed)
-    else:
-        comision_ids = list(allowed)
-
-    headers, rows = _datos_exportacion(dataset, comision_ids)
+    filtros = resolver_filtros(request)
+    if filtros.seleccion_vacia:
+        return HttpResponse('Sin datos para exportar con ese filtro.', status=403)
+    headers, rows = _datos_exportacion(dataset, filtros.comision_ids, filtros.cohorte_ids)
     if headers is None:
         from django.http import Http404
         raise Http404
@@ -1543,29 +1643,6 @@ def exportar(request, dataset):
 # ──────────────────────────────────────────────
 #  Descarga de datasets anonimizados (encuesta e intentos)
 # ──────────────────────────────────────────────
-
-def _cohortes_disponibles(comision_ids):
-    """Lista de {'anio', 'cuatri', 'label'} con cohortes de esas comisiones."""
-    from cursos.models import Cohorte
-    return [
-        {'anio': c.anio, 'cuatri': c.cuatrimestre, 'label': f'{c.anio} – C{c.cuatrimestre}'}
-        for c in Cohorte.objects
-            .filter(inscripciones__comision_id__in=comision_ids)
-            .distinct()
-            .order_by('anio', 'cuatrimestre')
-    ]
-
-
-def _parse_cohorte(cohorte_str):
-    """'2024-1' → (2024, 1). Cualquier otra cosa → (None, None)."""
-    if not cohorte_str:
-        return None, None
-    try:
-        partes = cohorte_str.split('-')
-        return int(partes[0]), int(partes[1])
-    except (IndexError, ValueError):
-        return None, None
-
 
 _HEADERS_EJERCICIOS = (
     "ejercicio_practica_id",
@@ -1638,16 +1715,18 @@ def descargar_investigacion(request):
     """Descarga un dataset anonimizado (encuesta o intentos) con filtros opcionales.
 
     Query params:
-        dataset   : 'encuesta' | 'intentos'
+        dataset   : 'encuesta' | 'intentos' | 'ejercicios' | 'practicas' | 'trabajo_nota'
         formato   : 'csv' | 'xlsx'  (encuesta)  /  'csv' | 'json'  (intentos)
         comision_ids : IDs separados por coma (default: todas las permitidas)
-        cohorte   : 'YYYY-C' ej. '2024-1'  (default: todas)
+        cohorte_ids  : IDs separados por coma (default: todas)
+        cohorte      : 'YYYY-C' ej. '2026-1' — alias heredado
     """
     import json as _json
     from analiticas.anonimizador import (
         HEADERS_ENCUESTA, HEADERS_INTENTOS,
         dataset_encuesta, dataset_intentos,
     )
+    from analiticas.filtros import resolver_filtros
 
     usuario = request.user
     if not (usuario.is_staff or usuario.es_docente):
@@ -1659,32 +1738,18 @@ def descargar_investigacion(request):
 
     formato = request.GET.get('formato', 'csv')
 
-    # Comisiones permitidas
-    if usuario.is_staff:
-        allowed = set(Comision.objects.values_list('id', flat=True))
-    else:
-        allowed = set(Comision.objects.filter(docentes=usuario).values_list('id', flat=True))
-
-    comision_ids_raw = request.GET.get('comision_ids', '').strip()
-    if comision_ids_raw:
-        try:
-            comision_ids = [int(x) for x in comision_ids_raw.split(',') if x.strip()]
-            comision_ids = [c for c in comision_ids if c in allowed]
-        except ValueError:
-            comision_ids = list(allowed)
-    else:
-        comision_ids = list(allowed)
+    filtros = resolver_filtros(request)
+    comision_ids = filtros.comision_ids
+    cohorte_ids = filtros.cohorte_ids
 
     if not comision_ids:
         return HttpResponse('Sin comisiones disponibles.', status=403)
-
-    anio, cuatri = _parse_cohorte(request.GET.get('cohorte', ''))
 
     from django.utils.timezone import now as _now
     fecha_str = _now().strftime('%Y%m%d')
 
     if dataset == 'encuesta':
-        rows = dataset_encuesta(comision_ids, anio=anio, cuatri=cuatri)
+        rows = dataset_encuesta(comision_ids, cohorte_ids=cohorte_ids)
         headers = list(HEADERS_ENCUESTA)
         nombre_base = f'ipc-encuesta-{fecha_str}'
 
@@ -1731,7 +1796,8 @@ def descargar_investigacion(request):
 
     elif dataset == 'trabajo_nota':
         from analiticas.research import trabajo_vs_nota_logica
-        res = trabajo_vs_nota_logica(comision_ids=comision_ids, solo_consentimiento=True)
+        res = trabajo_vs_nota_logica(comision_ids=comision_ids, solo_consentimiento=True,
+                                     cohorte_ids=cohorte_ids)
         headers = ['intentos_totales', 'dias_activos', 'ejercicios_distintos',
                    'practicas_abiertas', 'indice_trabajo', 'nota_logica', 'desenlace']
         rows = [[p[h] for h in headers] for p in res['puntos']]
@@ -1747,7 +1813,7 @@ def descargar_investigacion(request):
             ext = 'csv'
 
     else:  # intentos
-        rows = dataset_intentos(comision_ids, anio=anio, cuatri=cuatri)
+        rows = dataset_intentos(comision_ids, cohorte_ids=cohorte_ids)
         headers = list(HEADERS_INTENTOS)
         nombre_base = f'ipc-intentos-{fecha_str}'
 

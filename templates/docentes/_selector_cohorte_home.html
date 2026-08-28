@@ -1,3 +1,4 @@
+{% load ui_i18n %}
 {% comment %}
   Selector global de cohorte, movido acá desde comision_detail.html: elegir
   cohorte es un "modo de vista" de todo el panel (afecta comisiones_list y
@@ -12,16 +13,16 @@
 {% endcomment %}
 {% if cohortes_disponibles|length > 1 %}
   <form method="get" style="display:inline-flex; align-items:center; gap:0.5rem; margin:0.5rem 0;">
-    <label for="cohorte" style="font-size:0.9rem; color:#555;">Cohorte</label>
+    <label for="cohorte" style="font-size:0.9rem; color:#555;">{% ui 'cohort' %}</label>
     <select name="cohorte" id="cohorte" onchange="this.form.submit()"
             style="padding:0.3rem 0.5rem; border-radius:4px; border:1px solid #ccc;">
       {% for c in cohortes_disponibles %}
         <option value="{{ c.pk }}" {% if c.pk == cohorte_actual.pk %}selected{% endif %}>
-          {{ c }}{% if c.activa %} · en curso{% endif %}
+          {{ c }}{% if c.activa %} · {% ui 'current' %}{% endif %}
         </option>
       {% endfor %}
     </select>
-    <noscript><button type="submit">Ver</button></noscript>
+    <noscript><button type="submit">{% ui 'view' %}</button></noscript>
   </form>
 {% endif %}
 
@@ -34,7 +35,7 @@
     <button type="submit"
             onclick="return confirm('Crear la cohorte {{ siguiente_cohorte.0 }} – C{{ siguiente_cohorte.1 }} y marcarla activa? Afecta a TODAS las comisiones de la plataforma.');"
             style="padding:0.4rem 0.8rem; border-radius:4px; border:1px solid #2a7a2a; background:#f0f8f0; color:#2a7a2a; cursor:pointer;">
-      + Nueva cohorte ({{ siguiente_cohorte.0 }} – C{{ siguiente_cohorte.1 }})
+      {% ui 'new_cohort' %} ({{ siguiente_cohorte.0 }} – C{{ siguiente_cohorte.1 }})
     </button>
   </form>
 {% endif %}

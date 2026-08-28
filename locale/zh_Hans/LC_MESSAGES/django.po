@@ -1,0 +1,314 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PropLogPlat\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-08-27 22:00-0300\n"
+"PO-Revision-Date: 2026-08-27 22:00-0300\n"
+"Last-Translator: PropLogPlat contributors\n"
+"Language: zh_Hans\n"
+"Language-Team: zh_Hans\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"Generated-By: Babel 2.18.0\n"
+
+msgid "ui.teacher_panel"
+msgstr "教师面板"
+
+msgid "ui.reviews"
+msgstr "批改"
+
+msgid "ui.analytics"
+msgstr "学习分析"
+
+msgid "ui.home"
+msgstr "首页"
+
+msgid "ui.my_history"
+msgstr "我的记录"
+
+msgid "ui.log_out"
+msgstr "退出"
+
+msgid "ui.log_in"
+msgstr "登录"
+
+msgid "ui.teacher"
+msgstr "教师"
+
+msgid "ui.student"
+msgstr "学生"
+
+msgid "ui.commissions"
+msgstr "班级"
+
+msgid "ui.pending_reviews"
+msgstr "待批改"
+
+msgid "ui.new_class"
+msgstr "+ 班级"
+
+msgid "ui.new_practice"
+msgstr "+ 练习"
+
+msgid "ui.new_exercise"
+msgstr "+ 题目"
+
+msgid "ui.language"
+msgstr "语言"
+
+msgid "ui.username"
+msgstr "用户名"
+
+msgid "ui.password"
+msgstr "密码"
+
+msgid "ui.enter"
+msgstr "进入"
+
+msgid "ui.bad_login"
+msgstr "用户名或密码错误，请重试。"
+
+msgid "ui.account_from_class_link"
+msgstr "如果你还没有账号，请通过班级链接注册。"
+
+msgid "ui.my_practices"
+msgstr "我的练习"
+
+msgid "ui.view_attempt_history"
+msgstr "查看我的作答记录"
+
+msgid "ui.not_enrolled"
+msgstr "你尚未加入任何班级，请联系教师。"
+
+msgid "ui.class_no_practices"
+msgstr "该班级暂时没有练习。"
+
+msgid "ui.not_available_yet"
+msgstr "尚未开放"
+
+msgid "ui.closed"
+msgstr "已关闭"
+
+msgid "ui.completed"
+msgstr "已完成"
+
+msgid "ui.in_progress"
+msgstr "进行中"
+
+msgid "ui.not_started"
+msgstr "未开始"
+
+msgid "ui.opens"
+msgstr "开放时间"
+
+msgid "ui.closed_on"
+msgstr "关闭于"
+
+msgid "ui.closes"
+msgstr "关闭时间"
+
+msgid "ui.teacher_comments"
+msgstr "有教师反馈的作答"
+
+msgid "ui.approved"
+msgstr "已确认"
+
+msgid "ui.rejected"
+msgstr "已退回"
+
+msgid "ui.your_answer"
+msgstr "你的回答"
+
+msgid "ui.show_more"
+msgstr "查看更多"
+
+msgid "ui.class"
+msgstr "班级"
+
+msgid "ui.practice_no_exercises"
+msgstr "该练习暂时没有题目。"
+
+msgid "ui.exercise"
+msgstr "题目"
+
+msgid "ui.fix"
+msgstr "修改"
+
+msgid "ui.solve"
+msgstr "作答"
+
+msgid "ui.practice_unavailable"
+msgstr "练习尚未开放"
+
+msgid "ui.practice_closed"
+msgstr "练习已关闭"
+
+msgid "ui.back_home"
+msgstr "返回首页"
+
+msgid "ui.download_zip"
+msgstr "下载 ZIP"
+
+msgid "ui.install_package"
+msgstr "安装内容包"
+
+msgid "ui.install_zip"
+msgstr "安装 ZIP"
+
+msgid "ui.view"
+msgstr "查看"
+
+msgid "ui.edit"
+msgstr "编辑"
+
+msgid "ui.delete"
+msgstr "删除"
+
+msgid "ui.practice_bank"
+msgstr "练习库"
+
+msgid "ui.exercise_bank"
+msgstr "题库"
+
+msgid "ui.setup_title"
+msgstr "安装向导"
+
+msgid "ui.complete_setup"
+msgstr "完成安装"
+
+msgid "ui.forgot_password"
+msgstr "忘记密码？"
+
+msgid "ui.password_reset"
+msgstr "重置密码"
+
+msgid "ui.reset_intro"
+msgstr "请输入注册时使用的电子邮箱。我们会发送一个链接，供你设置新密码。"
+
+msgid "ui.email"
+msgstr "电子邮箱"
+
+msgid "ui.send_reset_link"
+msgstr "发送链接"
+
+msgid "ui.back_to_login"
+msgstr "返回登录"
+
+msgid "ui.check_email"
+msgstr "请检查邮箱"
+
+msgid "ui.reset_sent_if_registered"
+msgstr "如果该地址已在平台中注册，我们已发送一封包含新密码设置链接的邮件。"
+
+msgid "ui.reset_link_expiry"
+msgstr "链接将在 24 小时后失效，且只能使用一次。"
+
+msgid "ui.reset_help_teacher"
+msgstr "如果几分钟后仍未收到，请检查垃圾邮件文件夹。如果也没有，请联系教师：你的账号可能登记了其他邮箱。"
+
+msgid "ui.choose_new_password"
+msgstr "设置新密码"
+
+msgid "ui.expired_link"
+msgstr "链接已失效"
+
+msgid "ui.choose_your_new_password"
+msgstr "请设置新密码"
+
+msgid "ui.new_password"
+msgstr "新密码"
+
+msgid "ui.repeat_new_password"
+msgstr "再次输入新密码"
+
+msgid "ui.save"
+msgstr "保存"
+
+msgid "ui.invalid_reset_link"
+msgstr "此链接已失效"
+
+msgid "ui.invalid_reset_detail"
+msgstr "链接可能已过期（有效期为 24 小时），或已被用于修改密码。请申请新链接。"
+
+msgid "ui.request_new_link"
+msgstr "申请新链接"
+
+msgid "ui.password_updated"
+msgstr "密码已更新"
+
+msgid "ui.ready"
+msgstr "完成"
+
+msgid "ui.password_updated_body"
+msgstr "密码已更新，现在可以使用新密码登录。"
+
+msgid "ui.class_access"
+msgstr "班级入口"
+
+msgid "ui.class_access_intro"
+msgstr "如果已有账号，请登录；否则请注册并完成初始设置，以加入该班级。"
+
+msgid "ui.have_account_login"
+msgstr "已有账号 · 登录"
+
+msgid "ui.register_student"
+msgstr "注册为学生"
+
+msgid "ui.create_account_continue"
+msgstr "创建账号并继续"
+
+msgid "ui.cohort"
+msgstr "届次"
+
+msgid "ui.current"
+msgstr "当前"
+
+msgid "ui.new_cohort"
+msgstr "+ 新届次"
+
+msgid "ui.cohorts"
+msgstr "届次"
+
+msgid "ui.unchecked_all"
+msgstr "未勾选：全部"
+
+msgid "ui.no_classes_available"
+msgstr "没有可用班级"
+
+msgid "ui.apply"
+msgstr "应用"
+
+msgid "ui.clear"
+msgstr "清除"
+
+msgid "ui.empty_filter"
+msgstr "所选筛选条件没有数据：你不负责所请求的班级，或所请求的届次不在你的班级中。暂无可显示的数据。"
+
+msgid "Tabla de verdad"
+msgstr "真值表"
+
+msgid "Formalización"
+msgstr "形式化"
+
+msgid "Determinación de valor de verdad"
+msgstr "真值判定"
+
+msgid "Hola"
+msgstr "你好"
+
+msgid "Alguien pidió recuperar la contraseña de la cuenta \"%(username)s\" en %(site)s."
+msgstr "有人请求重置 %(site)s 上账号“%(username)s”的密码。"
+
+msgid "Para elegir una contraseña nueva, entrá acá:"
+msgstr "请通过以下链接设置新密码："
+
+msgid "Este link vence en 24 horas y sirve una sola vez: apenas lo uses, deja de funcionar."
+msgstr "此链接将在 24 小时后失效，且只能使用一次；使用后立即失效。"
+
+msgid "Si no pediste esto, ignorá este mensaje. Tu contraseña sigue siendo la misma y nadie puede cambiarla sin abrir el link de arriba."
+msgstr "如果这不是你的请求，请忽略此邮件。你的密码不会改变，任何人都无法在未打开上述链接的情况下修改密码。"
+
+msgid "Recuperar tu contraseña de %(site)s"
+msgstr "重置 %(site)s 的密码"
