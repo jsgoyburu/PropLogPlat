@@ -2,9 +2,13 @@
 
 ## Railway — camino recomendado
 
-La configuración de Railway crea dos servicios: la aplicación y PostgreSQL.
-El template de PropLogPlat genera `SECRET_KEY` y `SETUP_TOKEN`; el repositorio
-ejecuta migraciones antes de arrancar y verifica `/healthz/`.
+La configuración objetivo de Railway crea dos servicios: la aplicación y
+PostgreSQL. El repositorio ya ejecuta migraciones antes de arrancar y verifica
+`/healthz/`. El template público de un clic está pendiente de reconstrucción:
+el borrador `UZoADg` existe en Railway, pero actualmente está vacío y Railway lo
+marca como inválido. Hasta que se publique y este documento incorpore su enlace,
+hay que crear ambos servicios desde el repositorio y cargar las variables de la
+sección siguiente de forma manual.
 
 Después del primer despliegue:
 
