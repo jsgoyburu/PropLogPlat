@@ -36,8 +36,6 @@ if [ ! -f ".env" ]; then
     read -rp "   Presioná Enter para continuar (o Ctrl+C para editar .env primero)..."
 fi
 
-export $(grep -v '^#' .env | xargs)
-
 # 4. Migraciones
 echo "▶ Ejecutando migraciones ..."
 python manage.py migrate --no-input
@@ -52,7 +50,8 @@ echo "  Para iniciar el servidor:"
 echo "    source .venv/bin/activate"
 echo "    python manage.py runserver"
 echo ""
-echo "  Instalador: http://localhost:8000/accounts/instalar/"
+echo "  Abrí: http://localhost:8000/"
+echo "  La primera entrada te lleva al instalador interactivo."
 echo "  Usá la SETUP_TOKEN de tu archivo .env."
 echo "═══════════════════════════════════════════"
 echo ""

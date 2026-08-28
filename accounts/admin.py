@@ -22,6 +22,11 @@ class ConfigSitioForm(forms.ModelForm):
         fields = (
             'nombre_sitio', 'idioma_predeterminado', 'contacto_privacidad', 'color_primario',
             'color_acento', 'favicon_upload',
+            'error_consenso_min', 'umbral_min_intentos', 'umbral_riesgo',
+            'umbral_silencio_dias', 'umbral_maraton', 'umbral_arranque_dias',
+            'umbral_convergencia_min_estudiantes', 'umbral_adivinacion_intentos',
+            'umbral_adivinacion_segundos', 'pistas_ia_activas',
+            'revision_diccionario_activa',
         )
 
     def save(self, commit=True):
@@ -96,7 +101,12 @@ class ConfigSitioAdmin(admin.ModelAdmin):
     form = ConfigSitioForm
     fields = (
         'nombre_sitio', 'idioma_predeterminado', 'contacto_privacidad', 'color_primario',
-        'color_acento', 'favicon_upload', 'error_consenso_min',
+        'color_acento', 'favicon_upload',
+        'error_consenso_min', 'umbral_min_intentos', 'umbral_riesgo',
+        'umbral_silencio_dias', 'umbral_maraton', 'umbral_arranque_dias',
+        'umbral_convergencia_min_estudiantes', 'umbral_adivinacion_intentos',
+        'umbral_adivinacion_segundos', 'pistas_ia_activas',
+        'revision_diccionario_activa',
     )
 
     def has_add_permission(self, request):

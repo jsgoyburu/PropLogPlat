@@ -45,11 +45,6 @@ if not exist ".env" (
     pause
 )
 
-REM Cargar variables de entorno desde .env
-for /f "usebackq tokens=1,* delims==" %%A in (`findstr /v "^#" .env`) do (
-    if not "%%A"=="" set %%A=%%B
-)
-
 REM 4. Migraciones
 echo ^> Ejecutando migraciones ...
 python manage.py migrate --no-input
@@ -69,7 +64,8 @@ echo   Para iniciar el servidor:
 echo     .venv\Scripts\activate
 echo     python manage.py runserver
 echo.
-echo   Instalador: http://localhost:8000/accounts/instalar/
+echo   Abri: http://localhost:8000/
+echo   La primera entrada te lleva al instalador interactivo.
 echo   Usa la SETUP_TOKEN de tu archivo .env.
 echo ===============================================
 echo.

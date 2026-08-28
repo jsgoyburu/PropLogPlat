@@ -8,3 +8,6 @@
 /check_out.txt export-ignore
 /share export-ignore
 /mario.png export-ignore
+
+# Los scripts Unix deben conservar LF incluso desde clones/editors Windows.
+*.sh text eol=lf

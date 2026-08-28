@@ -1,39 +1,155 @@
 {% extends 'base.html' %}
 {% load ui_i18n %}
 
-{% block title %}Instalar {{ config_sitio.nombre_sitio }}{% endblock %}
+{% block title %}{% ui 'setup_title' %} · {{ config_sitio.nombre_sitio }}{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width:720px;">
-  <div class="card">
-    <h1 style="margin-top:0;">{% ui 'setup_title' %}</h1>
-    <p>
-      Esta pantalla crea la primera cuenta administradora y define la identidad
-      básica del sitio. Al finalizar se cerrará y no volverá a aceptar cambios.
-    </p>
+<style>
+  .setup-shell { max-width: 980px; }
+  .setup-hero { padding: 1.8rem; background: linear-gradient(135deg, #fff 0%, #edf5fb 100%); }
+  .setup-hero h1 { margin: 0 0 .5rem; font-size: clamp(1.7rem, 4vw, 2.4rem); }
+  .setup-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:.65rem; margin:1.25rem 0; }
+  .setup-step { display:block; padding:.8rem; border:1px solid #d9e1e8; border-radius:8px; background:#fff; color:#333; text-decoration:none; }
+  .setup-step strong { display:block; color:var(--color-primario); }
+  .setup-step.active { border:2px solid var(--color-acento); background:#f5fbff; }
+  .setup-number { display:inline-grid; place-items:center; width:1.55rem; height:1.55rem; border-radius:50%; background:var(--color-primario); color:#fff; margin-right:.35rem; }
+  .check-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; }
+  .check { border:1px solid #ddd; border-left-width:5px; border-radius:7px; padding:.85rem; background:#fff; }
+  .check-ok { border-left-color:#28a745; }
+  .check-warning { border-left-color:#ffc107; }
+  .check-error { border-left-color:#dc3545; }
+  .check strong { display:block; }
+  .check p { margin:.2rem 0 0; font-size:.9rem; color:#444; }
+  .field-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+  .field-row { min-width:0; }
+  .field-row input, .field-row select, .field-row textarea { width:100%; margin-top:.25rem; padding:.55rem .7rem; border:1px solid #bbb; border-radius:5px; background:#fff; }
+  .field-row input[type=checkbox] { width:auto; }
+  .help { color:#5d6470; font-size:.82rem; margin-top:.2rem; }
+  .errorlist { color:#a10f23; margin:.25rem 0; padding-left:1.1rem; font-size:.85rem; }
+  .setup-section { border-top:1px solid #e5e7eb; padding-top:1rem; margin-top:1rem; }
+  .setup-section:first-child { border-top:0; padding-top:0; }
+  .setup-section h2 { margin-bottom:.2rem; }
+  .env-preview { width:100%; min-height:280px; padding:1rem; background:#17212b; color:#e7f0f7; border-radius:7px; font: .82rem/1.45 Consolas, monospace; }
+  .variables-table { width:100%; border-collapse:collapse; font-size:.86rem; }
+  .variables-table th, .variables-table td { padding:.55rem; border-bottom:1px solid #e5e7eb; text-align:left; vertical-align:top; }
+  .support-box { border:1px solid #d5b15b; background:#fff9e9; padding:1rem; border-radius:8px; margin-top:1.25rem; }
+  .support-box a { font-weight:700; }
+  .button-row { display:flex; flex-wrap:wrap; gap:.65rem; align-items:center; margin-top:1.2rem; }
+  @media (max-width:720px) { .setup-steps, .check-grid, .field-grid { grid-template-columns:1fr; } }
+</style>
 
-    {% if sin_token_produccion %}
-      <div class="alert alert-error">
-        Falta definir <code>SETUP_TOKEN</code> en el proveedor de alojamiento.
-        Agregá una clave privada, reiniciá el servicio y volvé a esta pantalla.
+<div class="container setup-shell">
+  <div class="card setup-hero">
+    <h1>{% ui 'setup_title' %}</h1>
+    <p>{% ui 'installer_intro' %}</p>
+    <p class="help">{% ui 'installer_boundary' %}</p>
+    <nav class="setup-steps" aria-label="{% ui 'installer_steps_label' %}">
+      <a class="setup-step {% if paso == 'diagnostico' %}active{% endif %}" href="{% url 'accounts:instalacion_inicial' %}?paso=diagnostico">
+        <strong><span class="setup-number">1</span>{% ui 'installer_step_diagnosis' %}</strong>{% ui 'installer_step_diagnosis_short' %}
+      </a>
+      <a class="setup-step {% if paso == 'entorno' %}active{% endif %}" href="{% url 'accounts:instalacion_inicial' %}?paso=entorno">
+        <strong><span class="setup-number">2</span>{% ui 'installer_step_environment' %}</strong>{% ui 'installer_step_environment_short' %}
+      </a>
+      <a class="setup-step {% if paso == 'sitio' %}active{% endif %}" href="{% url 'accounts:instalacion_inicial' %}?paso=sitio">
+        <strong><span class="setup-number">3</span>{% ui 'installer_step_site' %}</strong>{% ui 'installer_step_site_short' %}
+      </a>
+    </nav>
+  </div>
+
+  {% if sin_token_produccion %}
+    <div class="alert alert-error"><strong>{% ui 'installer_cannot_continue' %}</strong> {% ui 'installer_missing_setup_token' %}</div>
+  {% endif %}
+
+  {% if paso == 'diagnostico' %}
+    <section class="card">
+      <h2>{% ui 'installer_diagnosis_title' %}</h2>
+      <p>{% ui 'installer_diagnosis_intro' %}</p>
+      <div class="check-grid">
+        {% for item in diagnostics %}
+          <article class="check check-{{ item.nivel }}">
+            <strong>{{ item.nombre }}</strong><p>{{ item.detalle }}</p>
+            {% if item.accion %}<p><b>{% ui 'installer_what_to_do' %}</b> {{ item.accion }}</p>{% endif %}
+          </article>
+        {% endfor %}
       </div>
-    {% else %}
-      <form method="post">
-        {% csrf_token %}
-        {% if form.non_field_errors %}
-          <div class="alert alert-error">{{ form.non_field_errors }}</div>
-        {% endif %}
-        {% for field in form %}
-          <div style="margin-bottom:1rem;">
-            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}<div style="font-size:0.82rem;color:#666;">{{ field.help_text|safe }}</div>{% endif %}
-            {% for error in field.errors %}<div style="color:#b00020;font-size:0.85rem;">{{ error }}</div>{% endfor %}
+      <div class="button-row"><a class="btn btn-primary" href="{% url 'accounts:instalacion_inicial' %}?paso=entorno">{% ui 'installer_continue_environment' %}</a></div>
+    </section>
+    <section class="card">
+      <h2>{% ui 'installer_variable_inventory' %}</h2>
+      <p>{% ui 'installer_variable_inventory_intro' %}</p>
+      <div style="overflow-x:auto;">
+        <table class="variables-table">
+          <thead><tr><th>{% ui 'installer_variable' %}</th><th>{% ui 'installer_status' %}</th><th>{% ui 'installer_purpose' %}</th></tr></thead>
+          <tbody>
+            {% for variable in environment_variables %}
+              <tr>
+                <td><code>{{ variable.nombre }}</code>{% if variable.requerida %} *{% endif %}</td>
+                <td>{% if variable.configurada %}<span class="badge badge-ok">{% ui 'installer_configured' %}</span>{% else %}<span class="badge badge-pendiente">{% ui 'installer_not_configured' %}</span>{% endif %}</td>
+                <td>{{ variable.explicacion }}{% if variable.secreta %} <small>({% ui 'installer_secret_value' %})</small>{% endif %}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="help">* {% ui 'installer_required_production' %}</p>
+    </section>
+  {% endif %}
+
+  {% if paso == 'entorno' %}
+    <section class="card">
+      <h2>{% ui 'installer_environment_title' %}</h2>
+      <p>{% ui 'installer_environment_intro' %}</p>
+      <div class="alert alert-info">{% ui 'installer_environment_security' %}</div>
+      <form method="post" autocomplete="off">
+        {% csrf_token %}<input type="hidden" name="action" value="environment">
+        {% if env_form.non_field_errors %}<div class="alert alert-error">{{ env_form.non_field_errors }}</div>{% endif %}
+        {% for section in env_sections %}
+          <div class="setup-section">
+            <h2>{{ section.title }}</h2>{% if section.description %}<p class="help">{{ section.description }}</p>{% endif %}
+            <div class="field-grid">
+              {% for field in section.fields %}
+                <div class="field-row"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<div class="help">{{ field.help_text }}</div>{% endif %}{{ field.errors }}</div>
+              {% endfor %}
+            </div>
           </div>
         {% endfor %}
-        <button class="btn btn-primary" type="submit">{% ui 'complete_setup' %}</button>
+        <div class="button-row">
+          <button class="btn btn-secondary" type="submit" name="preview" value="1">{% ui 'installer_preview_env' %}</button>
+          <button class="btn btn-primary" type="submit" name="download" value="1">{% ui 'installer_download_env' %}</button>
+        </div>
       </form>
-    {% endif %}
-  </div>
+      {% if env_saved %}<div class="alert alert-warning" style="margin-top:1rem;">{% ui 'installer_env_saved_restart' %}</div>{% endif %}
+      {% if env_preview %}
+        <h3>{% ui 'installer_preview_title' %}</h3><textarea class="env-preview" readonly spellcheck="false">{{ env_preview }}</textarea>
+        <div class="alert alert-warning">{% ui 'installer_apply_restart' %}</div>
+      {% endif %}
+      <details style="margin-top:1rem;"><summary><strong>{% ui 'installer_apply_how' %}</strong></summary>
+        <ol><li>{% ui 'installer_apply_managed' %}</li><li>{% ui 'installer_apply_container' %}</li><li>{% ui 'installer_apply_selfhosted' %}</li><li>{% ui 'installer_apply_return' %}</li></ol>
+      </details>
+      <div class="button-row"><a class="btn btn-primary" href="{% url 'accounts:instalacion_inicial' %}?paso=sitio">{% ui 'installer_continue_site' %}</a></div>
+    </section>
+  {% endif %}
+
+  {% if paso == 'sitio' %}
+    <section class="card">
+      <h2>{% ui 'installer_site_title' %}</h2><p>{% ui 'installer_site_intro' %}</p>
+      <div class="alert alert-info">{% ui 'installer_pedagogical_note' %}</div>
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}<input type="hidden" name="action" value="complete">
+        {% if form.non_field_errors %}<div class="alert alert-error">{{ form.non_field_errors }}</div>{% endif %}
+        {% for section in site_sections %}
+          {% if section.advanced %}<details class="setup-section"><summary><strong>{{ section.title }}</strong></summary>{% else %}<div class="setup-section"><h2>{{ section.title }}</h2>{% endif %}
+            {% if section.description %}<p class="help">{{ section.description }}</p>{% endif %}
+            <div class="field-grid">
+              {% for field in section.fields %}<div class="field-row"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<div class="help">{% if field.name == 'password1' %}{{ field.help_text|safe }}{% else %}{{ field.help_text }}{% endif %}</div>{% endif %}{{ field.errors }}</div>{% endfor %}
+            </div>
+          {% if section.advanced %}</details>{% else %}</div>{% endif %}
+        {% endfor %}
+        <div class="button-row"><button class="btn btn-primary" type="submit" {% if sin_token_produccion %}disabled{% endif %}>{% ui 'complete_setup' %}</button></div>
+      </form>
+    </section>
+  {% endif %}
+
+  <aside class="support-box">{% ui 'installer_support_intro' %} <a href="https://cafecito.app/jsgoyburu" target="_blank" rel="noopener noreferrer">{% ui 'installer_support_link' %}</a>.</aside>
 </div>
 {% endblock %}

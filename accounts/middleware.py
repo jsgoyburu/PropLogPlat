@@ -34,6 +34,29 @@ class IdiomaSitioMiddleware:
             translation.deactivate()
 
 
+class PrimeraEntradaInstalacionMiddleware:
+    """En una base realmente vacía, la primera visita a ``/`` abre el wizard.
+
+    Se limita a la portada y a cero usuarios para no secuestrar tests, APIs ni
+    una instancia parcialmente administrada. El URL del instalador sigue
+    disponible explícitamente hasta que exista un superusuario.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.path_info == '/':
+            from django.contrib.auth import get_user_model
+
+            from accounts.models import ConfigSitio
+
+            config = ConfigSitio.get()
+            if not config.instalacion_completada and not get_user_model().objects.exists():
+                return redirect('accounts:instalacion_inicial')
+        return self.get_response(request)
+
+
 class ForzarCambioPasswordMiddleware:
     """Redirige al cambio de contraseña en el primer login del estudiante.
 

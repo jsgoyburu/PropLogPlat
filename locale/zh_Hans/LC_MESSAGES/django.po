@@ -312,3 +312,642 @@ msgstr "如果这不是你的请求，请忽略此邮件。你的密码不会改
 
 msgid "Recuperar tu contraseña de %(site)s"
 msgstr "重置 %(site)s 的密码"
+
+msgid "ui.installer_intro"
+msgstr "通过三个引导步骤配置这个新实例，无需编程知识。"
+
+msgid "ui.installer_boundary"
+msgstr "向导会说明哪些设置可直接应用，哪些必须复制到托管服务商并通过重启生效。"
+
+msgid "ui.installer_steps_label"
+msgstr "安装步骤"
+
+msgid "ui.installer_step_diagnosis"
+msgstr "诊断"
+
+msgid "ui.installer_step_diagnosis_short"
+msgstr "检查当前可用状态。"
+
+msgid "ui.installer_step_environment"
+msgstr "环境"
+
+msgid "ui.installer_step_environment_short"
+msgstr "准备变量和密钥。"
+
+msgid "ui.installer_step_site"
+msgstr "站点与管理员"
+
+msgid "ui.installer_step_site_short"
+msgstr "创建站点信息和首个班级批次。"
+
+msgid "ui.installer_cannot_continue"
+msgstr "目前还无法完成安装："
+
+msgid "ui.installer_missing_setup_token"
+msgstr "缺少 SETUP_TOKEN。请在托管服务商控制台添加私密密钥，重启服务后返回此处。"
+
+msgid "ui.installer_diagnosis_title"
+msgstr "1. 检查部署"
+
+msgid "ui.installer_diagnosis_intro"
+msgstr "这些检查不会显示密码或密钥。每条警告都附有具体操作说明。"
+
+msgid "ui.installer_what_to_do"
+msgstr "操作："
+
+msgid "ui.installer_continue_environment"
+msgstr "继续配置变量"
+
+msgid "ui.installer_variable_inventory"
+msgstr "完整变量清单"
+
+msgid "ui.installer_variable_inventory_intro"
+msgstr "“已配置”仅表示进程收到了值；密钥内容永远不会显示。"
+
+msgid "ui.installer_variable"
+msgstr "变量"
+
+msgid "ui.installer_status"
+msgstr "状态"
+
+msgid "ui.installer_purpose"
+msgstr "用途"
+
+msgid "ui.installer_configured"
+msgstr "已配置"
+
+msgid "ui.installer_not_configured"
+msgstr "未配置"
+
+msgid "ui.installer_secret_value"
+msgstr "密钥值"
+
+msgid "ui.installer_required_production"
+msgstr "公共部署所需；部分变量可能由托管服务商自动注入。"
+
+msgid "ui.installer_environment_title"
+msgstr "2. 准备环境配置"
+
+msgid "ui.installer_environment_intro"
+msgstr "请填写与你的托管环境相关的内容。下载文件后，可将其值复制到任意服务商控制台。"
+
+msgid "ui.installer_environment_security"
+msgstr "此处提交的密钥不会存入数据库或日志，此响应也不会被缓存。"
+
+msgid "ui.installer_preview_env"
+msgstr "预览"
+
+msgid "ui.installer_download_env"
+msgstr "下载 .env 文件"
+
+msgid "ui.installer_env_saved_restart"
+msgstr ".env 文件已保存。请重启进程；运行中的应用无法替换自身环境。"
+
+msgid "ui.installer_preview_title"
+msgstr "预览（包含密钥）"
+
+msgid "ui.installer_apply_restart"
+msgstr "复制或保存这些值，重启服务并返回诊断。请勿分享此页面或文件。"
+
+msgid "ui.installer_apply_how"
+msgstr "如何应用此文件？"
+
+msgid "ui.installer_apply_managed"
+msgstr "托管服务商：在 Variables/Environment 中创建每个键，粘贴对应值，然后重新部署。"
+
+msgid "ui.installer_apply_container"
+msgstr "Docker：将文件保存在仓库之外，并使用 --env-file proplogplat.env 或 Compose 的 env_file 选项。"
+
+msgid "ui.installer_apply_selfhosted"
+msgstr "自有服务器：若目录具有持久化存储，可保存 .env；随后重启 Gunicorn 或系统服务。"
+
+msgid "ui.installer_apply_return"
+msgstr "返回步骤 1。诊断显示配置已生效后，再完成步骤 3。"
+
+msgid "ui.installer_continue_site"
+msgstr "继续配置站点"
+
+msgid "ui.installer_site_title"
+msgstr "3. 配置站点并创建管理员"
+
+msgid "ui.installer_site_intro"
+msgstr "这些信息会保存到 PropLogPlat 数据库中，之后几乎都可在管理后台修改。"
+
+msgid "ui.installer_pedagogical_note"
+msgstr "这些阈值用于呈现学习过程并支持教师介入，不用于评分或给学生排名。推荐值只是起点。"
+
+msgid "ui.installer_support_intro"
+msgstr "如果这个平台对你有帮助，并愿意自愿支持原始实例的维护，"
+
+msgid "ui.installer_support_link"
+msgstr "可以通过 Cafecito 支持我"
+
+msgid "installer.choice.yes"
+msgstr "是"
+
+msgid "installer.choice.no"
+msgstr "否"
+
+msgid "installer.choice.managed"
+msgstr "托管服务商（Railway、Render、Fly.io、Heroku 等）"
+
+msgid "installer.choice.container"
+msgstr "自有 Docker 容器"
+
+msgid "installer.choice.self_hosted"
+msgstr "自有服务器或 VPS"
+
+msgid "installer.choice.local"
+msgstr "我的电脑（用于测试）"
+
+msgid "installer.choice.email_none"
+msgstr "暂不配置邮件"
+
+msgid "installer.choice.email_brevo"
+msgstr "Brevo HTTP API（推荐）"
+
+msgid "installer.choice.email_smtp"
+msgstr "SMTP 服务器"
+
+msgid "installer.choice.mcp_none"
+msgstr "不从此进程发布 MCP"
+
+msgid "installer.env.deployment_kind.label"
+msgstr "安装在哪里？"
+
+msgid "installer.env.authorization_token.label"
+msgstr "当前 SETUP_TOKEN（仅用于写入服务器）"
+
+msgid "installer.env.setup_token.label"
+msgstr "新的 SETUP_TOKEN"
+
+msgid "installer.env.email_provider.label"
+msgstr "邮件发送"
+
+msgid "installer.env.write_to_server.label"
+msgstr "同时在此服务器保存为 .env"
+
+msgid "installer.env.deployment_kind.help"
+msgstr "这会调整操作说明；生成的文件内容相同。"
+
+msgid "installer.env.authorization_token.help"
+msgstr "预览或下载时无需填写，且永远不会存入数据库。"
+
+msgid "installer.env.secret_key.help"
+msgstr "Django 随机密钥。请妥善保管，站点投入使用后不要更改。"
+
+msgid "installer.env.setup_token.help"
+msgstr "重启后返回此向导所需的临时密钥。"
+
+msgid "installer.env.debug.help"
+msgstr "若站点可从互联网访问，请选择“否/False”。"
+
+msgid "installer.env.allowed_hosts.help"
+msgstr "用逗号分隔域名，不含 https:// 或斜杠。例如：logic.example.org"
+
+msgid "installer.env.csrf_trusted_origins.help"
+msgstr "用逗号分隔完整的 HTTPS URL，通常与上方域名相同。"
+
+msgid "installer.env.database_url.help"
+msgstr "完整的 PostgreSQL URL。若服务商已自动注入，请留空以免复制密钥。"
+
+msgid "installer.env.use_database_url.help"
+msgstr "选择“是”后，本地安装在存在 DATABASE_URL 时也会使用 PostgreSQL。"
+
+msgid "installer.env.redis_url.help"
+msgstr "可选。若有多个进程或副本，建议配置。"
+
+msgid "installer.env.brevo_api_key.help"
+msgstr "可在 Brevo → SMTP & API → API Keys 获取。"
+
+msgid "installer.env.default_from_email.help"
+msgstr "例如：PropLogPlat <no-reply@your-domain.org>。域名必须已认证。"
+
+msgid "installer.env.trusted_proxy_count.help"
+msgstr "普通托管服务商请保留 1。只有明确前置代理数量时才修改。"
+
+msgid "installer.env.gemini_api_key.help"
+msgstr "可选：教学提示的主要服务商。"
+
+msgid "installer.env.groq_api_key.help"
+msgstr "可选：教学提示和词典检查的备用服务商。"
+
+msgid "installer.env.mcp_issuer_url.help"
+msgstr "仅用于采用 OAuth 认证的 HTTP MCP。"
+
+msgid "installer.env.port.help"
+msgstr "服务商通常会自动注入；本地默认值为 8000。"
+
+msgid "installer.env.admin_username.help"
+msgstr "若要使用此向导完成安装，请将三个 ADMIN_* 值都留空。"
+
+msgid "installer.env.write_to_server.help"
+msgstr "仅适用于自有电脑、VPS 或持久卷。托管服务商请使用其控制台，因为每次部署都可能清空磁盘。"
+
+msgid "installer.site.token.label"
+msgstr "安装密钥"
+
+msgid "installer.site.nombre_sitio.label"
+msgstr "站点名称"
+
+msgid "installer.site.idioma_predeterminado.label"
+msgstr "默认语言"
+
+msgid "installer.site.contacto_privacidad.label"
+msgstr "隐私负责人邮箱"
+
+msgid "installer.site.color_primario.label"
+msgstr "主色"
+
+msgid "installer.site.color_acento.label"
+msgstr "强调色"
+
+msgid "installer.site.favicon_upload.label"
+msgstr "站点图标（可选）"
+
+msgid "installer.site.cohorte_anio.label"
+msgstr "首个批次年份"
+
+msgid "installer.site.cohorte_cuatrimestre.label"
+msgstr "首个批次学期"
+
+msgid "installer.site.error_consenso_min.label"
+msgstr "显示共同错误所需的最少学生数"
+
+msgid "installer.site.umbral_min_intentos.label"
+msgstr "判定练习困难所需的最少尝试数"
+
+msgid "installer.site.umbral_riesgo.label"
+msgstr "触发支持提醒的连续错误尝试数"
+
+msgid "installer.site.umbral_silencio_dias.label"
+msgstr "触发视觉提醒的无活动天数"
+
+msgid "installer.site.umbral_maraton.label"
+msgstr "练习集中度比率"
+
+msgid "installer.site.umbral_arranque_dias.label"
+msgstr "早期开始窗口（天）"
+
+msgid "installer.site.umbral_convergencia_min_estudiantes.label"
+msgstr "显示收敛曲线所需的最少学生数"
+
+msgid "installer.site.umbral_adivinacion_intentos.label"
+msgstr "触发低变化信号的最少尝试数"
+
+msgid "installer.site.umbral_adivinacion_segundos.label"
+msgstr "低变化信号的最大间隔（秒）"
+
+msgid "installer.site.pistas_ia_activas.label"
+msgstr "启用 AI 教学提示"
+
+msgid "installer.site.revision_diccionario_activa.label"
+msgstr "启用 AI 词典检查"
+
+msgid "installer.site.username.label"
+msgstr "管理员用户名"
+
+msgid "installer.site.email.label"
+msgstr "电子邮箱"
+
+msgid "installer.site.password1.label"
+msgstr "密码"
+
+msgid "installer.site.password2.label"
+msgstr "重复密码"
+
+msgid "installer.site.token.help"
+msgstr "这是部署站点时设置的 SETUP_TOKEN。"
+
+msgid "installer.site.contacto_privacidad.help"
+msgstr "会显示在同意书中，供数据相关咨询或请求使用，之后可以修改。"
+
+msgid "installer.site.color_primario.help"
+msgstr "十六进制格式，例如 #1a1a2e。"
+
+msgid "installer.site.color_acento.help"
+msgstr "十六进制格式，例如 #2e6da4。"
+
+msgid "installer.site.favicon_upload.help"
+msgstr "最大 512 KB 的 .ico、.png 或 .svg 文件。"
+
+msgid "installer.site.cohorte_anio.help"
+msgstr "批次是学生所属的学习群体。"
+
+msgid "installer.site.pistas_ia_activas.help"
+msgstr "若未配置 Gemini/Groq 或不希望发送这些数据，请禁用。"
+
+msgid "installer.site.revision_diccionario_activa.help"
+msgstr "若未配置 Groq 或不希望使用该服务，请禁用。"
+
+msgid "installer.error.host_required"
+msgstr "请至少添加一个域名或地址。"
+
+msgid "installer.error.host_invalid"
+msgstr "“%(value)s”无效：请只填写域名，不含 https:// 或斜杠。"
+
+msgid "installer.error.origin_invalid"
+msgstr "“%(value)s”必须是无路径的完整 URL，例如 https://logic.example.org。"
+
+msgid "installer.error.database_invalid"
+msgstr "PropLogPlat 需要 PostgreSQL URL（postgresql://…）。"
+
+msgid "installer.error.no_newlines"
+msgstr "值中不能包含换行符。"
+
+msgid "installer.error.secret_weak"
+msgstr "请使用生成的随机密钥或同等强度的密钥。"
+
+msgid "installer.error.brevo_required"
+msgstr "请粘贴 Brevo API 密钥或选择其他选项。"
+
+msgid "installer.error.smtp_required"
+msgstr "SMTP 需要此项。"
+
+msgid "installer.error.tls_ssl_exclusive"
+msgstr "TLS 和 SSL 不能同时启用。"
+
+msgid "installer.error.mcp_issuer_required"
+msgstr "通过 HTTP 发布 MCP 前，请填写 OAuth 颁发者。"
+
+msgid "installer.error.admin_all_or_none"
+msgstr "请填写全部三个 ADMIN_* 变量，或全部留空。"
+
+msgid "installer.error.authorization_invalid"
+msgstr "当前 SETUP_TOKEN 无效。"
+
+msgid "installer.error.setup_token_invalid"
+msgstr "安装密钥无效。"
+
+msgid "installer.error.username_exists"
+msgstr "该用户名已存在。"
+
+msgid "installer.error.email_exists"
+msgstr "该邮箱已被使用。"
+
+msgid "installer.error.favicon_too_large"
+msgstr "文件超过 512 KB。"
+
+msgid "installer.error.favicon_type"
+msgstr "请使用 .ico、.png 或 .svg 文件。"
+
+msgid "installer.error.password_mismatch"
+msgstr "两次输入的密码不一致。"
+
+msgid "installer.error.color_format"
+msgstr "请使用 #RRGGBB 格式，例如 #1a1a2e。"
+
+msgid "installer.error.concurrent_setup"
+msgstr "安装已在另一个会话中完成。"
+
+msgid "installer.setup_complete"
+msgstr "安装完成。现在可以配置并使用站点。"
+
+msgid "installer.section.security"
+msgstr "安全与站点地址"
+
+msgid "installer.section.security_help"
+msgstr "发布前必须配置这些变量。"
+
+msgid "installer.section.data"
+msgstr "数据与性能"
+
+msgid "installer.section.data_help"
+msgstr "PostgreSQL 保存工作数据；Redis 是可选优化。"
+
+msgid "installer.section.email"
+msgstr "邮件"
+
+msgid "installer.section.email_help"
+msgstr "确保密码恢复邮件能够真正送达。"
+
+msgid "installer.section.optional"
+msgstr "可选服务与非交互模式"
+
+msgid "installer.section.optional_help"
+msgstr "可以跳过此部分，稍后再配置。"
+
+msgid "installer.section.identity"
+msgstr "站点身份与本地责任"
+
+msgid "installer.section.cohort"
+msgstr "首个批次"
+
+msgid "installer.section.admin"
+msgstr "管理员账户"
+
+msgid "installer.section.pedagogy"
+msgstr "高级教学标准"
+
+msgid "installer.section.pedagogy_help"
+msgstr "推荐值已预先填写。只有团队能够从教学角度说明新标准时才应修改。"
+
+msgid "installer.diag.database"
+msgstr "数据库"
+
+msgid "installer.diag.database_error"
+msgstr "无法连接（%(error)s）。"
+
+msgid "installer.diag.database_action"
+msgstr "请检查 DATABASE_URL 和 PostgreSQL 是否可用。"
+
+msgid "installer.diag.database_ok"
+msgstr "已通过 %(vendor)s 建立连接。"
+
+msgid "installer.diag.sqlite_warning"
+msgstr "SQLite 适合本地测试，不适合公共部署。"
+
+msgid "installer.diag.sqlite_action"
+msgstr "请创建持久化 PostgreSQL 数据库并配置 DATABASE_URL。"
+
+msgid "installer.diag.migrations"
+msgstr "数据库迁移"
+
+msgid "installer.diag.migrations_error"
+msgstr "无法检查数据库结构（%(error)s）。"
+
+msgid "installer.diag.migrations_action"
+msgstr "请在服务商控制台运行 python manage.py migrate。"
+
+msgid "installer.diag.migrations_pending"
+msgstr "有 %(count)s 个待执行迁移。"
+
+msgid "installer.diag.migrations_reload"
+msgstr "请执行迁移并重新加载此页面。"
+
+msgid "installer.diag.migrations_ok"
+msgstr "数据库结构已是最新。"
+
+msgid "installer.diag.secret"
+msgstr "私密密钥"
+
+msgid "installer.diag.secret_error"
+msgstr "缺少足够长的随机 SECRET_KEY。"
+
+msgid "installer.diag.secret_ok"
+msgstr "SECRET_KEY 已配置，其值不会显示。"
+
+msgid "installer.diag.secret_action"
+msgstr "请在步骤 2 生成，在服务商处应用并重启。"
+
+msgid "installer.diag.mode"
+msgstr "运行模式"
+
+msgid "installer.diag.debug_action"
+msgstr "这只适用于个人电脑；互联网部署请使用 DEBUG=False。"
+
+msgid "installer.diag.production_ok"
+msgstr "DEBUG=False（生产环境）。"
+
+msgid "installer.diag.protection"
+msgstr "安装向导保护"
+
+msgid "installer.diag.token_ok"
+msgstr "SETUP_TOKEN 已配置。"
+
+msgid "installer.diag.local_no_token"
+msgstr "本地开发允许无令牌安装。"
+
+msgid "installer.diag.token_error"
+msgstr "缺少 SETUP_TOKEN。"
+
+msgid "installer.diag.token_action"
+msgstr "请在服务商处设置私密密钥并重启。"
+
+msgid "installer.diag.domain"
+msgstr "公共域名"
+
+msgid "installer.diag.domain_ok"
+msgstr "当前域名（%(host)s）已允许。"
+
+msgid "installer.diag.domain_error"
+msgstr "当前域名（%(host)s）不在 ALLOWED_HOSTS 中。"
+
+msgid "installer.diag.domain_action"
+msgstr "请去掉 https:// 后添加并重启。"
+
+msgid "installer.diag.email"
+msgstr "邮件"
+
+msgid "installer.diag.email_brevo"
+msgstr "Brevo API 已配置。"
+
+msgid "installer.diag.email_smtp"
+msgstr "SMTP 已配置。"
+
+msgid "installer.diag.email_warning"
+msgstr "邮件只会打印到控制台。"
+
+msgid "installer.diag.email_action"
+msgstr "提供密码恢复前，请配置并测试 Brevo 或 SMTP。"
+
+msgid "installer.diag.ai"
+msgstr "AI 提示"
+
+msgid "installer.diag.ai_ok"
+msgstr "至少已配置一个服务商。"
+
+msgid "installer.diag.ai_warning"
+msgstr "未配置 Gemini 或 Groq 密钥。"
+
+msgid "installer.diag.ai_action"
+msgstr "可以禁用提示，或在步骤 2 添加密钥。"
+
+msgid "installer.diag.env_file"
+msgstr "本地 .env 文件"
+
+msgid "installer.diag.env_writable"
+msgstr "服务器可以写入 .env。"
+
+msgid "installer.diag.env_not_writable"
+msgstr "服务器无法写入 .env；这在许多服务商中是正常的。"
+
+msgid "installer.diag.env_action"
+msgstr "请下载文件或将变量复制到服务商控制台。"
+
+msgid "installer.var.secret_key"
+msgstr "用于签名会话、表单和安全链接。"
+
+msgid "installer.var.setup_token"
+msgstr "在创建首个管理员前保护安装向导。"
+
+msgid "installer.var.debug"
+msgstr "公共站点必须为 False。"
+
+msgid "installer.var.allowed_hosts"
+msgstr "允许提供应用服务的域名，不含 https://。"
+
+msgid "installer.var.csrf"
+msgstr "表单允许的 HTTPS 来源。"
+
+msgid "installer.var.database_url"
+msgstr "持久化 PostgreSQL 连接。"
+
+msgid "installer.var.use_database_url"
+msgstr "在开发环境中也强制使用 DATABASE_URL。"
+
+msgid "installer.var.redis_url"
+msgstr "供多进程使用的可选共享缓存。"
+
+msgid "installer.var.brevo"
+msgstr "通过 HTTP API 发送邮件；SMTP 被阻止时推荐。"
+
+msgid "installer.var.email_host"
+msgstr "Brevo API 的 SMTP 替代方案。"
+
+msgid "installer.var.email_port"
+msgstr "SMTP 端口，通常为 587 或 465。"
+
+msgid "installer.var.email_user"
+msgstr "SMTP 服务商用户名。"
+
+msgid "installer.var.email_password"
+msgstr "SMTP 密钥，不是个人账户密码。"
+
+msgid "installer.var.email_tls"
+msgstr "STARTTLS 加密，通常使用 587 端口。"
+
+msgid "installer.var.email_ssl"
+msgstr "直接 SSL，通常使用 465 端口。"
+
+msgid "installer.var.from_email"
+msgstr "邮件中显示的发件人。"
+
+msgid "installer.var.proxy_count"
+msgstr "站点前方可信代理的实际数量。"
+
+msgid "installer.var.gemini"
+msgstr "使用 Gemini 提供教学提示。"
+
+msgid "installer.var.groq"
+msgstr "教学提示和词典检查的备用服务。"
+
+msgid "installer.var.mcp_transport"
+msgstr "独立 MCP 服务器的传输方式：stdio 或 http。"
+
+msgid "installer.var.mcp_issuer"
+msgstr "通过 HTTP 发布 MCP 时的 OAuth 颁发者。"
+
+msgid "installer.var.port"
+msgstr "内部端口，通常由服务商注入。"
+
+msgid "installer.var.admin_username"
+msgstr "仅用于非交互安装；向导会创建管理员。"
+
+msgid "installer.var.admin_email"
+msgstr "仅用于非交互安装。"
+
+msgid "installer.var.admin_password"
+msgstr "仅用于非交互安装。"
+
+msgid "installer.env_header.generated"
+msgstr "PropLogPlat — Web 安装向导生成的配置"
+
+msgid "installer.env_header.profile"
+msgstr "所选配置：%(profile)s"
+
+msgid "installer.env_header.secret_warning"
+msgstr "包含密钥。请勿公开或加入 Git。"
+
+msgid "installer.env_header.managed"
+msgstr "在托管服务商中，请将每个键及其值复制到控制台。"

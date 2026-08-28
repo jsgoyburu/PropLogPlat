@@ -1,3 +1,4 @@
+import base64
 import json
 from functools import lru_cache
 from pathlib import Path
@@ -16,20 +17,33 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.translation import gettext
 
 from accounts.facultades import get_facultades_carreras_por_clave
 
 from .forms import (
+    ConfiguracionEntornoForm,
     ConsentimientosForm,
     EncuestaForm,
     InstalacionInicialForm,
     PerfilForm,
     RegistroEstudianteComisionForm,
 )
+from .installer import (
+    diagnosticar_entorno,
+    estado_variables,
+    render_env_file,
+    valores_entorno,
+    write_env_file,
+)
 from .models import ConfigSitio, EncuestaEstudiante
-from cursos.models import Comision, Inscripcion
+from cursos.models import Cohorte, Comision, Inscripcion
 
 User = get_user_model()
+
+
+def _installer_text(key):
+    return gettext(f'installer.{key}')
 
 
 def healthz(request):
@@ -38,8 +52,7 @@ def healthz(request):
 
 
 def instalacion_inicial(request):
-    """Configura una instancia nueva y se cierra de forma permanente."""
-    from django.conf import settings
+    """Asistente provider-agnostic para configurar una instancia nueva."""
 
     config = ConfigSitio.get()
     if config.instalacion_completada or User.objects.filter(is_superuser=True).exists():
@@ -49,8 +62,57 @@ def instalacion_inicial(request):
         return redirect('accounts:login')
 
     sin_token_produccion = not settings.DEBUG and not settings.SETUP_TOKEN
-    form = InstalacionInicialForm(request.POST or None)
-    if request.method == 'POST' and not sin_token_produccion and form.is_valid():
+    action = request.POST.get('action', 'complete') if request.method == 'POST' else ''
+    paso = request.GET.get('paso', 'diagnostico')
+    if paso not in {'diagnostico', 'entorno', 'sitio'}:
+        paso = 'diagnostico'
+
+    current_host = request.get_host().split(':', 1)[0]
+    current_origin = f'{request.scheme}://{request.get_host()}'
+    csrf_origins = list(getattr(settings, 'CSRF_TRUSTED_ORIGINS', []) or [current_origin])
+    env_initial = {
+        # El archivo generado debe ser seguro para publicar. Quien elija el
+        # perfil local puede cambiarlo explícitamente a True.
+        'debug': 'False',
+        'allowed_hosts': ','.join(settings.ALLOWED_HOSTS) or current_host,
+        'csrf_trusted_origins': ','.join(csrf_origins),
+        'use_database_url': 'True',
+        'trusted_proxy_count': getattr(settings, 'TRUSTED_PROXY_COUNT', 1),
+        'port': 8000,
+    }
+
+    env_form = ConfiguracionEntornoForm(
+        request.POST if action == 'environment' else None,
+        prefix='env',
+        initial=env_initial,
+    )
+    form = InstalacionInicialForm(
+        request.POST if action == 'complete' else None,
+        request.FILES if action == 'complete' else None,
+    )
+    env_preview = ''
+    env_saved = False
+
+    if request.method == 'POST' and action == 'environment':
+        paso = 'entorno'
+        if env_form.is_valid():
+            values = valores_entorno(env_form.cleaned_data)
+            env_preview = render_env_file(
+                values, env_form.cleaned_data['deployment_kind'],
+            )
+
+            if 'download' in request.POST:
+                response = HttpResponse(env_preview, content_type='text/plain; charset=utf-8')
+                response['Content-Disposition'] = 'attachment; filename="proplogplat.env"'
+                response['Cache-Control'] = 'no-store, max-age=0'
+                response['Pragma'] = 'no-cache'
+                return response
+
+            if env_form.cleaned_data.get('write_to_server'):
+                write_env_file(env_preview)
+                env_saved = True
+
+    if request.method == 'POST' and action == 'complete' and not sin_token_produccion and form.is_valid():
         try:
             with transaction.atomic():
                 # El bloqueo del singleton evita dos instalaciones simultáneas.
@@ -71,22 +133,144 @@ def instalacion_inicial(request):
                 config.nombre_sitio = form.cleaned_data['nombre_sitio']
                 config.idioma_predeterminado = form.cleaned_data['idioma_predeterminado']
                 config.contacto_privacidad = form.cleaned_data['contacto_privacidad']
+                config.color_primario = form.cleaned_data.get('color_primario') or '#1a1a2e'
+                config.color_acento = form.cleaned_data.get('color_acento') or '#2e6da4'
+
+                numeric_defaults = {
+                    'error_consenso_min': 2,
+                    'umbral_min_intentos': 3,
+                    'umbral_riesgo': 5,
+                    'umbral_silencio_dias': 7,
+                    'umbral_maraton': 6,
+                    'umbral_arranque_dias': 14,
+                    'umbral_convergencia_min_estudiantes': 5,
+                    'umbral_adivinacion_intentos': 5,
+                    'umbral_adivinacion_segundos': 30,
+                }
+                for field_name, default in numeric_defaults.items():
+                    setattr(config, field_name, form.cleaned_data.get(field_name) or default)
+
+                config.pistas_ia_activas = (
+                    (form.cleaned_data.get('pistas_ia_activas') or 'True') == 'True'
+                )
+                config.revision_diccionario_activa = (
+                    (form.cleaned_data.get('revision_diccionario_activa') or 'True') == 'True'
+                )
+
+                favicon = form.cleaned_data.get('favicon_upload')
+                if favicon:
+                    config.favicon_data = base64.b64encode(favicon.read()).decode('ascii')
+                    content_type = favicon.content_type or ''
+                    if not content_type or content_type == 'application/octet-stream':
+                        extension_types = {
+                            '.ico': 'image/x-icon', '.png': 'image/png', '.svg': 'image/svg+xml',
+                        }
+                        content_type = extension_types.get(Path(favicon.name).suffix.lower(), 'image/x-icon')
+                    config.favicon_content_type = content_type
+
                 config.instalacion_completada = True
-                config.save(update_fields=[
-                    'nombre_sitio', 'idioma_predeterminado', 'contacto_privacidad',
-                    'instalacion_completada',
-                ])
+                config.save()
+
+                cohorte_anio = form.cleaned_data.get('cohorte_anio') or timezone.localdate().year
+                cohorte_cuatrimestre = form.cleaned_data.get('cohorte_cuatrimestre') or (
+                    1 if timezone.localdate().month <= 7 else 2
+                )
+                Cohorte.objects.filter(activa=True).update(activa=False)
+                cohorte, _created = Cohorte.objects.get_or_create(
+                    anio=cohorte_anio,
+                    cuatrimestre=cohorte_cuatrimestre,
+                    defaults={'activa': True},
+                )
+                if not cohorte.activa:
+                    cohorte.activa = True
+                    cohorte.save(update_fields=['activa'])
         except IntegrityError:
-            form.add_error(None, 'La instalación ya fue completada en otra sesión.')
+            form.add_error(None, _installer_text('error.concurrent_setup'))
         else:
             login(request, admin_user)
-            messages.success(request, 'Instalación completada. Ya podés configurar y usar el sitio.')
+            messages.success(request, _installer_text('setup_complete'))
             return redirect('admin:index')
 
-    return render(request, 'registration/instalacion_inicial.html', {
+    diagnostics = diagnosticar_entorno(request)
+    response = render(request, 'registration/instalacion_inicial.html', {
         'form': form,
+        'env_form': env_form,
+        'env_preview': env_preview,
+        'env_saved': env_saved,
+        'diagnostics': diagnostics,
+        'environment_variables': estado_variables(),
+        'paso': paso,
         'sin_token_produccion': sin_token_produccion,
+        'env_sections': [
+            {
+                'title': _installer_text('section.security'),
+                'description': _installer_text('section.security_help'),
+                'fields': [env_form[name] for name in (
+                    'deployment_kind', 'secret_key', 'setup_token', 'debug',
+                    'allowed_hosts', 'csrf_trusted_origins',
+                )],
+            },
+            {
+                'title': _installer_text('section.data'),
+                'description': _installer_text('section.data_help'),
+                'fields': [env_form[name] for name in (
+                    'database_url', 'use_database_url', 'redis_url', 'trusted_proxy_count', 'port',
+                )],
+            },
+            {
+                'title': _installer_text('section.email'),
+                'description': _installer_text('section.email_help'),
+                'fields': [env_form[name] for name in (
+                    'email_provider', 'brevo_api_key', 'email_host', 'email_port',
+                    'email_host_user', 'email_host_password', 'email_use_tls',
+                    'email_use_ssl', 'default_from_email',
+                )],
+            },
+            {
+                'title': _installer_text('section.optional'),
+                'description': _installer_text('section.optional_help'),
+                'fields': [env_form[name] for name in (
+                    'gemini_api_key', 'groq_api_key', 'mcp_transport', 'mcp_issuer_url',
+                    'admin_username', 'admin_email', 'admin_password',
+                    'authorization_token', 'write_to_server',
+                )],
+            },
+        ],
+        'site_sections': [
+            {
+                'title': _installer_text('section.identity'),
+                'fields': [form[name] for name in (
+                    'nombre_sitio', 'idioma_predeterminado', 'contacto_privacidad',
+                    'color_primario', 'color_acento', 'favicon_upload',
+                )],
+            },
+            {
+                'title': _installer_text('section.cohort'),
+                'fields': [form[name] for name in ('cohorte_anio', 'cohorte_cuatrimestre')],
+            },
+            {
+                'title': _installer_text('section.admin'),
+                'fields': [form[name] for name in (
+                    'username', 'email', 'password1', 'password2', 'token',
+                )],
+            },
+            {
+                'title': _installer_text('section.pedagogy'),
+                'description': _installer_text('section.pedagogy_help'),
+                'advanced': True,
+                'fields': [form[name] for name in (
+                    'error_consenso_min', 'umbral_min_intentos', 'umbral_riesgo',
+                    'umbral_silencio_dias', 'umbral_maraton', 'umbral_arranque_dias',
+                    'umbral_convergencia_min_estudiantes', 'umbral_adivinacion_intentos',
+                    'umbral_adivinacion_segundos', 'pistas_ia_activas',
+                    'revision_diccionario_activa',
+                )],
+            },
+        ],
     }, status=503 if sin_token_produccion else 200)
+    response['Cache-Control'] = 'no-store, max-age=0'
+    response['Pragma'] = 'no-cache'
+    return response
 
 
 def acceso_comision(request, comision_id):
@@ -170,7 +354,13 @@ def favicon_view(request):
         response = HttpResponse(data, content_type=ct)
         response['Cache-Control'] = 'public, max-age=3600'
         return response
-    return HttpResponse(status=404)
+    try:
+        data = (Path(settings.BASE_DIR) / 'static' / 'favicon.svg').read_bytes()
+    except OSError:
+        return HttpResponse(status=404)
+    response = HttpResponse(data, content_type='image/svg+xml')
+    response['Cache-Control'] = 'public, max-age=3600'
+    return response
 
 
 class LoginConPrimerAccesoView(LoginView):

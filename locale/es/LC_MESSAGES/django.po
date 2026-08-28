@@ -312,3 +312,642 @@ msgstr "Si no pediste esto, ignorá este mensaje. Tu contraseña sigue siendo la
 
 msgid "Recuperar tu contraseña de %(site)s"
 msgstr "Recuperar tu contraseña de %(site)s"
+
+msgid "ui.installer_intro"
+msgstr "Configurá esta nueva instancia en tres pasos guiados. No necesitás saber programar."
+
+msgid "ui.installer_boundary"
+msgstr "El asistente explica qué puede aplicar directamente y qué debe copiarse al proveedor y activarse mediante un reinicio."
+
+msgid "ui.installer_steps_label"
+msgstr "Pasos de instalación"
+
+msgid "ui.installer_step_diagnosis"
+msgstr "Diagnóstico"
+
+msgid "ui.installer_step_diagnosis_short"
+msgstr "Revisar lo que ya funciona."
+
+msgid "ui.installer_step_environment"
+msgstr "Entorno"
+
+msgid "ui.installer_step_environment_short"
+msgstr "Preparar variables y secretos."
+
+msgid "ui.installer_step_site"
+msgstr "Sitio y administración"
+
+msgid "ui.installer_step_site_short"
+msgstr "Crear la identidad y primera cohorte."
+
+msgid "ui.installer_cannot_continue"
+msgstr "Todavía no se puede completar:"
+
+msgid "ui.installer_missing_setup_token"
+msgstr "Falta SETUP_TOKEN. Agregá una clave privada en el panel del proveedor, reiniciá el servicio y volvé aquí."
+
+msgid "ui.installer_diagnosis_title"
+msgstr "1. Revisar el despliegue"
+
+msgid "ui.installer_diagnosis_intro"
+msgstr "Estas comprobaciones no muestran contraseñas ni claves. Cada aviso incluye la acción concreta que corresponde."
+
+msgid "ui.installer_what_to_do"
+msgstr "Qué hacer:"
+
+msgid "ui.installer_continue_environment"
+msgstr "Continuar con las variables"
+
+msgid "ui.installer_variable_inventory"
+msgstr "Inventario completo de variables"
+
+msgid "ui.installer_variable_inventory_intro"
+msgstr "“Configurada” solo confirma que el proceso recibió un valor; los secretos nunca se revelan."
+
+msgid "ui.installer_variable"
+msgstr "Variable"
+
+msgid "ui.installer_status"
+msgstr "Estado"
+
+msgid "ui.installer_purpose"
+msgstr "Para qué sirve"
+
+msgid "ui.installer_configured"
+msgstr "Configurada"
+
+msgid "ui.installer_not_configured"
+msgstr "Sin configurar"
+
+msgid "ui.installer_secret_value"
+msgstr "valor secreto"
+
+msgid "ui.installer_required_production"
+msgstr "Necesaria para una instalación pública; algunas pueden ser inyectadas automáticamente por el proveedor."
+
+msgid "ui.installer_environment_title"
+msgstr "2. Preparar la configuración del entorno"
+
+msgid "ui.installer_environment_intro"
+msgstr "Completá lo que corresponda a tu alojamiento. Podés descargar un archivo y copiar sus valores al panel de cualquier proveedor."
+
+msgid "ui.installer_environment_security"
+msgstr "Los secretos enviados aquí no se guardan en la base ni en logs. Esta respuesta tampoco se almacena en caché."
+
+msgid "ui.installer_preview_env"
+msgstr "Previsualizar"
+
+msgid "ui.installer_download_env"
+msgstr "Descargar archivo .env"
+
+msgid "ui.installer_env_saved_restart"
+msgstr "El archivo .env quedó guardado. Reiniciá el proceso: una aplicación en ejecución no puede reemplazar su propio entorno."
+
+msgid "ui.installer_preview_title"
+msgstr "Vista previa (contiene secretos)"
+
+msgid "ui.installer_apply_restart"
+msgstr "Copiá o guardá estos valores, reiniciá el servicio y volvé al diagnóstico. No compartas esta pantalla ni el archivo."
+
+msgid "ui.installer_apply_how"
+msgstr "¿Cómo aplico el archivo?"
+
+msgid "ui.installer_apply_managed"
+msgstr "Proveedor administrado: creá cada clave en Variables/Environment, pegá el valor y desplegá de nuevo."
+
+msgid "ui.installer_apply_container"
+msgstr "Docker: guardá el archivo fuera del repositorio y usá --env-file proplogplat.env o la opción env_file de Compose."
+
+msgid "ui.installer_apply_selfhosted"
+msgstr "Servidor propio: podés guardar .env si la carpeta es persistente; después reiniciá Gunicorn o el servicio del sistema."
+
+msgid "ui.installer_apply_return"
+msgstr "Volvé al paso 1. Cuando el diagnóstico refleje los cambios, completá el paso 3."
+
+msgid "ui.installer_continue_site"
+msgstr "Continuar con el sitio"
+
+msgid "ui.installer_site_title"
+msgstr "3. Configurar el sitio y crear la administración"
+
+msgid "ui.installer_site_intro"
+msgstr "Estos datos sí se guardan en la base de PropLogPlat. Podrás modificar casi todos después desde el admin."
+
+msgid "ui.installer_pedagogical_note"
+msgstr "Los umbrales hacen visibles procesos para la intervención docente; no califican ni clasifican estudiantes. Los valores recomendados son un punto de partida."
+
+msgid "ui.installer_support_intro"
+msgstr "Si esta plataforma te resulta útil y querés colaborar voluntariamente con el sostenimiento de la instancia original,"
+
+msgid "ui.installer_support_link"
+msgstr "podés invitarme un Cafecito"
+
+msgid "installer.choice.yes"
+msgstr "Sí"
+
+msgid "installer.choice.no"
+msgstr "No"
+
+msgid "installer.choice.managed"
+msgstr "Proveedor administrado (Railway, Render, Fly.io, Heroku…)"
+
+msgid "installer.choice.container"
+msgstr "Contenedor Docker propio"
+
+msgid "installer.choice.self_hosted"
+msgstr "Servidor propio o VPS"
+
+msgid "installer.choice.local"
+msgstr "Mi computadora, para probar"
+
+msgid "installer.choice.email_none"
+msgstr "Todavía no configurar correo"
+
+msgid "installer.choice.email_brevo"
+msgstr "Brevo mediante API HTTP (recomendado)"
+
+msgid "installer.choice.email_smtp"
+msgstr "Servidor SMTP"
+
+msgid "installer.choice.mcp_none"
+msgstr "No publicar MCP desde este proceso"
+
+msgid "installer.env.deployment_kind.label"
+msgstr "¿Dónde está instalado?"
+
+msgid "installer.env.authorization_token.label"
+msgstr "SETUP_TOKEN actual (solo para escribir en el servidor)"
+
+msgid "installer.env.setup_token.label"
+msgstr "SETUP_TOKEN nueva"
+
+msgid "installer.env.email_provider.label"
+msgstr "Envío de correo"
+
+msgid "installer.env.write_to_server.label"
+msgstr "Guardar también como .env en este servidor"
+
+msgid "installer.env.deployment_kind.help"
+msgstr "Cambia las instrucciones; el archivo generado es el mismo."
+
+msgid "installer.env.authorization_token.help"
+msgstr "No hace falta para previsualizar o descargar. Nunca se guarda en la base."
+
+msgid "installer.env.secret_key.help"
+msgstr "Clave aleatoria de Django. Guardala y no la cambies después de empezar a usar el sitio."
+
+msgid "installer.env.setup_token.help"
+msgstr "Clave temporal para volver a este asistente después del reinicio."
+
+msgid "installer.env.debug.help"
+msgstr "Elegí No/False si el sitio puede verse desde internet."
+
+msgid "installer.env.allowed_hosts.help"
+msgstr "Dominios separados por coma, sin https:// ni barras. Ej.: logica.example.org"
+
+msgid "installer.env.csrf_trusted_origins.help"
+msgstr "URLs HTTPS completas separadas por coma. Normalmente coincide con los dominios anteriores."
+
+msgid "installer.env.database_url.help"
+msgstr "URL completa de PostgreSQL. Si el proveedor ya la inyecta, dejala vacía para no copiar el secreto."
+
+msgid "installer.env.use_database_url.help"
+msgstr "Sí hace que una instalación local también use PostgreSQL cuando DATABASE_URL existe."
+
+msgid "installer.env.redis_url.help"
+msgstr "Opcional. Recomendado si habrá más de un proceso o réplica."
+
+msgid "installer.env.brevo_api_key.help"
+msgstr "Se obtiene en Brevo → SMTP & API → API Keys."
+
+msgid "installer.env.default_from_email.help"
+msgstr "Ej.: PropLogPlat <no-reply@tu-dominio.org>. El dominio debe estar autenticado."
+
+msgid "installer.env.trusted_proxy_count.help"
+msgstr "Dejá 1 con un proveedor común. Cambialo solo si sabés cuántos proxies hay delante."
+
+msgid "installer.env.gemini_api_key.help"
+msgstr "Opcional: proveedor principal de pistas pedagógicas."
+
+msgid "installer.env.groq_api_key.help"
+msgstr "Opcional: fallback de pistas y revisión de diccionarios."
+
+msgid "installer.env.mcp_issuer_url.help"
+msgstr "Solo para MCP por HTTP con autenticación OAuth."
+
+msgid "installer.env.port.help"
+msgstr "El proveedor suele inyectarlo automáticamente; 8000 es el valor local."
+
+msgid "installer.env.admin_username.help"
+msgstr "Dejá los tres ADMIN_* vacíos si vas a terminar con este asistente."
+
+msgid "installer.env.write_to_server.help"
+msgstr "Solo para computadora propia, VPS o volumen persistente. En proveedores administrados usá su panel: el disco puede borrarse en cada despliegue."
+
+msgid "installer.site.token.label"
+msgstr "Clave de instalación"
+
+msgid "installer.site.nombre_sitio.label"
+msgstr "Nombre del sitio"
+
+msgid "installer.site.idioma_predeterminado.label"
+msgstr "Idioma predeterminado"
+
+msgid "installer.site.contacto_privacidad.label"
+msgstr "Correo responsable de privacidad"
+
+msgid "installer.site.color_primario.label"
+msgstr "Color principal"
+
+msgid "installer.site.color_acento.label"
+msgstr "Color de acento"
+
+msgid "installer.site.favicon_upload.label"
+msgstr "Ícono del sitio (opcional)"
+
+msgid "installer.site.cohorte_anio.label"
+msgstr "Año de la primera cohorte"
+
+msgid "installer.site.cohorte_cuatrimestre.label"
+msgstr "Cuatrimestre de la primera cohorte"
+
+msgid "installer.site.error_consenso_min.label"
+msgstr "Estudiantes mínimos para mostrar un error compartido"
+
+msgid "installer.site.umbral_min_intentos.label"
+msgstr "Intentos mínimos para considerar difícil un ejercicio"
+
+msgid "installer.site.umbral_riesgo.label"
+msgstr "Intentos incorrectos consecutivos para alerta de acompañamiento"
+
+msgid "installer.site.umbral_silencio_dias.label"
+msgstr "Días sin actividad para alerta visual"
+
+msgid "installer.site.umbral_maraton.label"
+msgstr "Ratio de concentración de práctica"
+
+msgid "installer.site.umbral_arranque_dias.label"
+msgstr "Ventana de arranque temprano (días)"
+
+msgid "installer.site.umbral_convergencia_min_estudiantes.label"
+msgstr "Estudiantes mínimos para curva de convergencia"
+
+msgid "installer.site.umbral_adivinacion_intentos.label"
+msgstr "Intentos mínimos para señal de baja variación"
+
+msgid "installer.site.umbral_adivinacion_segundos.label"
+msgstr "Intervalo máximo para señal de baja variación (segundos)"
+
+msgid "installer.site.pistas_ia_activas.label"
+msgstr "Activar pistas pedagógicas con IA"
+
+msgid "installer.site.revision_diccionario_activa.label"
+msgstr "Activar revisión de diccionarios con IA"
+
+msgid "installer.site.username.label"
+msgstr "Usuario administrador"
+
+msgid "installer.site.email.label"
+msgstr "Correo electrónico"
+
+msgid "installer.site.password1.label"
+msgstr "Contraseña"
+
+msgid "installer.site.password2.label"
+msgstr "Repetir contraseña"
+
+msgid "installer.site.token.help"
+msgstr "Es la clave SETUP_TOKEN definida al desplegar el sitio."
+
+msgid "installer.site.contacto_privacidad.help"
+msgstr "Se muestra en los consentimientos para consultas o pedidos sobre datos. Puede cambiarse luego."
+
+msgid "installer.site.color_primario.help"
+msgstr "Formato hexadecimal, por ejemplo #1a1a2e."
+
+msgid "installer.site.color_acento.help"
+msgstr "Formato hexadecimal, por ejemplo #2e6da4."
+
+msgid "installer.site.favicon_upload.help"
+msgstr "Archivo .ico, .png o .svg de hasta 512 KB."
+
+msgid "installer.site.cohorte_anio.help"
+msgstr "La cohorte es la camada de pertenencia del estudiantado."
+
+msgid "installer.site.pistas_ia_activas.help"
+msgstr "Desactivalas si no configuraste Gemini/Groq o no querés enviar esos datos."
+
+msgid "installer.site.revision_diccionario_activa.help"
+msgstr "Desactivalo si no configuraste Groq o no querés usar ese servicio."
+
+msgid "installer.error.host_required"
+msgstr "Agregá al menos un dominio o dirección."
+
+msgid "installer.error.host_invalid"
+msgstr "“%(value)s” no es válido: escribí solo el dominio, sin https:// ni barras."
+
+msgid "installer.error.origin_invalid"
+msgstr "“%(value)s” debe ser una URL completa sin ruta, por ejemplo https://logica.example.org."
+
+msgid "installer.error.database_invalid"
+msgstr "PropLogPlat requiere una URL de PostgreSQL (postgresql://…)."
+
+msgid "installer.error.no_newlines"
+msgstr "El valor no puede contener saltos de línea."
+
+msgid "installer.error.secret_weak"
+msgstr "Usá la clave aleatoria generada o una equivalente."
+
+msgid "installer.error.brevo_required"
+msgstr "Pegá la API key de Brevo o elegí otra opción."
+
+msgid "installer.error.smtp_required"
+msgstr "Este dato es necesario para SMTP."
+
+msgid "installer.error.tls_ssl_exclusive"
+msgstr "TLS y SSL no pueden estar activos a la vez."
+
+msgid "installer.error.mcp_issuer_required"
+msgstr "Indicá el emisor OAuth antes de publicar MCP por HTTP."
+
+msgid "installer.error.admin_all_or_none"
+msgstr "Completá las tres variables ADMIN_* o dejalas todas vacías."
+
+msgid "installer.error.authorization_invalid"
+msgstr "La SETUP_TOKEN actual no es válida."
+
+msgid "installer.error.setup_token_invalid"
+msgstr "La clave de instalación no es válida."
+
+msgid "installer.error.username_exists"
+msgstr "Ese nombre de usuario ya existe."
+
+msgid "installer.error.email_exists"
+msgstr "Ese correo electrónico ya está en uso."
+
+msgid "installer.error.favicon_too_large"
+msgstr "El archivo supera 512 KB."
+
+msgid "installer.error.favicon_type"
+msgstr "Usá un archivo .ico, .png o .svg."
+
+msgid "installer.error.password_mismatch"
+msgstr "Las contraseñas no coinciden."
+
+msgid "installer.error.color_format"
+msgstr "Usá el formato #RRGGBB, por ejemplo #1a1a2e."
+
+msgid "installer.error.concurrent_setup"
+msgstr "La instalación ya fue completada en otra sesión."
+
+msgid "installer.setup_complete"
+msgstr "Instalación completada. Ya podés configurar y usar el sitio."
+
+msgid "installer.section.security"
+msgstr "Seguridad y dirección del sitio"
+
+msgid "installer.section.security_help"
+msgstr "Estas variables son imprescindibles antes de publicar."
+
+msgid "installer.section.data"
+msgstr "Datos y rendimiento"
+
+msgid "installer.section.data_help"
+msgstr "PostgreSQL guarda el trabajo; Redis es una mejora opcional."
+
+msgid "installer.section.email"
+msgstr "Correo"
+
+msgid "installer.section.email_help"
+msgstr "Necesario para que la recuperación de contraseña llegue realmente."
+
+msgid "installer.section.optional"
+msgstr "Servicios opcionales y modo no interactivo"
+
+msgid "installer.section.optional_help"
+msgstr "Podés omitir esta sección y configurarla más adelante."
+
+msgid "installer.section.identity"
+msgstr "Identidad y responsabilidad local"
+
+msgid "installer.section.cohort"
+msgstr "Primera cohorte"
+
+msgid "installer.section.admin"
+msgstr "Cuenta administradora"
+
+msgid "installer.section.pedagogy"
+msgstr "Criterios pedagógicos avanzados"
+
+msgid "installer.section.pedagogy_help"
+msgstr "Los valores recomendados ya están cargados. Cambialos solo si tu equipo puede explicar pedagógicamente el nuevo criterio."
+
+msgid "installer.diag.database"
+msgstr "Base de datos"
+
+msgid "installer.diag.database_error"
+msgstr "No se pudo conectar (%(error)s)."
+
+msgid "installer.diag.database_action"
+msgstr "Revisá DATABASE_URL y la disponibilidad de PostgreSQL."
+
+msgid "installer.diag.database_ok"
+msgstr "Conexión activa mediante %(vendor)s."
+
+msgid "installer.diag.sqlite_warning"
+msgstr "SQLite sirve para una prueba local, no para un despliegue público."
+
+msgid "installer.diag.sqlite_action"
+msgstr "Creá una base PostgreSQL persistente y configurá DATABASE_URL."
+
+msgid "installer.diag.migrations"
+msgstr "Migraciones"
+
+msgid "installer.diag.migrations_error"
+msgstr "No se pudo revisar el esquema (%(error)s)."
+
+msgid "installer.diag.migrations_action"
+msgstr "Ejecutá python manage.py migrate desde la consola del proveedor."
+
+msgid "installer.diag.migrations_pending"
+msgstr "Hay %(count)s migraciones pendientes."
+
+msgid "installer.diag.migrations_reload"
+msgstr "Ejecutá las migraciones y recargá esta página."
+
+msgid "installer.diag.migrations_ok"
+msgstr "El esquema está actualizado."
+
+msgid "installer.diag.secret"
+msgstr "Clave secreta"
+
+msgid "installer.diag.secret_error"
+msgstr "Falta una SECRET_KEY aleatoria y suficientemente larga."
+
+msgid "installer.diag.secret_ok"
+msgstr "SECRET_KEY está configurada; su valor no se muestra."
+
+msgid "installer.diag.secret_action"
+msgstr "Generala en el paso 2, aplicala en el proveedor y reiniciá."
+
+msgid "installer.diag.mode"
+msgstr "Modo de ejecución"
+
+msgid "installer.diag.debug_action"
+msgstr "Es correcto solo en tu computadora. En internet usá DEBUG=False."
+
+msgid "installer.diag.production_ok"
+msgstr "DEBUG=False (producción)."
+
+msgid "installer.diag.protection"
+msgstr "Protección del instalador"
+
+msgid "installer.diag.token_ok"
+msgstr "SETUP_TOKEN está configurada."
+
+msgid "installer.diag.local_no_token"
+msgstr "En desarrollo local se permite instalar sin token."
+
+msgid "installer.diag.token_error"
+msgstr "Falta SETUP_TOKEN."
+
+msgid "installer.diag.token_action"
+msgstr "Definí una clave privada en el proveedor y reiniciá."
+
+msgid "installer.diag.domain"
+msgstr "Dominio público"
+
+msgid "installer.diag.domain_ok"
+msgstr "El dominio actual (%(host)s) está permitido."
+
+msgid "installer.diag.domain_error"
+msgstr "El dominio actual (%(host)s) no aparece en ALLOWED_HOSTS."
+
+msgid "installer.diag.domain_action"
+msgstr "Agregalo sin https:// y reiniciá."
+
+msgid "installer.diag.email"
+msgstr "Correo"
+
+msgid "installer.diag.email_brevo"
+msgstr "Brevo API está configurado."
+
+msgid "installer.diag.email_smtp"
+msgstr "SMTP está configurado."
+
+msgid "installer.diag.email_warning"
+msgstr "Los correos solo se imprimirán en la consola."
+
+msgid "installer.diag.email_action"
+msgstr "Antes de anunciar la recuperación, configurá y probá Brevo o SMTP."
+
+msgid "installer.diag.ai"
+msgstr "Pistas con IA"
+
+msgid "installer.diag.ai_ok"
+msgstr "Hay al menos un proveedor configurado."
+
+msgid "installer.diag.ai_warning"
+msgstr "No hay claves de Gemini ni Groq."
+
+msgid "installer.diag.ai_action"
+msgstr "Podés desactivar las pistas o agregar las claves en el paso 2."
+
+msgid "installer.diag.env_file"
+msgstr "Archivo local .env"
+
+msgid "installer.diag.env_writable"
+msgstr "El servidor puede escribir .env."
+
+msgid "installer.diag.env_not_writable"
+msgstr "El servidor no puede escribir .env; esto es normal en muchos proveedores."
+
+msgid "installer.diag.env_action"
+msgstr "Usá la descarga o copiá las variables al panel del proveedor."
+
+msgid "installer.var.secret_key"
+msgstr "Firma sesiones, formularios y enlaces de seguridad."
+
+msgid "installer.var.setup_token"
+msgstr "Protege el asistente hasta crear la primera administración."
+
+msgid "installer.var.debug"
+msgstr "Debe ser False en un sitio público."
+
+msgid "installer.var.allowed_hosts"
+msgstr "Dominios que pueden servir la aplicación, sin https://."
+
+msgid "installer.var.csrf"
+msgstr "Orígenes HTTPS autorizados para formularios."
+
+msgid "installer.var.database_url"
+msgstr "Conexión a PostgreSQL persistente."
+
+msgid "installer.var.use_database_url"
+msgstr "Fuerza DATABASE_URL también en desarrollo."
+
+msgid "installer.var.redis_url"
+msgstr "Cache compartida opcional para múltiples procesos."
+
+msgid "installer.var.brevo"
+msgstr "Correo por API HTTP; recomendado donde SMTP está bloqueado."
+
+msgid "installer.var.email_host"
+msgstr "Servidor SMTP alternativo a Brevo API."
+
+msgid "installer.var.email_port"
+msgstr "Puerto SMTP, normalmente 587 o 465."
+
+msgid "installer.var.email_user"
+msgstr "Usuario del proveedor SMTP."
+
+msgid "installer.var.email_password"
+msgstr "Clave SMTP; no la contraseña personal de la cuenta."
+
+msgid "installer.var.email_tls"
+msgstr "Cifrado STARTTLS, normalmente con puerto 587."
+
+msgid "installer.var.email_ssl"
+msgstr "SSL directo, normalmente con puerto 465."
+
+msgid "installer.var.from_email"
+msgstr "Remitente visible de los correos."
+
+msgid "installer.var.proxy_count"
+msgstr "Cantidad real de proxies de confianza delante del sitio."
+
+msgid "installer.var.gemini"
+msgstr "Pistas pedagógicas con Gemini."
+
+msgid "installer.var.groq"
+msgstr "Fallback de pistas y revisión de diccionarios."
+
+msgid "installer.var.mcp_transport"
+msgstr "Transporte del servidor MCP separado: stdio o http."
+
+msgid "installer.var.mcp_issuer"
+msgstr "Emisor OAuth cuando MCP se publica por HTTP."
+
+msgid "installer.var.port"
+msgstr "Puerto interno; normalmente lo inyecta el proveedor."
+
+msgid "installer.var.admin_username"
+msgstr "Solo instalación no interactiva; el asistente crea el admin."
+
+msgid "installer.var.admin_email"
+msgstr "Solo instalación no interactiva."
+
+msgid "installer.var.admin_password"
+msgstr "Solo instalación no interactiva."
+
+msgid "installer.env_header.generated"
+msgstr "PropLogPlat — configuración generada por el instalador web"
+
+msgid "installer.env_header.profile"
+msgstr "Perfil elegido: %(profile)s"
+
+msgid "installer.env_header.secret_warning"
+msgstr "Contiene secretos. No lo publiques ni lo agregues a Git."
+
+msgid "installer.env_header.managed"
+msgstr "En un proveedor administrado, copiá cada CLAVE y su valor al panel."

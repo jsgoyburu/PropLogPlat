@@ -10,9 +10,11 @@ entre verificación formal automática y evaluación pedagógica humana.
 2. En el fork, cambiar nombre y descripción del repositorio.
 3. Desplegarlo con el botón de Railway del `README`, o con el `Dockerfile` en
    cualquier proveedor que admita contenedores y PostgreSQL.
-4. Abrir `/accounts/instalar/` y completar el asistente inicial.
-5. Entrar al administrador para elegir idioma, nombre, colores y traducciones.
-6. Instalar prácticas compartidas desde sus ZIP o construir un banco propio.
+4. Abrir la portada: una base vacía lleva automáticamente al asistente inicial.
+5. Seguir su diagnóstico provider-agnostic, aplicar/reiniciar si pide variables
+   y crear sitio, primera cohorte y administración.
+6. Entrar al administrador para ajustar idioma, nombre, colores y traducciones.
+7. Instalar prácticas compartidas desde sus ZIP o construir un banco propio.
 
 El despliegue no copia estudiantes, intentos ni datos de investigación del
 proyecto original. Cada fork comienza con una base vacía.

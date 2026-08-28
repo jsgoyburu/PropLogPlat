@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="PropLogPlat">
+  <rect width="64" height="64" rx="12" fill="#1a1a2e"/>
+  <path d="M17 16h17c10 0 16 5 16 14S44 44 34 44H26v8h-9V16Zm9 8v12h8c5 0 7-2 7-6s-2-6-7-6h-8Z" fill="#fff"/>
+  <circle cx="48" cy="49" r="5" fill="#7ec8e3"/>
+</svg>

@@ -1,8 +1,13 @@
+import re
 import secrets
+from datetime import date
+from urllib.parse import urlsplit
 
 from django import forms
 from django.conf import settings
 from django.contrib.auth import get_user_model, password_validation
+from django.core.management.utils import get_random_secret_key
+from django.utils.translation import gettext
 
 from accounts.facultades import get_carreras_unificadas_por_clave
 from accounts.models import (
@@ -14,14 +19,265 @@ from accounts.models import (
 User = get_user_model()
 
 
+BOOLEAN_CHOICES = (('True', 'Sí'), ('False', 'No'))
+
+
+def _installer_text(key):
+    """Traduce una clave del instalador exclusivamente desde ``django.mo``."""
+
+    return gettext(f'installer.{key}')
+
+
+def _localize_fields(form, namespace, translated_labels, translated_help):
+    for name in translated_labels:
+        form.fields[name].label = _installer_text(f'{namespace}.{name}.label')
+    for name in translated_help:
+        form.fields[name].help_text = _installer_text(f'{namespace}.{name}.help')
+
+
+class ConfiguracionEntornoForm(forms.Form):
+    """Prepara variables para cualquier proveedor sin persistir secretos."""
+
+    deployment_kind = forms.ChoiceField(
+        label='¿Dónde está instalado?',
+        choices=(
+            ('managed', 'Proveedor administrado (Railway, Render, Fly.io, Heroku…)'),
+            ('container', 'Contenedor Docker propio'),
+            ('self_hosted', 'Servidor propio o VPS'),
+            ('local', 'Mi computadora, para probar'),
+        ),
+        initial='managed',
+        help_text='Cambia las instrucciones; el archivo generado es el mismo.',
+    )
+    authorization_token = forms.CharField(
+        label='SETUP_TOKEN actual (solo para escribir en el servidor)',
+        required=False,
+        strip=True,
+        widget=forms.PasswordInput(attrs={'autocomplete': 'off'}),
+        help_text='No hace falta para previsualizar o descargar. Nunca se guarda en la base.',
+    )
+    secret_key = forms.CharField(
+        label='SECRET_KEY', min_length=40, max_length=200,
+        initial=get_random_secret_key,
+        widget=forms.PasswordInput(render_value=True, attrs={'autocomplete': 'new-password'}),
+        help_text='Clave aleatoria de Django. Guardala y no la cambies después de empezar a usar el sitio.',
+    )
+    setup_token = forms.CharField(
+        label='SETUP_TOKEN nueva', min_length=16, max_length=200,
+        initial=lambda: secrets.token_urlsafe(32),
+        widget=forms.PasswordInput(render_value=True, attrs={'autocomplete': 'new-password'}),
+        help_text='Clave temporal para volver a este asistente después del reinicio.',
+    )
+    debug = forms.ChoiceField(
+        label='DEBUG', choices=BOOLEAN_CHOICES, initial='False',
+        help_text='Elegí No/False si el sitio puede verse desde internet.',
+    )
+    allowed_hosts = forms.CharField(
+        label='ALLOWED_HOSTS', max_length=1000,
+        help_text='Dominios separados por coma, sin https:// ni barras. Ej.: logica.example.org',
+    )
+    csrf_trusted_origins = forms.CharField(
+        label='CSRF_TRUSTED_ORIGINS', required=False, max_length=2000,
+        help_text='URLs HTTPS completas separadas por coma. Normalmente coincide con los dominios anteriores.',
+    )
+    database_url = forms.CharField(
+        label='DATABASE_URL', required=False, max_length=3000,
+        widget=forms.PasswordInput(render_value=True, attrs={'autocomplete': 'off'}),
+        help_text='URL completa de PostgreSQL. Si el proveedor ya la inyecta, dejala vacía para no copiar el secreto.',
+    )
+    use_database_url = forms.ChoiceField(
+        label='USE_DATABASE_URL', choices=BOOLEAN_CHOICES, initial='True',
+        help_text='Sí hace que una instalación local también use PostgreSQL cuando DATABASE_URL existe.',
+    )
+    redis_url = forms.CharField(
+        label='REDIS_URL', required=False, max_length=3000,
+        widget=forms.PasswordInput(render_value=True, attrs={'autocomplete': 'off'}),
+        help_text='Opcional. Recomendado si habrá más de un proceso o réplica.',
+    )
+    email_provider = forms.ChoiceField(
+        label='Envío de correo',
+        choices=(
+            ('none', 'Todavía no configurar correo'),
+            ('brevo', 'Brevo mediante API HTTP (recomendado)'),
+            ('smtp', 'Servidor SMTP'),
+        ),
+        initial='none',
+    )
+    brevo_api_key = forms.CharField(
+        label='BREVO_API_KEY', required=False, max_length=500,
+        widget=forms.PasswordInput(render_value=True, attrs={'autocomplete': 'off'}),
+        help_text='Se obtiene en Brevo → SMTP & API → API Keys.',
+    )
+    email_host = forms.CharField(label='EMAIL_HOST', required=False, max_length=255)
+    email_port = forms.IntegerField(label='EMAIL_PORT', required=False, initial=587, min_value=1, max_value=65535)
+    email_host_user = forms.CharField(
+        label='EMAIL_HOST_USER', required=False, max_length=500,
+        widget=forms.PasswordInput(render_value=True, attrs={'autocomplete': 'off'}),
+    )
+    email_host_password = forms.CharField(
+        label='EMAIL_HOST_PASSWORD', required=False, max_length=1000,
+        widget=forms.PasswordInput(render_value=True, attrs={'autocomplete': 'off'}),
+    )
+    email_use_tls = forms.ChoiceField(label='EMAIL_USE_TLS', choices=BOOLEAN_CHOICES, initial='True')
+    email_use_ssl = forms.ChoiceField(label='EMAIL_USE_SSL', choices=BOOLEAN_CHOICES, initial='False')
+    default_from_email = forms.CharField(
+        label='DEFAULT_FROM_EMAIL', required=False, max_length=500,
+        help_text='Ej.: PropLogPlat <no-reply@tu-dominio.org>. El dominio debe estar autenticado.',
+    )
+    trusted_proxy_count = forms.IntegerField(
+        label='TRUSTED_PROXY_COUNT', initial=1, min_value=0, max_value=10,
+        help_text='Dejá 1 con un proveedor común. Cambialo solo si sabés cuántos proxies hay delante.',
+    )
+    gemini_api_key = forms.CharField(
+        label='GEMINI_API_KEY', required=False, max_length=1000,
+        widget=forms.PasswordInput(render_value=True, attrs={'autocomplete': 'off'}),
+        help_text='Opcional: proveedor principal de pistas pedagógicas.',
+    )
+    groq_api_key = forms.CharField(
+        label='GROQ_API_KEY', required=False, max_length=1000,
+        widget=forms.PasswordInput(render_value=True, attrs={'autocomplete': 'off'}),
+        help_text='Opcional: fallback de pistas y revisión de diccionarios.',
+    )
+    mcp_transport = forms.ChoiceField(
+        label='MCP_TRANSPORT', required=False,
+        choices=(('', 'No publicar MCP desde este proceso'), ('stdio', 'stdio'), ('http', 'HTTP')),
+    )
+    mcp_issuer_url = forms.URLField(
+        label='MCP_ISSUER_URL', required=False, max_length=2000,
+        help_text='Solo para MCP por HTTP con autenticación OAuth.',
+    )
+    port = forms.IntegerField(
+        label='PORT', initial=8000, min_value=1, max_value=65535,
+        help_text='El proveedor suele inyectarlo automáticamente; 8000 es el valor local.',
+    )
+    admin_username = forms.CharField(
+        label='ADMIN_USERNAME', required=False, max_length=150,
+        help_text='Dejá los tres ADMIN_* vacíos si vas a terminar con este asistente.',
+    )
+    admin_email = forms.EmailField(label='ADMIN_EMAIL', required=False)
+    admin_password = forms.CharField(
+        label='ADMIN_PASSWORD', required=False, max_length=1000,
+        widget=forms.PasswordInput(render_value=True, attrs={'autocomplete': 'off'}),
+    )
+    write_to_server = forms.BooleanField(
+        label='Guardar también como .env en este servidor', required=False,
+        help_text=(
+            'Solo para computadora propia/VPS/volumen persistente. En Railway, Render y similares '
+            'usá el panel del proveedor: el disco puede borrarse en cada despliegue.'
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _localize_fields(
+            self,
+            'env',
+            translated_labels={
+                'deployment_kind', 'authorization_token', 'setup_token',
+                'email_provider', 'write_to_server',
+            },
+            translated_help={
+                name for name, field in self.fields.items() if field.help_text
+            },
+        )
+        yes_no = (('True', _installer_text('choice.yes')), ('False', _installer_text('choice.no')))
+        for name in ('debug', 'use_database_url', 'email_use_tls', 'email_use_ssl'):
+            self.fields[name].choices = yes_no
+        self.fields['deployment_kind'].choices = (
+            ('managed', _installer_text('choice.managed')),
+            ('container', _installer_text('choice.container')),
+            ('self_hosted', _installer_text('choice.self_hosted')),
+            ('local', _installer_text('choice.local')),
+        )
+        self.fields['email_provider'].choices = (
+            ('none', _installer_text('choice.email_none')),
+            ('brevo', _installer_text('choice.email_brevo')),
+            ('smtp', _installer_text('choice.email_smtp')),
+        )
+        self.fields['mcp_transport'].choices = (
+            ('', _installer_text('choice.mcp_none')),
+            ('stdio', 'stdio'),
+            ('http', 'HTTP'),
+        )
+
+    def clean_allowed_hosts(self):
+        raw = self.cleaned_data['allowed_hosts']
+        hosts = [host.strip() for host in raw.split(',') if host.strip()]
+        if not hosts:
+            raise forms.ValidationError(_installer_text('error.host_required'))
+        for host in hosts:
+            if '://' in host or '/' in host or any(char.isspace() for char in host):
+                raise forms.ValidationError(_installer_text('error.host_invalid') % {'value': host})
+        return ','.join(dict.fromkeys(hosts))
+
+    def clean_csrf_trusted_origins(self):
+        raw = self.cleaned_data.get('csrf_trusted_origins', '')
+        origins = [origin.strip().rstrip('/') for origin in raw.split(',') if origin.strip()]
+        for origin in origins:
+            parsed = urlsplit(origin)
+            if parsed.scheme not in ('http', 'https') or not parsed.netloc or parsed.path:
+                raise forms.ValidationError(_installer_text('error.origin_invalid') % {'value': origin})
+        return ','.join(dict.fromkeys(origins))
+
+    def clean_database_url(self):
+        value = self.cleaned_data.get('database_url', '').strip()
+        if value and urlsplit(value).scheme not in ('postgres', 'postgresql'):
+            raise forms.ValidationError(_installer_text('error.database_invalid'))
+        return value
+
+    def clean(self):
+        cleaned = super().clean()
+
+        for name, value in cleaned.items():
+            if isinstance(value, str) and ('\n' in value or '\r' in value):
+                self.add_error(name, _installer_text('error.no_newlines'))
+
+        secret_key = cleaned.get('secret_key', '')
+        if secret_key.startswith('cambiar-') or len(set(secret_key)) < 10:
+            self.add_error('secret_key', _installer_text('error.secret_weak'))
+
+        if cleaned.get('debug') == 'False' and not cleaned.get('database_url'):
+            # Puede estar inyectada por el proveedor; solo se informa en la UI.
+            pass
+
+        provider = cleaned.get('email_provider')
+        if provider == 'brevo' and not cleaned.get('brevo_api_key'):
+            self.add_error('brevo_api_key', _installer_text('error.brevo_required'))
+        if provider == 'smtp':
+            for name in ('email_host', 'email_port', 'email_host_user', 'email_host_password'):
+                if not cleaned.get(name):
+                    self.add_error(name, _installer_text('error.smtp_required'))
+            if cleaned.get('email_use_tls') == 'True' and cleaned.get('email_use_ssl') == 'True':
+                self.add_error('email_use_ssl', _installer_text('error.tls_ssl_exclusive'))
+
+        if cleaned.get('mcp_transport') == 'http' and not cleaned.get('mcp_issuer_url'):
+            self.add_error('mcp_issuer_url', _installer_text('error.mcp_issuer_required'))
+
+        admin_values = [
+            cleaned.get('admin_username'), cleaned.get('admin_email'), cleaned.get('admin_password'),
+        ]
+        if any(admin_values) and not all(admin_values):
+            for name in ('admin_username', 'admin_email', 'admin_password'):
+                if not cleaned.get(name):
+                    self.add_error(name, _installer_text('error.admin_all_or_none'))
+
+        if cleaned.get('write_to_server'):
+            received = cleaned.get('authorization_token', '')
+            expected = settings.SETUP_TOKEN
+            if not (settings.DEBUG and not expected):
+                if not expected or not secrets.compare_digest(received, expected):
+                    self.add_error('authorization_token', _installer_text('error.authorization_invalid'))
+        return cleaned
+
+
 class InstalacionInicialForm(forms.Form):
-    """Asistente seguro para la primera cuenta administradora."""
+    """Crea la identidad, criterios iniciales, cohorte y primer administrador."""
 
     token = forms.CharField(
         label='Clave de instalación',
         required=False,
         strip=True,
-        widget=forms.PasswordInput(render_value=True),
+        widget=forms.PasswordInput(attrs={'autocomplete': 'off'}),
         help_text='Es la clave SETUP_TOKEN definida al desplegar el sitio.',
     )
     nombre_sitio = forms.CharField(
@@ -48,19 +304,102 @@ class InstalacionInicialForm(forms.Form):
             'Puede completarse luego desde el admin.'
         ),
     )
+    color_primario = forms.CharField(
+        label='Color principal', required=False, initial='#1a1a2e', max_length=7,
+        help_text='Formato hexadecimal, por ejemplo #1a1a2e.',
+    )
+    color_acento = forms.CharField(
+        label='Color de acento', required=False, initial='#2e6da4', max_length=7,
+        help_text='Formato hexadecimal, por ejemplo #2e6da4.',
+    )
+    favicon_upload = forms.FileField(
+        label='Ícono del sitio (opcional)', required=False,
+        help_text='Archivo .ico, .png o .svg de hasta 512 KB.',
+    )
+    cohorte_anio = forms.IntegerField(
+        label='Año de la primera cohorte', required=False, initial=date.today().year,
+        min_value=2000, max_value=2200,
+        help_text='La cohorte es la camada de pertenencia del estudiantado.',
+    )
+    cohorte_cuatrimestre = forms.TypedChoiceField(
+        label='Cuatrimestre de la primera cohorte', required=False, coerce=int,
+        choices=((1, '1º'), (2, '2º')), initial=1 if date.today().month <= 7 else 2,
+    )
+    error_consenso_min = forms.IntegerField(
+        label='Estudiantes mínimos para mostrar un error compartido', required=False,
+        initial=2, min_value=2, max_value=100,
+    )
+    umbral_min_intentos = forms.IntegerField(
+        label='Intentos mínimos para considerar difícil un ejercicio', required=False,
+        initial=3, min_value=1, max_value=100,
+    )
+    umbral_riesgo = forms.IntegerField(
+        label='Intentos incorrectos consecutivos para alerta de acompañamiento', required=False,
+        initial=5, min_value=1, max_value=100,
+    )
+    umbral_silencio_dias = forms.IntegerField(
+        label='Días sin actividad para alerta visual', required=False,
+        initial=7, min_value=1, max_value=365,
+    )
+    umbral_maraton = forms.IntegerField(
+        label='Ratio de concentración de práctica', required=False,
+        initial=6, min_value=1, max_value=100,
+    )
+    umbral_arranque_dias = forms.IntegerField(
+        label='Ventana de arranque temprano (días)', required=False,
+        initial=14, min_value=1, max_value=365,
+    )
+    umbral_convergencia_min_estudiantes = forms.IntegerField(
+        label='Estudiantes mínimos para curva de convergencia', required=False,
+        initial=5, min_value=1, max_value=1000,
+    )
+    umbral_adivinacion_intentos = forms.IntegerField(
+        label='Intentos mínimos para señal de baja variación', required=False,
+        initial=5, min_value=2, max_value=100,
+    )
+    umbral_adivinacion_segundos = forms.IntegerField(
+        label='Intervalo máximo para señal de baja variación (segundos)', required=False,
+        initial=30, min_value=1, max_value=3600,
+    )
+    pistas_ia_activas = forms.ChoiceField(
+        label='Activar pistas pedagógicas con IA', required=False,
+        choices=BOOLEAN_CHOICES, initial='True',
+        help_text='Desactivalas si no configuraste Gemini/Groq o no querés enviar esos datos.',
+    )
+    revision_diccionario_activa = forms.ChoiceField(
+        label='Activar revisión de diccionarios con IA', required=False,
+        choices=BOOLEAN_CHOICES, initial='True',
+        help_text='Desactivalo si no configuraste Groq o no querés usar ese servicio.',
+    )
     username = forms.CharField(label='Usuario administrador', max_length=150)
     email = forms.EmailField(label='Correo electrónico')
     password1 = forms.CharField(
         label='Contraseña',
         strip=False,
-        widget=forms.PasswordInput,
+        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}),
         help_text=password_validation.password_validators_help_text_html(),
     )
     password2 = forms.CharField(
         label='Repetir contraseña',
         strip=False,
-        widget=forms.PasswordInput,
+        widget=forms.PasswordInput(attrs={'autocomplete': 'new-password'}),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        _localize_fields(
+            self,
+            'site',
+            translated_labels=set(self.fields),
+            translated_help={
+                name for name, field in self.fields.items()
+                if field.help_text and name != 'password1'
+            },
+        )
+        self.fields['password1'].help_text = password_validation.password_validators_help_text_html()
+        yes_no = (('True', _installer_text('choice.yes')), ('False', _installer_text('choice.no')))
+        self.fields['pistas_ia_activas'].choices = yes_no
+        self.fields['revision_diccionario_activa'].choices = yes_no
 
     def clean_token(self):
         recibido = self.cleaned_data.get('token', '')
@@ -68,27 +407,39 @@ class InstalacionInicialForm(forms.Form):
         if settings.DEBUG and not esperado:
             return recibido
         if not esperado or not secrets.compare_digest(recibido, esperado):
-            raise forms.ValidationError('La clave de instalación no es válida.')
+            raise forms.ValidationError(_installer_text('error.setup_token_invalid'))
         return recibido
 
     def clean_username(self):
         username = self.cleaned_data['username'].strip()
         if User.objects.filter(username__iexact=username).exists():
-            raise forms.ValidationError('Ese nombre de usuario ya existe.')
+            raise forms.ValidationError(_installer_text('error.username_exists'))
         return username
 
     def clean_email(self):
         email = self.cleaned_data['email'].strip().lower()
         if User.objects.filter(email__iexact=email).exists():
-            raise forms.ValidationError('Ese correo electrónico ya está en uso.')
+            raise forms.ValidationError(_installer_text('error.email_exists'))
         return email
+
+    def clean_favicon_upload(self):
+        archivo = self.cleaned_data.get('favicon_upload')
+        if not archivo:
+            return archivo
+        if archivo.size > 512 * 1024:
+            raise forms.ValidationError(_installer_text('error.favicon_too_large'))
+        nombre = archivo.name.lower()
+        permitidos = ('.ico', '.png', '.svg')
+        if not nombre.endswith(permitidos):
+            raise forms.ValidationError(_installer_text('error.favicon_type'))
+        return archivo
 
     def clean(self):
         cleaned_data = super().clean()
         password1 = cleaned_data.get('password1')
         password2 = cleaned_data.get('password2')
         if password1 and password2 and password1 != password2:
-            self.add_error('password2', 'Las contraseñas no coinciden.')
+            self.add_error('password2', _installer_text('error.password_mismatch'))
         if password1:
             provisional = User(
                 username=cleaned_data.get('username', ''),
@@ -98,6 +449,12 @@ class InstalacionInicialForm(forms.Form):
                 password_validation.validate_password(password1, user=provisional)
             except forms.ValidationError as error:
                 self.add_error('password1', error)
+
+        patron_color = re.compile(r'^#[0-9a-fA-F]{6}$')
+        for name in ('color_primario', 'color_acento'):
+            value = cleaned_data.get(name) or self.fields[name].initial
+            if not patron_color.fullmatch(value):
+                self.add_error(name, _installer_text('error.color_format'))
         return cleaned_data
 
 _CONSENT_CHOICES = [

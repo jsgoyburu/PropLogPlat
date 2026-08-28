@@ -44,9 +44,10 @@ También se puede usar el entorno reproducible:
 docker compose up --build
 ```
 
-Luego abrir `http://localhost:8000/accounts/instalar/`. La clave inicial del
-entorno local de Compose es `change-me-before-production`; nunca debe usarse en
-un servidor público.
+Luego abrir `http://localhost:8000/`: en una base vacía redirige al instalador.
+La clave inicial del entorno local de Compose es `change-me-before-production`;
+nunca debe usarse en un servidor público. El asistente también puede preparar
+un `.env`, pero los secretos reales nunca se versionan.
 
 ## Checks mínimos
 

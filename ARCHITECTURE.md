@@ -660,13 +660,21 @@ Este módulo articula la función de investigación educativa del proyecto: no e
 | `SECRET_KEY` | Clave secreta Django | Sí |
 | `DEBUG` | Modo debug (`True`/`False`) | Sí |
 | `ALLOWED_HOSTS` | Hosts habilitados | Sí |
+| `CSRF_TRUSTED_ORIGINS` | Orígenes HTTPS de formularios | Según proveedor |
 | `DATABASE_URL` | URL de PostgreSQL | En producción |
+| `USE_DATABASE_URL` | Fuerza la URL también en desarrollo | No |
+| `REDIS_URL` | Cache compartida entre procesos | No |
 | `SETUP_TOKEN` | Clave privada del asistente web inicial | En producción |
 | `ADMIN_USERNAME` | Usuario admin inicial por variables (alternativa al asistente) | No |
 | `ADMIN_EMAIL` | Email admin inicial por variables | No |
 | `ADMIN_PASSWORD` | Contraseña admin inicial por variables | No |
 | `GEMINI_API_KEY` | Para pistas automáticas (opcional) | No |
 | `GROQ_API_KEY` | Fallback a Groq cuando Gemini alcanza cuota (opcional) | No |
+| `BREVO_API_KEY` / `EMAIL_*` | Recuperación de contraseña por API o SMTP | No |
+| `DEFAULT_FROM_EMAIL` | Remitente visible y autenticado | Con correo |
+| `TRUSTED_PROXY_COUNT` | Proxies confiables para obtener IP cliente | No |
+| `MCP_TRANSPORT` / `MCP_ISSUER_URL` | Servidor MCP separado | No |
+| `PORT` | Puerto interno, normalmente inyectado | No |
 
 ### 11.2 Railway
 
@@ -689,12 +697,18 @@ python manage.py migrate
 python manage.py crear_admin_inicial  # opcional, si se definieron ADMIN_*
 ```
 
-Sin variables `ADMIN_*`, abrir `/accounts/instalar/` y completar el asistente
-con `SETUP_TOKEN`. La operación es transaccional y el asistente queda cerrado
-cuando ya existe un superusuario. El asistente también configura
-`ConfigSitio.contacto_privacidad`, usado por los consentimientos; si una
-instalación no lo completa, la interfaz remite de forma neutra al equipo docente
-local y nunca al responsable del proyecto de origen.
+Sin variables `ADMIN_*`, la primera visita a `/` redirige a
+`/accounts/instalar/`. El wizard tiene tres pasos: diagnóstico sin secretos,
+generación portable de entorno y configuración transaccional del sitio. Un
+proveedor administrado conserva autoridad sobre sus variables: el wizard genera
+el archivo/instrucciones y el usuario aplica y reinicia. En sistemas propios
+puede escribir `.env` con token válido; `logica_ipc.env_file` lo carga al
+próximo arranque sin sobrescribir variables del proceso.
+
+La transacción final crea administración, primera cohorte y todos los campos de
+`ConfigSitio`, incluido `contacto_privacidad`. El asistente queda cerrado cuando
+ya existe un superusuario. Los secretos del formulario de entorno no pasan por
+modelos ni logs, y las respuestas llevan `no-store`.
 
 ### 11.5 Mantenimiento
 
@@ -790,7 +804,7 @@ Cubre: importación masiva de estudiantes, flujos de UI principales.
 | `whitenoise` | Archivos estáticos en producción |
 | `gunicorn` | Servidor WSGI en Railway |
 | `dj-database-url` | Configuración de PostgreSQL desde `DATABASE_URL` |
-| `python-dotenv` | Carga de `.env` en desarrollo |
+| módulo interno `logica_ipc.env_file` | Carga de `.env` sin dependencias, sin sobrescribir variables del proveedor |
 | `sphinx` | Generación de documentación técnica |
 | `sphinx-napoleon` | Soporte de Google-style docstrings en Sphinx |
 | `sphinx-rtd-theme` | Tema de documentación Read the Docs |

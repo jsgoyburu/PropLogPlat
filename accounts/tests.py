@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 from pathlib import Path
+import os
 import re
+import tempfile
 from unittest.mock import patch
 
 from django.conf import settings
@@ -15,12 +17,35 @@ from django.utils.http import urlsafe_base64_encode
 from django.utils.translation import gettext, override as language_override
 
 from accounts.facultades import get_carreras_unificadas_por_clave, get_facultades_carreras_por_clave
-from accounts.forms import EncuestaForm
+from accounts.forms import ConfiguracionEntornoForm, EncuestaForm
+from accounts.installer import VARIABLES_ENTORNO
 from accounts.models import CARRERA_CHOICES, ConfigSitio, EncuestaEstudiante
 from cursos.models import Cohorte, Comision, Inscripcion
+from logica_ipc.env_file import load_env_file
 
 
+@override_settings(DEBUG=True, SETUP_TOKEN='')
 class InstalacionInicialTests(TestCase):
+    def _environment_data(self, **overrides):
+        data = {
+            'action': 'environment',
+            'env-deployment_kind': 'managed',
+            'env-secret_key': 'clave-secreta-larga-con-variedad-ABC-123-xyz-2026!',
+            'env-setup_token': 'token-instalacion-muy-seguro-2026',
+            'env-debug': 'False',
+            'env-allowed_hosts': 'logica.example.org',
+            'env-csrf_trusted_origins': 'https://logica.example.org',
+            'env-database_url': 'postgresql://user:password@db.example.org/proplogplat',
+            'env-use_database_url': 'True',
+            'env-email_provider': 'none',
+            'env-email_use_tls': 'True',
+            'env-email_use_ssl': 'False',
+            'env-trusted_proxy_count': '1',
+            'env-port': '8000',
+        }
+        data.update(overrides)
+        return data
+
     @override_settings(DEBUG=False, SETUP_TOKEN='clave-instalar')
     def test_asistente_crea_admin_configura_sitio_y_se_cierra(self):
         response = self.client.post(
@@ -30,6 +55,14 @@ class InstalacionInicialTests(TestCase):
                 'nombre_sitio': 'Lógica abierta',
                 'idioma_predeterminado': 'fr',
                 'contacto_privacidad': 'privacidad@example.com',
+                'color_primario': '#112233',
+                'color_acento': '#445566',
+                'cohorte_anio': '2030',
+                'cohorte_cuatrimestre': '2',
+                'error_consenso_min': '4',
+                'umbral_riesgo': '8',
+                'pistas_ia_activas': 'False',
+                'revision_diccionario_activa': 'False',
                 'username': 'primera-admin',
                 'email': 'admin@example.com',
                 'password1': 'ClaveSegura-2026!',
@@ -47,6 +80,21 @@ class InstalacionInicialTests(TestCase):
         self.assertEqual(config.nombre_sitio, 'Lógica abierta')
         self.assertEqual(config.idioma_predeterminado, 'fr')
         self.assertEqual(config.contacto_privacidad, 'privacidad@example.com')
+        self.assertEqual(config.color_primario, '#112233')
+        self.assertEqual(config.color_acento, '#445566')
+        self.assertEqual(config.error_consenso_min, 4)
+        self.assertEqual(config.umbral_riesgo, 8)
+        self.assertFalse(config.pistas_ia_activas)
+        self.assertFalse(config.revision_diccionario_activa)
+        cohorte = Cohorte.objects.get(activa=True)
+        self.assertTrue(cohorte.activa)
+        self.assertEqual((cohorte.anio, cohorte.cuatrimestre), (2030, 2))
+
+        config_admin = self.client.get(
+            reverse('admin:accounts_configsitio_change', args=[config.pk])
+        )
+        self.assertEqual(config_admin.status_code, 200)
+        self.assertContains(config_admin, 'umbral_riesgo')
 
         segunda_visita = self.client.get(reverse('accounts:instalacion_inicial'))
         self.assertRedirects(segunda_visita, reverse('accounts:login'))
@@ -85,6 +133,118 @@ class InstalacionInicialTests(TestCase):
         self.assertEqual(response['Content-Language'], 'zh-hans')
         self.assertContains(response, '登录')
         self.assertContains(response, '简体中文')
+
+    def test_primera_entrada_a_la_portada_abre_el_instalador(self):
+        response = self.client.get('/')
+
+        self.assertRedirects(response, reverse('accounts:instalacion_inicial'))
+
+        favicon = self.client.get(reverse('favicon'))
+        self.assertEqual(favicon.status_code, 200)
+        self.assertEqual(favicon['Content-Type'], 'image/svg+xml')
+
+    def test_instalador_se_renderiza_en_todos_los_idiomas_y_enlaza_cafecito(self):
+        expected = {
+            'es': ('Revisar el despliegue', '¿Dónde está instalado?', 'Usuario administrador'),
+            'en': ('Check the deployment', 'Where is it installed?', 'Administrator username'),
+            'fr': ('Vérifier le déploiement', 'Où est-il installé ?', 'Identifiant administrateur'),
+            'de': ('Bereitstellung prüfen', 'Wo ist es installiert?', 'Administrator-Benutzername'),
+            'zh-hans': ('检查部署', '安装在哪里？', '管理员用户名'),
+        }
+        for language, texts in expected.items():
+            with self.subTest(language=language):
+                self.client.cookies[settings.LANGUAGE_COOKIE_NAME] = language
+                for step, text in zip(('diagnostico', 'entorno', 'sitio'), texts):
+                    response = self.client.get(
+                        reverse('accounts:instalacion_inicial') + f'?paso={step}'
+                    )
+                    self.assertContains(response, text)
+                    self.assertContains(response, 'https://cafecito.app/jsgoyburu')
+                    self.assertNotContains(response, 'ui.installer_')
+                    self.assertNotContains(response, 'installer.')
+
+                with language_override(language):
+                    invalid = ConfiguracionEntornoForm(data={
+                        'deployment_kind': 'managed',
+                        'secret_key': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                        'setup_token': 'token-instalacion-valido',
+                        'debug': 'False',
+                        'allowed_hosts': 'https://dominio.example/ruta',
+                        'use_database_url': 'True',
+                        'email_provider': 'none',
+                        'email_use_tls': 'True',
+                        'email_use_ssl': 'False',
+                        'trusted_proxy_count': '1',
+                        'port': '8000',
+                    })
+                    self.assertFalse(invalid.is_valid())
+                    self.assertNotIn('installer.', str(invalid.errors))
+
+    def test_previsualiza_y_descarga_configuracion_portable_sin_cache(self):
+        response = self.client.post(
+            reverse('accounts:instalacion_inicial') + '?paso=entorno',
+            data=self._environment_data(preview='1'),
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Cache-Control'], 'no-store, max-age=0')
+        self.assertContains(response, 'SECRET_KEY=clave-secreta-larga')
+        self.assertContains(response, 'DATABASE_URL=postgresql://user:password')
+
+        download = self.client.post(
+            reverse('accounts:instalacion_inicial') + '?paso=entorno',
+            data=self._environment_data(download='1'),
+        )
+        self.assertEqual(download.status_code, 200)
+        self.assertIn('attachment;', download['Content-Disposition'])
+        self.assertEqual(download['Cache-Control'], 'no-store, max-age=0')
+        self.assertIn(b'SETUP_TOKEN=', download.content)
+        self.assertIn(b'DEBUG=False', download.content)
+
+    def test_inventario_cubre_todas_las_variables_configurables(self):
+        names = {name for name, _required, _secret, _description in VARIABLES_ENTORNO}
+        self.assertEqual(names, {
+            'SECRET_KEY', 'SETUP_TOKEN', 'DEBUG', 'ALLOWED_HOSTS',
+            'CSRF_TRUSTED_ORIGINS', 'DATABASE_URL', 'USE_DATABASE_URL',
+            'REDIS_URL', 'BREVO_API_KEY', 'EMAIL_HOST', 'EMAIL_PORT',
+            'EMAIL_HOST_USER', 'EMAIL_HOST_PASSWORD', 'EMAIL_USE_TLS',
+            'EMAIL_USE_SSL', 'DEFAULT_FROM_EMAIL', 'TRUSTED_PROXY_COUNT',
+            'GEMINI_API_KEY', 'GROQ_API_KEY', 'MCP_TRANSPORT',
+            'MCP_ISSUER_URL', 'PORT', 'ADMIN_USERNAME', 'ADMIN_EMAIL',
+            'ADMIN_PASSWORD',
+        })
+
+    @override_settings(DEBUG=False, SETUP_TOKEN='token-actual-seguro')
+    def test_escritura_env_requiere_token_y_el_host_tiene_precedencia(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with self.settings(BASE_DIR=Path(temp_dir)):
+                invalid = self.client.post(
+                    reverse('accounts:instalacion_inicial') + '?paso=entorno',
+                    data=self._environment_data(**{
+                        'env-write_to_server': 'on',
+                        'env-authorization_token': 'incorrecto',
+                        'preview': '1',
+                    }),
+                )
+                self.assertFalse((Path(temp_dir) / '.env').exists())
+                self.assertContains(invalid, 'SETUP_TOKEN actual no es válida')
+
+                valid = self.client.post(
+                    reverse('accounts:instalacion_inicial') + '?paso=entorno',
+                    data=self._environment_data(**{
+                        'env-write_to_server': 'on',
+                        'env-authorization_token': 'token-actual-seguro',
+                        'preview': '1',
+                    }),
+                )
+                self.assertEqual(valid.status_code, 200)
+                env_path = Path(temp_dir) / '.env'
+                self.assertTrue(env_path.exists())
+                self.assertIn('ALLOWED_HOSTS=logica.example.org', env_path.read_text('utf-8'))
+
+                with patch.dict(os.environ, {'ALLOWED_HOSTS': 'host-inyectado'}, clear=False):
+                    load_env_file(env_path)
+                    self.assertEqual(os.environ['ALLOWED_HOSTS'], 'host-inyectado')
 
 
 class CatalogosGettextTests(TestCase):

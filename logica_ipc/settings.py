@@ -15,11 +15,18 @@ from pathlib import Path
 
 import dj_database_url
 
+from logica_ipc.env_file import load_env_file
+
 # ---------------------------------------------------------------------------
 # Rutas
 # ---------------------------------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# En proveedores administrados las variables del proceso tienen precedencia.
+# En instalaciones locales/autogestionadas, el asistente puede preparar este
+# archivo y los valores se aplican al reiniciar el proceso.
+load_env_file(BASE_DIR / '.env')
 
 # ---------------------------------------------------------------------------
 # Seguridad
@@ -96,6 +103,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'accounts.middleware.PrimeraEntradaInstalacionMiddleware',
     'accounts.middleware.ForzarCambioPasswordMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',

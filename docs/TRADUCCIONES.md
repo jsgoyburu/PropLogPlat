@@ -9,6 +9,12 @@ fuente pedagógica original y la interfaz se ofrece en:
 - `de`: alemán;
 - `zh-hans`: chino simplificado (directorio gettext `zh_Hans`).
 
+El asistente de primera instalación está localizado por completo: estructura,
+inventario de variables, diagnósticos, campos, ayudas, opciones, validaciones y
+comentarios del `.env` generado. Sus mensajes usan los prefijos
+`ui.installer_*` e `installer.*` dentro de los mismos archivos `.po`/`.mo`; no
+hay un diccionario de traducciones paralelo en Python.
+
 ## Dos clases de texto
 
 La **interfaz fija** vive en `locale/<idioma>/LC_MESSAGES/django.po`. En

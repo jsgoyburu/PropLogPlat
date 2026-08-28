@@ -17,6 +17,11 @@ La plataforma implementa una **arquitectura híbrida humano–máquina**:
 Para el marco teórico y los principios pedagógicos que guían el diseño, ver [`WHITE_PAPER.md`](WHITE_PAPER.md).
 Para la arquitectura técnica detallada, ver [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
+Si la plataforma te resulta útil y querés colaborar voluntariamente con el
+sostenimiento de la instancia original, podés
+[invitarme un Cafecito](https://cafecito.app/jsgoyburu). Ese apoyo no es un
+requisito para instalar, usar, modificar ni compartir PropLogPlat.
+
 ---
 
 ## Estado actual del sitio
@@ -37,7 +42,9 @@ Actualmente el sistema incluye:
 - Configuración del sitio en base de datos (incluyendo favicon y umbrales de analítica pedagógica).
 - Selector de idioma castellano/inglés/francés/alemán/chino simplificado, con idioma predeterminado desde el admin. La interfaz usa catálogos gettext `.po` compilados a `.mo`; las traducciones pedagógicas se editan como contenido desde el admin.
 - Prácticas y ejercicios portables: descarga en ZIP con JSON versionado e instalación como copia privada revisable.
-- Asistente web seguro para la primera instalación y despliegue reproducible en Railway o contenedores.
+- Asistente web de primera entrada, seguro y provider-agnostic: diagnostica el
+  despliegue, explica todas las variables, genera un `.env` portable, guía su
+  aplicación y configura sitio, cohorte, criterios pedagógicos y administración.
 
 ---
 
@@ -157,16 +164,33 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-Primera instalación: `http://localhost:8000/accounts/instalar/`
+En una base vacía, la primera visita a `http://localhost:8000/` abre el
+instalador automáticamente. También puede abrirse directamente en
+`http://localhost:8000/accounts/instalar/`.
 
 Admin Django después de completar el asistente: `http://localhost:8000/admin/`
 
 ### Instalación interactiva
 
-En una base nueva, ejecutar las migraciones y abrir
-`http://localhost:8000/accounts/instalar/`. En producción el asistente exige la
-clave privada `SETUP_TOKEN`; crea el primer administrador, permite elegir nombre,
-idioma y contacto responsable de privacidad del sitio, y luego queda cerrado.
+En una base nueva, ejecutá las migraciones y abrí la URL del sitio. El asistente
+está disponible íntegramente en castellano, inglés, francés, alemán y chino
+simplificado y recorre tres pasos:
+
+1. **Diagnóstico:** comprueba conexión a la base, migraciones, seguridad,
+   dominio, correo, IA y capacidad de escribir un `.env`, sin revelar secretos.
+2. **Entorno:** explica y permite completar todas las variables usadas por la
+   plataforma. Puede previsualizar o descargar `proplogplat.env`; en un servidor
+   propio también puede escribir `.env` si el almacenamiento es persistente.
+   Los proveedores administrados no permiten que una aplicación modifique su
+   panel: en ese caso el asistente indica exactamente dónde copiar cada valor y
+   pide reiniciar antes de continuar.
+3. **Sitio:** crea la cuenta administradora, la primera cohorte y la identidad
+   local; permite revisar los umbrales pedagógicos con sus valores recomendados.
+
+En producción exige la clave privada `SETUP_TOKEN`. Al crear la primera
+administración queda cerrado de manera permanente. Ningún secreto escrito en
+el formulario se guarda en la base de datos ni se incluye en logs; las
+respuestas del instalador llevan `Cache-Control: no-store`.
 
 Con contenedores, el recorrido local completo se inicia con:
 
@@ -185,14 +209,19 @@ Para agregar o corregir traducciones de interfaz, ver
 Base (`.env.example`):
 
 - `SECRET_KEY`
+- `SETUP_TOKEN` (protege el asistente de primera instalación)
 - `DEBUG`
 - `ALLOWED_HOSTS`
+- `CSRF_TRUSTED_ORIGINS`
+- `DATABASE_URL` y `USE_DATABASE_URL`
+- `REDIS_URL` (opcional)
+- `PORT` (normalmente lo inyecta el proveedor)
 - `ADMIN_USERNAME`
 - `ADMIN_EMAIL`
 - `ADMIN_PASSWORD`
-- `SETUP_TOKEN` (protege el asistente de primera instalación)
 - `GEMINI_API_KEY` (opcional, para generar pistas automáticas en intentos no verificados)
 - `GROQ_API_KEY` (opcional, fallback automático a Groq cuando Gemini alcanza su cuota)
+- `MCP_TRANSPORT` y `MCP_ISSUER_URL` (opcionales; servidor MCP separado)
 
 Email (recuperación de contraseña):
 

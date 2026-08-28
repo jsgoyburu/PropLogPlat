@@ -8,7 +8,7 @@
   {% if config_sitio.tiene_favicon %}
     <link rel="icon" href="{% url 'favicon' %}">
   {% else %}
-    <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
   {% endif %}
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js"></script>
   <style>
