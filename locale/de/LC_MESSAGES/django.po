@@ -951,3 +951,159 @@ msgstr "Enthält Geheimnisse. Nicht veröffentlichen oder zu Git hinzufügen."
 
 msgid "installer.env_header.managed"
 msgstr "Bei einem verwalteten Anbieter jeden SCHLÜSSEL und seinen Wert ins Dashboard kopieren."
+
+msgid "Experimentación libre"
+msgstr "Freies Experimentieren"
+
+msgid "ui.free_exploration"
+msgstr "Freies Experimentieren"
+
+msgid "Fórmula"
+msgstr "Formel"
+
+msgid "Formulador de FBF"
+msgstr "Editor für wohlgeformte Formeln"
+
+msgid "Construí fórmulas y explorá sus valores de verdad. Este espacio no guarda intentos ni modifica tu progreso."
+msgstr "Erstelle Formeln und untersuche ihre Wahrheitswerte. Hier werden keine Versuche gespeichert und dein Fortschritt wird nicht verändert."
+
+msgid "Usá variables como p, q o lluvia. Si mezclás conectivos, explicitá los paréntesis. Hasta 500 caracteres y 8 variables."
+msgstr "Verwende Variablen wie p, q oder regen. Setze bei kombinierten Junktoren explizite Klammern. Bis zu 500 Zeichen und 8 Variablen."
+
+msgid "Conectivos"
+msgstr "Junktoren"
+
+msgid "Negación"
+msgstr "Negation"
+
+msgid "Conjunción"
+msgstr "Konjunktion"
+
+msgid "Disyunción"
+msgstr "Disjunktion"
+
+msgid "Condicional"
+msgstr "Implikation"
+
+msgid "Bicondicional"
+msgstr "Äquivalenz"
+
+msgid "Los botones (…) y ~(…) agrupan o niegan la selección; sin selección, usan toda la fórmula. También podés escribir con el teclado."
+msgstr "Die Tasten (…) und ~(…) klammern oder negieren die Auswahl; ohne Auswahl verwenden sie die gesamte Formel. Du kannst auch direkt tippen."
+
+msgid "Notación y ejemplos"
+msgstr "Notation und Beispiele"
+
+msgid "Verificar FBF"
+msgstr "Wohlgeformtheit prüfen"
+
+msgid "Calcular tabla de verdad"
+msgstr "Wahrheitstabelle berechnen"
+
+msgid "Limpiar"
+msgstr "Leeren"
+
+msgid "Es una fórmula bien formada según las reglas de la plataforma. Esta verificación es formal; no evalúa la interpretación de un enunciado."
+msgstr "Die Formel ist nach den Regeln der Plattform wohlgeformt. Diese formale Prüfung bewertet nicht die Interpretation einer Aussage."
+
+msgid "filas"
+msgstr "Zeilen"
+
+msgid "Resultado"
+msgstr "Ergebnis"
+
+msgid "Tautología"
+msgstr "Tautologie"
+
+msgid "Contradicción"
+msgstr "Kontradiktion"
+
+msgid "Contingencia"
+msgstr "Kontingenz"
+
+msgid "Usá hasta 8 variables por fórmula (256 filas)."
+msgstr "Verwende höchstens 8 Variablen pro Formel (256 Zeilen)."
+
+msgid "La fórmula tiene demasiados niveles de anidación."
+msgstr "Die Formel ist zu tief verschachtelt."
+
+msgid "V: verdadero. F: falso. Tautología: todas las filas verdaderas. Contradicción: todas falsas. Contingencia: hay de ambos valores."
+msgstr "V: wahr. F: falsch. Tautologie: alle Zeilen wahr. Kontradiktion: alle falsch. Kontingenz: beide Werte kommen vor."
+
+msgid "Alternativas de teclado: & o . para ·; | para ∨; -> para ⊃; <-> para ≡. Mayúsculas y minúsculas son variables diferentes."
+msgstr "Tastatureingabe: & oder . für ·; | für ∨; -> für ⊃; <-> für ≡. Groß- und Kleinbuchstaben sind unterschiedliche Variablen."
+
+msgid "Modo de experimentación"
+msgstr "Experimentiermodus"
+
+msgid "Formalización simple"
+msgstr "Einzelne Formel"
+
+msgid "Argumentos"
+msgstr "Argumente"
+
+msgid "Premisas"
+msgstr "Prämissen"
+
+msgid "Conclusión"
+msgstr "Konklusion"
+
+msgid "Premisa %(numero)s"
+msgstr "Prämisse %(numero)s"
+
+msgid "Formulador de OBF"
+msgstr "Editor für wohlgeformte Formeln"
+
+msgid "Verificar OBF"
+msgstr "Wohlgeformtheit prüfen"
+
+msgid "No es una oración bien formada (OBF)."
+msgstr "Dies ist keine wohlgeformte Formel."
+
+msgid "Es una oración bien formada (OBF)."
+msgstr "Dies ist eine wohlgeformte Formel."
+
+msgid "Premisas y conclusión"
+msgstr "Prämissen und Konklusion"
+
+msgid "Ingresá entre 1 y 8 premisas, una por línea, y una conclusión. Hasta 500 caracteres por fórmula y 8 variables en total."
+msgstr "Gib 1–8 Prämissen ein, eine pro Zeile, und eine Konklusion. Bis zu 500 Zeichen pro Formel und insgesamt 8 Variablen."
+
+msgid "Ingresá entre 1 y 8 premisas, una por línea."
+msgstr "Gib 1–8 Prämissen ein, eine pro Zeile."
+
+msgid "Usá hasta 8 variables en todo el argumento (256 filas)."
+msgstr "Verwende insgesamt höchstens 8 Variablen im Argument (256 Zeilen)."
+
+msgid "Comprobar contradicción"
+msgstr "Widerspruch prüfen"
+
+msgid "Comprobación del argumento"
+msgstr "Prüfung des Arguments"
+
+msgid "Se comprueban las premisas entre sí y la conjunción de las premisas con la negación de la conclusión (P1 · … · Pn) · ~C."
+msgstr "Geprüft werden die Prämissen zusammen und ihre Konjunktion mit der negierten Konklusion (P1 · … · Pn) · ~C."
+
+msgid "Las premisas son contradictorias: no hay ninguna fila en que todas sean verdaderas. En lógica clásica el argumento resulta válido por vacuidad; esto no establece la verdad de la conclusión."
+msgstr "Die Prämissen sind widersprüchlich: In keiner Zeile sind alle wahr. In der klassischen Logik ist das Argument daher vakuos gültig; dies begründet nicht die Wahrheit der Konklusion."
+
+msgid "Las premisas son compatibles: hay al menos una fila en que todas son verdaderas."
+msgstr "Die Prämissen sind konsistent: In mindestens einer Zeile sind alle wahr."
+
+msgid "Premisas + negación de la conclusión: contradicción. El argumento es formalmente válido: no hay premisas verdaderas con conclusión falsa."
+msgstr "Prämissen + negierte Konklusion: Widerspruch. Das Argument ist formal gültig: Keine Zeile hat wahre Prämissen und eine falsche Konklusion."
+
+msgid "Premisas + negación de la conclusión: no hay contradicción. El argumento no es válido: existen filas con todas las premisas verdaderas y la conclusión falsa."
+msgstr "Prämissen + negierte Konklusion: kein Widerspruch. Das Argument ist ungültig: In manchen Zeilen sind alle Prämissen wahr und die Konklusion falsch."
+
+msgid "Contraejemplos"
+msgstr "Gegenbeispiele"
+
+msgid "Tabla del argumento"
+msgstr "Argumenttabelle"
+
+msgid "Las filas marcadas con * son contraejemplos. La última columna debe ser siempre falsa para que haya contradicción."
+msgstr "Mit * markierte Zeilen sind Gegenbeispiele. Für einen Widerspruch muss die letzte Spalte immer falsch sein."
+
+msgid "V: verdadero. F: falso. La validez formal no evalúa la verdad de las premisas ni la interpretación del argumento."
+msgstr "V: wahr. F: falsch. Formale Gültigkeit bewertet weder die Wahrheit der Prämissen noch die Interpretation des Arguments."

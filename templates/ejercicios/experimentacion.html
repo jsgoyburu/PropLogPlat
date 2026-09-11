@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load i18n static %}
+{% block title %}{% translate "Experimentación libre" %} — {{ config_sitio.nombre_sitio }}{% endblock %}
+{% block content %}
+<div class="container" id="laboratorio">
+  <h1>{% translate "Experimentación libre" %}</h1>
+  <p>{% translate "Construí fórmulas y explorá sus valores de verdad. Este espacio no guarda intentos ni modifica tu progreso." %}</p>
+  <div class="acciones" aria-label="{% translate 'Modo de experimentación' %}">
+    <a class="btn {% if not es_argumento %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'ejercicios:experimentacion' %}"{% if not es_argumento %} aria-current="page"{% endif %}>{% translate "Formalización simple" %}</a>
+    <a class="btn {% if es_argumento %}btn-primary{% else %}btn-secondary{% endif %}" href="{% url 'ejercicios:experimentacion' %}?modo=argumento"{% if es_argumento %} aria-current="page"{% endif %}>{% translate "Argumentos" %}</a>
+  </div>
+  <form method="post" id="formula-form">
+    {% csrf_token %}
+    <input type="hidden" name="modo" value="{% if es_argumento %}argumento{% else %}formula{% endif %}">
+    {% if es_argumento %}
+    <h2>{% translate "Premisas y conclusión" %}</h2>
+    <p id="argumento-ayuda">{% translate "Ingresá entre 1 y 8 premisas, una por línea, y una conclusión. Hasta 500 caracteres por fórmula y 8 variables en total." %}</p>
+    <label for="id_premisas">{% translate "Premisas" %}</label>
+    {{ form.premisas }}
+    <label for="id_conclusion">{% translate "Conclusión" %}</label>
+    {{ form.conclusion }}
+    {% else %}
+    <h2>{% translate "Formulador de OBF" %}</h2>
+    <label for="id_formula">{% translate "Fórmula" %}</label>
+    {{ form.formula }}
+    <p id="formula-ayuda">{% translate "Usá variables como p, q o lluvia. Si mezclás conectivos, explicitá los paréntesis. Hasta 500 caracteres y 8 variables." %}</p>
+    {% endif %}
+    <div class="keyboard" role="group" aria-label="{% translate 'Conectivos' %}">
+      <button class="key" type="button" data-insert="~" aria-label="{% translate 'Negación' %}">~</button>
+      <button class="key" type="button" data-insert=" · " aria-label="{% translate 'Conjunción' %}">·</button>
+      <button class="key" type="button" data-insert=" ∨ " aria-label="{% translate 'Disyunción' %}">∨</button>
+      <button class="key" type="button" data-insert=" ⊃ " aria-label="{% translate 'Condicional' %}">⊃</button>
+      <button class="key" type="button" data-insert=" ≡ " aria-label="{% translate 'Bicondicional' %}">≡</button>
+      <button class="key" type="button" data-wrap="group">(…)</button>
+      <button class="key" type="button" data-wrap="negate">~(…)</button>
+    </div>
+    <p class="ayuda">{% translate "Los botones (…) y ~(…) agrupan o niegan la selección; sin selección, usan toda la fórmula. También podés escribir con el teclado." %}</p>
+    <details>
+      <summary>{% translate "Notación y ejemplos" %}</summary>
+      <p>{% translate "Alternativas de teclado: & o . para ·; | para ∨; -> para ⊃; <-> para ≡. Mayúsculas y minúsculas son variables diferentes." %}</p>
+      <p><code>p ⊃ q</code> · <code>~p ∨ q</code> · <code>(p ⊃ q) ≡ (~p ∨ q)</code></p>
+    </details>
+    <div class="acciones">
+      {% if es_argumento %}
+      <button type="submit" name="accion" value="argumento" class="btn btn-primary">{% translate "Comprobar contradicción" %}</button>
+      {% else %}
+      <button type="submit" name="accion" value="validar" class="btn btn-secondary">{% translate "Verificar OBF" %}</button>
+      <button type="submit" name="accion" value="tabla" class="btn btn-primary">{% translate "Calcular tabla de verdad" %}</button>
+      {% endif %}
+      <a class="btn btn-secondary" href="{% url 'ejercicios:experimentacion' %}{% if es_argumento %}?modo=argumento{% endif %}">{% translate "Limpiar" %}</a>
+    </div>
+  </form>
+  <section id="resultado-libre" aria-live="polite">
+    {% if form.errors %}<div class="alert alert-error" role="alert">{% if no_obf %}<strong>{% translate "No es una oración bien formada (OBF)." %}</strong>{% endif %}{{ form.errors }}</div>{% endif %}
+    {% if valida %}
+      <p><strong>{% translate "Es una oración bien formada (OBF)." %}</strong></p>
+      <p class="alert alert-info">{% translate "Es una fórmula bien formada según las reglas de la plataforma. Esta verificación es formal; no evalúa la interpretación de un enunciado." %}</p>
+    {% endif %}
+    {% if argumento %}{% include 'ejercicios/_argumento_libre.html' %}{% endif %}
+    {% if filas %}
+      <h2>{% translate "Tabla de verdad" %}</h2>
+      <p><strong>{{ clasificacion }}</strong> · {{ filas|length }} {% translate "filas" %}</p>
+      <div class="tabla-scroll" tabindex="0" role="region" aria-label="{% translate 'Tabla de verdad' %}">
+        <table class="truth-table">
+          <caption>{{ form.cleaned_data.formula }}</caption>
+          <thead><tr>{% for variable in variables %}<th scope="col">{{ variable }}</th>{% endfor %}<th scope="col">{% translate "Resultado" %}</th></tr></thead>
+          <tbody>{% for fila in filas %}<tr>{% for valor in fila %}<td{% if forloop.last %} class="result-col"{% endif %}>{% if valor %}V{% else %}F{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody>
+        </table>
+      </div>
+      <p>{% translate "V: verdadero. F: falso. Tautología: todas las filas verdaderas. Contradicción: todas falsas. Contingencia: hay de ambos valores." %}</p>
+    {% endif %}
+  </section>
+</div>
+<style>
+  #laboratorio h1 { margin-bottom: .3rem; }
+  #formula-form { border-block: 1px solid #d6d9df; padding: 1rem 0; margin: 1.5rem 0; }
+  #laboratorio textarea { display:block; width:100%; padding:.8rem; font:1.3rem/1.6 monospace; border:1px solid #aaa; border-radius:5px; resize:vertical; }
+  #laboratorio textarea:focus { outline:2px solid var(--color-acento); }
+  #formula-ayuda, .ayuda { font-size:.88rem; }
+  .acciones { display:flex; flex-wrap:wrap; gap:.6rem; margin-top:1rem; }
+  .tabla-scroll { overflow-x:auto; background:white; }
+  .truth-table caption { text-align:left; padding:.7rem; overflow-wrap:anywhere; }
+  #laboratorio button:focus-visible, #laboratorio summary:focus-visible { outline:2px solid var(--color-acento); outline-offset:3px; }
+</style>
+{% endblock %}
+{% block scripts %}<script src="{% static 'js/experimentacion.js' %}" defer></script>{% endblock %}

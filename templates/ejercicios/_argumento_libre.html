@@ -1,0 +1,24 @@
+{% load i18n %}
+<h2>{% translate "Comprobación del argumento" %}</h2>
+<ol>{% for premisa in argumento.premisas %}<li><code>{{ premisa }}</code></li>{% endfor %}</ol>
+<p><strong>{% translate "Conclusión" %}:</strong> <code>{{ argumento.conclusion }}</code></p>
+<p>{% translate "Se comprueban las premisas entre sí y la conjunción de las premisas con la negación de la conclusión (P1 · … · Pn) · ~C." %}</p>
+{% if argumento.contradiccion_premisas %}
+<p class="alert alert-warning">{% translate "Las premisas son contradictorias: no hay ninguna fila en que todas sean verdaderas. En lógica clásica el argumento resulta válido por vacuidad; esto no establece la verdad de la conclusión." %}</p>
+{% else %}
+<p>{% translate "Las premisas son compatibles: hay al menos una fila en que todas son verdaderas." %}</p>
+{% endif %}
+{% if argumento.contradiccion_prueba %}
+<p class="alert alert-info">{% translate "Premisas + negación de la conclusión: contradicción. El argumento es formalmente válido: no hay premisas verdaderas con conclusión falsa." %}</p>
+{% else %}
+<p class="alert alert-info">{% translate "Premisas + negación de la conclusión: no hay contradicción. El argumento no es válido: existen filas con todas las premisas verdaderas y la conclusión falsa." %}</p>
+{% endif %}
+<p>{% translate "Contraejemplos" %}: <strong>{{ argumento.contraejemplos }}</strong></p>
+<div class="tabla-scroll" tabindex="0" role="region" aria-label="{% translate 'Tabla del argumento' %}">
+<table class="truth-table">
+  <caption>{% translate "Las filas marcadas con * son contraejemplos. La última columna debe ser siempre falsa para que haya contradicción." %}</caption>
+  <thead><tr><th scope="col">*</th>{% for variable in argumento.variables %}<th scope="col">{{ variable }}</th>{% endfor %}{% for premisa in argumento.premisas %}<th scope="col" title="{{ premisa }}">P{{ forloop.counter }}</th>{% endfor %}<th scope="col" title="{{ argumento.conclusion }}">C</th><th scope="col">~C</th><th scope="col">(P1 · … · Pn) · ~C</th></tr></thead>
+  <tbody>{% for fila in argumento.filas %}<tr><td>{% if fila.contraejemplo %}*{% else %}—{% endif %}</td>{% for valor in fila.valores %}<td{% if forloop.last %} class="result-col"{% endif %}>{% if valor %}V{% else %}F{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody>
+</table>
+</div>
+<p>{% translate "V: verdadero. F: falso. La validez formal no evalúa la verdad de las premisas ni la interpretación del argumento." %}</p>

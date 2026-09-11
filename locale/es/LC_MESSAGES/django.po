@@ -951,3 +951,159 @@ msgstr "Contiene secretos. No lo publiques ni lo agregues a Git."
 
 msgid "installer.env_header.managed"
 msgstr "En un proveedor administrado, copiá cada CLAVE y su valor al panel."
+
+msgid "Experimentación libre"
+msgstr "Experimentación libre"
+
+msgid "ui.free_exploration"
+msgstr "Experimentación libre"
+
+msgid "Fórmula"
+msgstr "Fórmula"
+
+msgid "Formulador de FBF"
+msgstr "Formulador de FBF"
+
+msgid "Construí fórmulas y explorá sus valores de verdad. Este espacio no guarda intentos ni modifica tu progreso."
+msgstr "Construí fórmulas y explorá sus valores de verdad. Este espacio no guarda intentos ni modifica tu progreso."
+
+msgid "Usá variables como p, q o lluvia. Si mezclás conectivos, explicitá los paréntesis. Hasta 500 caracteres y 8 variables."
+msgstr "Usá variables como p, q o lluvia. Si mezclás conectivos, explicitá los paréntesis. Hasta 500 caracteres y 8 variables."
+
+msgid "Conectivos"
+msgstr "Conectivos"
+
+msgid "Negación"
+msgstr "Negación"
+
+msgid "Conjunción"
+msgstr "Conjunción"
+
+msgid "Disyunción"
+msgstr "Disyunción"
+
+msgid "Condicional"
+msgstr "Condicional"
+
+msgid "Bicondicional"
+msgstr "Bicondicional"
+
+msgid "Los botones (…) y ~(…) agrupan o niegan la selección; sin selección, usan toda la fórmula. También podés escribir con el teclado."
+msgstr "Los botones (…) y ~(…) agrupan o niegan la selección; sin selección, usan toda la fórmula. También podés escribir con el teclado."
+
+msgid "Notación y ejemplos"
+msgstr "Notación y ejemplos"
+
+msgid "Verificar FBF"
+msgstr "Verificar FBF"
+
+msgid "Calcular tabla de verdad"
+msgstr "Calcular tabla de verdad"
+
+msgid "Limpiar"
+msgstr "Limpiar"
+
+msgid "Es una fórmula bien formada según las reglas de la plataforma. Esta verificación es formal; no evalúa la interpretación de un enunciado."
+msgstr "Es una fórmula bien formada según las reglas de la plataforma. Esta verificación es formal; no evalúa la interpretación de un enunciado."
+
+msgid "filas"
+msgstr "filas"
+
+msgid "Resultado"
+msgstr "Resultado"
+
+msgid "Tautología"
+msgstr "Tautología"
+
+msgid "Contradicción"
+msgstr "Contradicción"
+
+msgid "Contingencia"
+msgstr "Contingencia"
+
+msgid "Usá hasta 8 variables por fórmula (256 filas)."
+msgstr "Usá hasta 8 variables por fórmula (256 filas)."
+
+msgid "La fórmula tiene demasiados niveles de anidación."
+msgstr "La fórmula tiene demasiados niveles de anidación."
+
+msgid "V: verdadero. F: falso. Tautología: todas las filas verdaderas. Contradicción: todas falsas. Contingencia: hay de ambos valores."
+msgstr "V: verdadero. F: falso. Tautología: todas las filas verdaderas. Contradicción: todas falsas. Contingencia: hay de ambos valores."
+
+msgid "Alternativas de teclado: & o . para ·; | para ∨; -> para ⊃; <-> para ≡. Mayúsculas y minúsculas son variables diferentes."
+msgstr "Alternativas de teclado: & o . para ·; | para ∨; -> para ⊃; <-> para ≡. Mayúsculas y minúsculas son variables diferentes."
+
+msgid "Modo de experimentación"
+msgstr "Modo de experimentación"
+
+msgid "Formalización simple"
+msgstr "Formalización simple"
+
+msgid "Argumentos"
+msgstr "Argumentos"
+
+msgid "Premisas"
+msgstr "Premisas"
+
+msgid "Conclusión"
+msgstr "Conclusión"
+
+msgid "Premisa %(numero)s"
+msgstr "Premisa %(numero)s"
+
+msgid "Formulador de OBF"
+msgstr "Formulador de OBF"
+
+msgid "Verificar OBF"
+msgstr "Verificar OBF"
+
+msgid "No es una oración bien formada (OBF)."
+msgstr "No es una oración bien formada (OBF)."
+
+msgid "Es una oración bien formada (OBF)."
+msgstr "Es una oración bien formada (OBF)."
+
+msgid "Premisas y conclusión"
+msgstr "Premisas y conclusión"
+
+msgid "Ingresá entre 1 y 8 premisas, una por línea, y una conclusión. Hasta 500 caracteres por fórmula y 8 variables en total."
+msgstr "Ingresá entre 1 y 8 premisas, una por línea, y una conclusión. Hasta 500 caracteres por fórmula y 8 variables en total."
+
+msgid "Ingresá entre 1 y 8 premisas, una por línea."
+msgstr "Ingresá entre 1 y 8 premisas, una por línea."
+
+msgid "Usá hasta 8 variables en todo el argumento (256 filas)."
+msgstr "Usá hasta 8 variables en todo el argumento (256 filas)."
+
+msgid "Comprobar contradicción"
+msgstr "Comprobar contradicción"
+
+msgid "Comprobación del argumento"
+msgstr "Comprobación del argumento"
+
+msgid "Se comprueban las premisas entre sí y la conjunción de las premisas con la negación de la conclusión (P1 · … · Pn) · ~C."
+msgstr "Se comprueban las premisas entre sí y la conjunción de las premisas con la negación de la conclusión (P1 · … · Pn) · ~C."
+
+msgid "Las premisas son contradictorias: no hay ninguna fila en que todas sean verdaderas. En lógica clásica el argumento resulta válido por vacuidad; esto no establece la verdad de la conclusión."
+msgstr "Las premisas son contradictorias: no hay ninguna fila en que todas sean verdaderas. En lógica clásica el argumento resulta válido por vacuidad; esto no establece la verdad de la conclusión."
+
+msgid "Las premisas son compatibles: hay al menos una fila en que todas son verdaderas."
+msgstr "Las premisas son compatibles: hay al menos una fila en que todas son verdaderas."
+
+msgid "Premisas + negación de la conclusión: contradicción. El argumento es formalmente válido: no hay premisas verdaderas con conclusión falsa."
+msgstr "Premisas + negación de la conclusión: contradicción. El argumento es formalmente válido: no hay premisas verdaderas con conclusión falsa."
+
+msgid "Premisas + negación de la conclusión: no hay contradicción. El argumento no es válido: existen filas con todas las premisas verdaderas y la conclusión falsa."
+msgstr "Premisas + negación de la conclusión: no hay contradicción. El argumento no es válido: existen filas con todas las premisas verdaderas y la conclusión falsa."
+
+msgid "Contraejemplos"
+msgstr "Contraejemplos"
+
+msgid "Tabla del argumento"
+msgstr "Tabla del argumento"
+
+msgid "Las filas marcadas con * son contraejemplos. La última columna debe ser siempre falsa para que haya contradicción."
+msgstr "Las filas marcadas con * son contraejemplos. La última columna debe ser siempre falsa para que haya contradicción."
+
+msgid "V: verdadero. F: falso. La validez formal no evalúa la verdad de las premisas ni la interpretación del argumento."
+msgstr "V: verdadero. F: falso. La validez formal no evalúa la verdad de las premisas ni la interpretación del argumento."
