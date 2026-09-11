@@ -914,5 +914,5 @@ alue too long for type character varying(20)).
 - Pedido: experimentación libre para ambos roles, OBF explícita y contradicción en argumentos; PR en PropLogPlat después de IPC-Logica.
 - Cambios: misma funcionalidad de IPC-Logica #202, sobre main del fork público y con traducciones gettext en los cinco idiomas. OBF y tabla de fórmula; argumentos con premisas/conclusión obligatorias, consistencia de premisas, contradicción de P1 · … · Pn · ~C, contraejemplos y validez vacua. Sin registros académicos, modelos, migraciones ni dependencias nuevas. README y Estado actual actualizados.
 - Tests/checks: suite completa 621/621 tests Django OK; luego 18/18 focalizados OK, incluyendo un test adicional de ambos modos en los cinco idiomas. Motor 151/151 OK; check y migraciones sin cambios; cinco catálogos .mo reproducibles con Babel; git diff --check OK. El flujo compartido se verificó en navegador en IPC-Logica (escritorio/móvil, validez y contraejemplos).
-- Commit: pendiente.
-- PR: pendiente.
+- Commit: 2b87b38 (feat: agregar experimentacion libre multilingue de OBF y argumentos).
+- PR: #1 — https://github.com/jsgoyburu/PropLogPlat/pull/1 (abierto).
