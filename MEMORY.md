@@ -916,3 +916,10 @@ alue too long for type character varying(20)).
 - Tests/checks: suite completa 621/621 tests Django OK; luego 18/18 focalizados OK, incluyendo un test adicional de ambos modos en los cinco idiomas. Motor 151/151 OK; check y migraciones sin cambios; cinco catálogos .mo reproducibles con Babel; git diff --check OK. El flujo compartido se verificó en navegador en IPC-Logica (escritorio/móvil, validez y contraejemplos).
 - Commit: 2b87b38 (feat: agregar experimentacion libre multilingue de OBF y argumentos).
 - PR: #1 — https://github.com/jsgoyburu/PropLogPlat/pull/1 (abierto).
+
+### 2026-09-11 09:35 (ART) — agente:codex — rama:codex/experimentacion-libre-public
+- Pedido: corregir en ambos PR el comentario sobre saltos de línea en el límite de premisas.
+- Cambios: límite agregado de 4014 caracteres (8 × 500 + 7 × 2), contemplando separadores CRLF y LF. Se mantiene validación individual de 500 caracteres y máximo de ocho premisas. Dos pruebas de regresión: aceptación del máximo con ambos separadores y rechazo de una fórmula de 501 caracteres. Sin cambios al contrato documentado ni al motor.
+- Tests/checks: 20/20 tests de ejercicios.test_experimentacion OK; git diff --check OK. No se repitió la suite global por tratarse de una corrección localizada de validación cubierta por la suite del módulo.
+- Commit: 65d472f (fix: contemplar separadores en el limite de premisas).
+- PR: https://github.com/jsgoyburu/PropLogPlat/pull/1 (corrección incluida en la rama del PR).
