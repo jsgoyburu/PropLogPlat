@@ -951,3 +951,159 @@ msgstr "包含密钥。请勿公开或加入 Git。"
 
 msgid "installer.env_header.managed"
 msgstr "在托管服务商中，请将每个键及其值复制到控制台。"
+
+msgid "Experimentación libre"
+msgstr "自由探索"
+
+msgid "ui.free_exploration"
+msgstr "自由探索"
+
+msgid "Fórmula"
+msgstr "公式"
+
+msgid "Formulador de FBF"
+msgstr "合式公式编辑器"
+
+msgid "Construí fórmulas y explorá sus valores de verdad. Este espacio no guarda intentos ni modifica tu progreso."
+msgstr "构建公式并探索其真值。此空间不保存尝试，也不改变学习进度。"
+
+msgid "Usá variables como p, q o lluvia. Si mezclás conectivos, explicitá los paréntesis. Hasta 500 caracteres y 8 variables."
+msgstr "可使用 p、q 或 rain 等变量。混合使用联结词时，请明确添加括号。最多 500 个字符和 8 个变量。"
+
+msgid "Conectivos"
+msgstr "联结词"
+
+msgid "Negación"
+msgstr "否定"
+
+msgid "Conjunción"
+msgstr "合取"
+
+msgid "Disyunción"
+msgstr "析取"
+
+msgid "Condicional"
+msgstr "条件式"
+
+msgid "Bicondicional"
+msgstr "双条件式"
+
+msgid "Los botones (…) y ~(…) agrupan o niegan la selección; sin selección, usan toda la fórmula. También podés escribir con el teclado."
+msgstr "按钮 (…) 和 ~(…) 可为选中内容添加括号或取否定；未选中内容时，作用于整个公式。也可以直接键入。"
+
+msgid "Notación y ejemplos"
+msgstr "符号与示例"
+
+msgid "Verificar FBF"
+msgstr "验证合式性"
+
+msgid "Calcular tabla de verdad"
+msgstr "计算真值表"
+
+msgid "Limpiar"
+msgstr "清空"
+
+msgid "Es una fórmula bien formada según las reglas de la plataforma. Esta verificación es formal; no evalúa la interpretación de un enunciado."
+msgstr "根据平台规则，这是一个合式公式。此验证仅涉及形式，不评估对语句的解释。"
+
+msgid "filas"
+msgstr "行"
+
+msgid "Resultado"
+msgstr "结果"
+
+msgid "Tautología"
+msgstr "重言式"
+
+msgid "Contradicción"
+msgstr "矛盾式"
+
+msgid "Contingencia"
+msgstr "偶然式"
+
+msgid "Usá hasta 8 variables por fórmula (256 filas)."
+msgstr "每个公式最多使用 8 个变量（256 行）。"
+
+msgid "La fórmula tiene demasiados niveles de anidación."
+msgstr "公式的嵌套层数过多。"
+
+msgid "V: verdadero. F: falso. Tautología: todas las filas verdaderas. Contradicción: todas falsas. Contingencia: hay de ambos valores."
+msgstr "V：真。F：假。重言式：所有行均为真。矛盾式：所有行均为假。偶然式：两种值均出现。"
+
+msgid "Alternativas de teclado: & o . para ·; | para ∨; -> para ⊃; <-> para ≡. Mayúsculas y minúsculas son variables diferentes."
+msgstr "键盘替代符号：& 或 . 表示 ·；| 表示 ∨；-> 表示 ⊃；<-> 表示 ≡。大小写字母是不同的变量。"
+
+msgid "Modo de experimentación"
+msgstr "探索模式"
+
+msgid "Formalización simple"
+msgstr "单个公式"
+
+msgid "Argumentos"
+msgstr "论证"
+
+msgid "Premisas"
+msgstr "前提"
+
+msgid "Conclusión"
+msgstr "结论"
+
+msgid "Premisa %(numero)s"
+msgstr "前提 %(numero)s"
+
+msgid "Formulador de OBF"
+msgstr "合式公式编辑器"
+
+msgid "Verificar OBF"
+msgstr "验证合式性"
+
+msgid "No es una oración bien formada (OBF)."
+msgstr "这不是合式公式。"
+
+msgid "Es una oración bien formada (OBF)."
+msgstr "这是合式公式。"
+
+msgid "Premisas y conclusión"
+msgstr "前提与结论"
+
+msgid "Ingresá entre 1 y 8 premisas, una por línea, y una conclusión. Hasta 500 caracteres por fórmula y 8 variables en total."
+msgstr "输入 1–8 个前提，每行一个，并输入结论。每个公式最多 500 个字符，总共最多 8 个变量。"
+
+msgid "Ingresá entre 1 y 8 premisas, una por línea."
+msgstr "请输入 1–8 个前提，每行一个。"
+
+msgid "Usá hasta 8 variables en todo el argumento (256 filas)."
+msgstr "整个论证最多使用 8 个变量（256 行）。"
+
+msgid "Comprobar contradicción"
+msgstr "检查矛盾"
+
+msgid "Comprobación del argumento"
+msgstr "论证检验"
+
+msgid "Se comprueban las premisas entre sí y la conjunción de las premisas con la negación de la conclusión (P1 · … · Pn) · ~C."
+msgstr "检验前提之间的一致性，以及前提与结论的否定的合取 (P1 · … · Pn) · ~C。"
+
+msgid "Las premisas son contradictorias: no hay ninguna fila en que todas sean verdaderas. En lógica clásica el argumento resulta válido por vacuidad; esto no establece la verdad de la conclusión."
+msgstr "前提互相矛盾：没有任何一行使所有前提为真。在经典逻辑中，该论证空泛有效；这并不能确立结论为真。"
+
+msgid "Las premisas son compatibles: hay al menos una fila en que todas son verdaderas."
+msgstr "前提相容：至少有一行使所有前提为真。"
+
+msgid "Premisas + negación de la conclusión: contradicción. El argumento es formalmente válido: no hay premisas verdaderas con conclusión falsa."
+msgstr "前提加上结论的否定：矛盾。论证形式有效：不存在所有前提为真而结论为假的行。"
+
+msgid "Premisas + negación de la conclusión: no hay contradicción. El argumento no es válido: existen filas con todas las premisas verdaderas y la conclusión falsa."
+msgstr "前提加上结论的否定：无矛盾。论证无效：存在所有前提为真而结论为假的行。"
+
+msgid "Contraejemplos"
+msgstr "反例"
+
+msgid "Tabla del argumento"
+msgstr "论证真值表"
+
+msgid "Las filas marcadas con * son contraejemplos. La última columna debe ser siempre falsa para que haya contradicción."
+msgstr "标有 * 的行是反例。最后一列必须始终为假，才构成矛盾。"
+
+msgid "V: verdadero. F: falso. La validez formal no evalúa la verdad de las premisas ni la interpretación del argumento."
+msgstr "V：真。F：假。形式有效性不评估前提的真实性或对论证的解释。"

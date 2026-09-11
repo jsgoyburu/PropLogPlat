@@ -367,6 +367,7 @@
         <a href="{% url 'ejercicios:home' %}">{% ui 'home' %}</a>
         <a href="{% url 'ejercicios:mi_historial' %}">{% ui 'my_history' %}</a>
       {% endif %}
+      <a href="{% url 'ejercicios:experimentacion' %}">{% ui 'free_exploration' %}</a>
       <a href="{% url 'accounts:mi_perfil' %}" style="opacity:0.85; font-size:0.88rem;">
         {{ user.nombre_display }}
         <span style="opacity:0.6;">·</span>

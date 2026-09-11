@@ -359,3 +359,30 @@ sphinx-build -W -b html docs/ docs/_build/html
 [GNU Affero General Public License v3.0](LICENSE) (AGPL-3.0).
 
 Se puede usar, estudiar, modificar y redistribuir libremente, incluso con fines comerciales. La condición es la recíproca: cualquier trabajo derivado debe publicarse bajo la misma licencia, y **quien corra una versión modificada como servicio accesible por red está obligado a poner su código fuente a disposición de quienes la usen**. Esa cláusula de red es lo que distingue a la AGPL de la GPL común, y es la razón de elegirla para una plataforma web educativa: impide que el trabajo se convierta en un servicio cerrado sin devolver nada.
+
+### Experimentación libre
+
+Desde la navegación general, docentes, estudiantes y staff pueden acceder a
+`/experimentacion/` tras completar el ingreso inicial, sin requerir comisión.
+En **Formalización simple**, el editor permite insertar conectivos Copi, agrupar
+o negar selecciones y verificar explícitamente si es una oración bien formada
+(**OBF**). También calcula la tabla y clasifica tautología, contradicción o
+contingencia. Acepta las alternativas ASCII del motor y mantiene sus reglas de
+paréntesis explícitos. Las variables se conservan en orden de aparición, incluso
+si la expresión se simplifica.
+
+En **Argumentos**, se requiere al menos una premisa y una conclusión. Se
+comprueba la compatibilidad de las premisas y, por separado, si
+`(P1 · … · Pn) · ~C` es una contradicción. Esta última prueba indica validez
+formal; cuando no hay contradicción, la tabla identifica los contraejemplos.
+Las premisas inconsistentes se señalan expresamente y se explica la validez
+vacua, sin afirmar la verdad de la conclusión.
+
+Límites: 500 caracteres por fórmula, 8 premisas y 8 variables en total
+(256 filas). Las exploraciones no guardan intentos ni alteran progreso,
+evaluaciones o analíticas. El formulario funciona sin JavaScript; los botones
+de edición requieren JavaScript.
+
+La interfaz está traducida a los cinco idiomas del sitio mediante catálogos
+gettext `.po` y `.mo`. Los mensajes específicos del parser conservan el
+castellano del motor existente.

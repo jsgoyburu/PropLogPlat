@@ -69,6 +69,8 @@ Cada vez que un agente trabaje en este repositorio (en `master` o en cualquier r
 
 ## 3) Estado actual (snapshot funcional)
 
+- **Experimentación libre:** `/experimentacion/` para docentes, estudiantes y staff con onboarding completo y sin comisión. Editor de OBF y tabla semántica; argumentos con 1–8 premisas y conclusión, compatibilidad de premisas y contradicción de premisas más negación de conclusión, contraejemplos y explicación de validez vacua. Máximo 500 caracteres por fórmula y 8 variables; sin persistencia académica. Interfaz en cinco idiomas.
+
 - **Auth:** usuario personalizado + middleware de primer ingreso.
 - **Onboarding:** cambio de contraseña obligatorio + consentimientos pedagógico/investigación; persistencia alineada de campos socioeducativos del formulario completo (incluye laboral, secundaria y respuestas compuestas como cirugía en un solo campo).
 - **Ejercicios/prácticas:** ordenados, con desbloqueo secuencial y ventanas de apertura/cierre; el contenido original en castellano admite traducciones opcionales al inglés, francés, alemán y chino simplificado cargadas desde el admin, con fallback explícito al original.
@@ -907,3 +909,10 @@ alue too long for type character varying(20)).
 - Tests/checks: `manage.py check` OK; `makemigrations --check --dry-run` sin cambios; 11/11 tests focalizados y 604/604 tests Django OK; motor 151/151 OK; `git diff --check` OK; cinco catálogos de 313 mensajes compilados y reproducibles; `docker compose config --quiet`, schema JSON, `railway.toml` y `bash -n setup.sh` OK. Recorrido real con Playwright en escritorio, móvil y chino: redirección, tres pasos, creación de cohorte/admin e ingreso al admin OK, sin errores de consola. No se construyó la imagen local porque Docker Desktop no estaba activo; se validó su configuración. Auditoría externa posterior: el borrador de template Railway `UZoADg` existe en estado `UNPUBLISHED`, pero está vacío y su enlace de despliegue devuelve `Invalid Template`; reconstruirlo y publicarlo requiere una modificación explícita de la cuenta Railway, pendiente de confirmación del usuario.
 - Commit: a17d6f0 (feat: crear instalador web agnostico y multilingue)
 - PR: N/A — `jsgoyburu/PropLogPlat` actualizado en `8de1db4` (historia pública preservada; CI verde: https://github.com/jsgoyburu/PropLogPlat/actions/runs/33138110234)
+
+### 2026-09-11 02:12 (ART) — agente:codex — rama:codex/experimentacion-libre-public
+- Pedido: experimentación libre para ambos roles, OBF explícita y contradicción en argumentos; PR en PropLogPlat después de IPC-Logica.
+- Cambios: misma funcionalidad de IPC-Logica #202, sobre main del fork público y con traducciones gettext en los cinco idiomas. OBF y tabla de fórmula; argumentos con premisas/conclusión obligatorias, consistencia de premisas, contradicción de P1 · … · Pn · ~C, contraejemplos y validez vacua. Sin registros académicos, modelos, migraciones ni dependencias nuevas. README y Estado actual actualizados.
+- Tests/checks: suite completa 621/621 tests Django OK; luego 18/18 focalizados OK, incluyendo un test adicional de ambos modos en los cinco idiomas. Motor 151/151 OK; check y migraciones sin cambios; cinco catálogos .mo reproducibles con Babel; git diff --check OK. El flujo compartido se verificó en navegador en IPC-Logica (escritorio/móvil, validez y contraejemplos).
+- Commit: pendiente.
+- PR: pendiente.

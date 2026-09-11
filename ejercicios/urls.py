@@ -9,10 +9,12 @@ Patterns:
 from django.urls import path
 
 from . import views
+from .experimentacion import experimentacion
 
 app_name = 'ejercicios'
 
 urlpatterns = [
+    path('experimentacion/', experimentacion, name='experimentacion'),
     path('', views.home, name='home'),
     path('mi-historial/', views.mi_historial, name='mi_historial'),
     path('practica/<int:pc_id>/', views.practica_detail, name='practica'),

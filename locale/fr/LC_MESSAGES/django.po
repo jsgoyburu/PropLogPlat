@@ -951,3 +951,159 @@ msgstr "Contient des secrets. Ne le publiez pas et ne l’ajoutez pas à Git."
 
 msgid "installer.env_header.managed"
 msgstr "Chez un hébergeur administré, copiez chaque CLÉ et sa valeur dans le tableau de bord."
+
+msgid "Experimentación libre"
+msgstr "Exploration libre"
+
+msgid "ui.free_exploration"
+msgstr "Exploration libre"
+
+msgid "Fórmula"
+msgstr "Formule"
+
+msgid "Formulador de FBF"
+msgstr "Éditeur de formules bien formées"
+
+msgid "Construí fórmulas y explorá sus valores de verdad. Este espacio no guarda intentos ni modifica tu progreso."
+msgstr "Construisez des formules et explorez leurs valeurs de vérité. Cet espace ne sauvegarde pas les essais et ne modifie pas votre progression."
+
+msgid "Usá variables como p, q o lluvia. Si mezclás conectivos, explicitá los paréntesis. Hasta 500 caracteres y 8 variables."
+msgstr "Utilisez des variables comme p, q ou pluie. Si vous combinez des connecteurs, explicitez les parenthèses. Jusqu’à 500 caractères et 8 variables."
+
+msgid "Conectivos"
+msgstr "Connecteurs"
+
+msgid "Negación"
+msgstr "Négation"
+
+msgid "Conjunción"
+msgstr "Conjonction"
+
+msgid "Disyunción"
+msgstr "Disjonction"
+
+msgid "Condicional"
+msgstr "Conditionnel"
+
+msgid "Bicondicional"
+msgstr "Biconditionnel"
+
+msgid "Los botones (…) y ~(…) agrupan o niegan la selección; sin selección, usan toda la fórmula. También podés escribir con el teclado."
+msgstr "Les boutons (…) et ~(…) regroupent ou nient la sélection ; sans sélection, ils utilisent toute la formule. Vous pouvez aussi saisir au clavier."
+
+msgid "Notación y ejemplos"
+msgstr "Notation et exemples"
+
+msgid "Verificar FBF"
+msgstr "Vérifier la bonne formation"
+
+msgid "Calcular tabla de verdad"
+msgstr "Calculer la table de vérité"
+
+msgid "Limpiar"
+msgstr "Effacer"
+
+msgid "Es una fórmula bien formada según las reglas de la plataforma. Esta verificación es formal; no evalúa la interpretación de un enunciado."
+msgstr "Cette formule est bien formée selon les règles de la plateforme. Cette vérification est formelle ; elle n’évalue pas l’interprétation d’un énoncé."
+
+msgid "filas"
+msgstr "lignes"
+
+msgid "Resultado"
+msgstr "Résultat"
+
+msgid "Tautología"
+msgstr "Tautologie"
+
+msgid "Contradicción"
+msgstr "Contradiction"
+
+msgid "Contingencia"
+msgstr "Contingence"
+
+msgid "Usá hasta 8 variables por fórmula (256 filas)."
+msgstr "Utilisez au maximum 8 variables par formule (256 lignes)."
+
+msgid "La fórmula tiene demasiados niveles de anidación."
+msgstr "La formule comporte trop de niveaux d’imbrication."
+
+msgid "V: verdadero. F: falso. Tautología: todas las filas verdaderas. Contradicción: todas falsas. Contingencia: hay de ambos valores."
+msgstr "V : vrai. F : faux. Tautologie : toutes les lignes sont vraies. Contradiction : toutes sont fausses. Contingence : les deux valeurs apparaissent."
+
+msgid "Alternativas de teclado: & o . para ·; | para ∨; -> para ⊃; <-> para ≡. Mayúsculas y minúsculas son variables diferentes."
+msgstr "Au clavier : & ou . pour · ; | pour ∨ ; -> pour ⊃ ; <-> pour ≡. Majuscules et minuscules sont des variables différentes."
+
+msgid "Modo de experimentación"
+msgstr "Mode d’exploration"
+
+msgid "Formalización simple"
+msgstr "Formule simple"
+
+msgid "Argumentos"
+msgstr "Arguments"
+
+msgid "Premisas"
+msgstr "Prémisses"
+
+msgid "Conclusión"
+msgstr "Conclusion"
+
+msgid "Premisa %(numero)s"
+msgstr "Prémisse %(numero)s"
+
+msgid "Formulador de OBF"
+msgstr "Éditeur de formules bien formées"
+
+msgid "Verificar OBF"
+msgstr "Vérifier la bonne formation"
+
+msgid "No es una oración bien formada (OBF)."
+msgstr "Ce n’est pas une formule bien formée."
+
+msgid "Es una oración bien formada (OBF)."
+msgstr "C’est une formule bien formée."
+
+msgid "Premisas y conclusión"
+msgstr "Prémisses et conclusion"
+
+msgid "Ingresá entre 1 y 8 premisas, una por línea, y una conclusión. Hasta 500 caracteres por fórmula y 8 variables en total."
+msgstr "Saisissez 1 à 8 prémisses, une par ligne, et une conclusion. Jusqu’à 500 caractères par formule et 8 variables au total."
+
+msgid "Ingresá entre 1 y 8 premisas, una por línea."
+msgstr "Saisissez 1 à 8 prémisses, une par ligne."
+
+msgid "Usá hasta 8 variables en todo el argumento (256 filas)."
+msgstr "Utilisez au maximum 8 variables dans tout l’argument (256 lignes)."
+
+msgid "Comprobar contradicción"
+msgstr "Vérifier la contradiction"
+
+msgid "Comprobación del argumento"
+msgstr "Vérification de l’argument"
+
+msgid "Se comprueban las premisas entre sí y la conjunción de las premisas con la negación de la conclusión (P1 · … · Pn) · ~C."
+msgstr "On vérifie les prémisses entre elles et leur conjonction avec la négation de la conclusion (P1 · … · Pn) · ~C."
+
+msgid "Las premisas son contradictorias: no hay ninguna fila en que todas sean verdaderas. En lógica clásica el argumento resulta válido por vacuidad; esto no establece la verdad de la conclusión."
+msgstr "Les prémisses sont contradictoires : aucune ligne ne les rend toutes vraies. En logique classique, l’argument est valide par vacuité ; cela n’établit pas la vérité de la conclusion."
+
+msgid "Las premisas son compatibles: hay al menos una fila en que todas son verdaderas."
+msgstr "Les prémisses sont compatibles : au moins une ligne les rend toutes vraies."
+
+msgid "Premisas + negación de la conclusión: contradicción. El argumento es formalmente válido: no hay premisas verdaderas con conclusión falsa."
+msgstr "Prémisses + négation de la conclusion : contradiction. L’argument est formellement valide : aucune ligne n’a toutes les prémisses vraies et la conclusion fausse."
+
+msgid "Premisas + negación de la conclusión: no hay contradicción. El argumento no es válido: existen filas con todas las premisas verdaderas y la conclusión falsa."
+msgstr "Prémisses + négation de la conclusion : pas de contradiction. L’argument est invalide : certaines lignes ont toutes les prémisses vraies et la conclusion fausse."
+
+msgid "Contraejemplos"
+msgstr "Contre-exemples"
+
+msgid "Tabla del argumento"
+msgstr "Table de l’argument"
+
+msgid "Las filas marcadas con * son contraejemplos. La última columna debe ser siempre falsa para que haya contradicción."
+msgstr "Les lignes marquées * sont des contre-exemples. La dernière colonne doit être toujours fausse pour qu’il y ait contradiction."
+
+msgid "V: verdadero. F: falso. La validez formal no evalúa la verdad de las premisas ni la interpretación del argumento."
+msgstr "V : vrai. F : faux. La validité formelle n’évalue ni la vérité des prémisses ni l’interprétation de l’argument."
