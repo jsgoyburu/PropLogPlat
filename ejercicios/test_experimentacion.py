@@ -129,6 +129,24 @@ class ExperimentacionTests(TestCase):
             self.assertTrue(response.context['form'].errors)
             self.assertNotIn('argumento', response.context)
 
+    def test_ocho_premisas_de_500_caracteres_con_lf_y_crlf(self):
+        formula = 'p' * 500
+        for separador in ('\n', '\r\n'):
+            with self.subTest(separador=repr(separador)):
+                response = self.argumento(separador.join([formula] * 8), formula)
+                self.assertFalse(response.context['form'].errors)
+                result = response.context['argumento']
+                self.assertEqual(len(result['premisas']), 8)
+                self.assertTrue(result['contradiccion_prueba'])
+                self.assertEqual(len(result['filas']), 2)
+
+    def test_margen_de_separadores_no_amplia_limite_por_formula(self):
+        for separador in ('\n', '\r\n'):
+            with self.subTest(separador=repr(separador)):
+                response = self.argumento(separador.join(['p' * 501] + ['p'] * 7), 'p')
+                self.assertIn('premisas', response.context['form'].errors)
+                self.assertNotIn('argumento', response.context)
+
     def test_argumento_sin_efectos_academicos(self):
         before = (Intento.objects.count(), Progreso.objects.count())
         self.argumento('p\n~p', 'q')

@@ -38,7 +38,8 @@ class FormulaLibreForm(forms.Form):
 
 
 class ArgumentoLibreForm(forms.Form):
-    premisas = forms.CharField(max_length=4000, label=gettext_lazy('Premisas'),
+    # Ocho fórmulas de 500 caracteres + siete separadores CRLF de 2.
+    premisas = forms.CharField(max_length=8 * 500 + 7 * 2, label=gettext_lazy('Premisas'),
                               widget=forms.Textarea(attrs={'rows': 4, 'spellcheck': 'false'}))
     conclusion = forms.CharField(max_length=500, label=gettext_lazy('Conclusión'),
                                 widget=forms.Textarea(attrs={'rows': 2, 'spellcheck': 'false'}))
